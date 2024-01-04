@@ -473,3 +473,97 @@ ggplot(temp_data,aes(fit*100,industry))+
                      breaks=breaks*100,
                      labels = scales::label_comma(scale = .01) )
 }
+
+
+
+
+
+############################################################   
+############################################################   
+##############   3: Multiple Bar plots  ####################
+############################################################   
+############################################################  
+
+#grab sector level aggregate MU and adr
+Sector_MU_Adr <- function(Dset,naics,N){
+
+  #generate N digit industry names
+  temp_data<-Industry_n_dig(Dset,naics,N)
+  
+  ####################################################################
+  ################# clean industry names, store names  #################
+  ####################################################################
+  
+
+  #get rid of annoying T's and NA
+  temp_data$industry <-paste(temp_data$industry, "")
+  temp_data$industry=gsub('T  ',"", temp_data$industry)
+  temp_data$industry=gsub('T ',"", temp_data$industry)
+  temp_data$industry=gsub('  ',"", temp_data$industry)
+  temp_data <- temp_data %>%
+      filter(!industry=="NA ")
+
+  temp_data<- temp_data %>%
+    filter(!is.na(usercost))%>%
+    filter(MU>-100)%>%
+    filter(MU<100000)
+
+
+  tempdata_2<- temp_data%>%
+  group_by(industry) %>%
+  summarise(weighted.mean(MU_1, sale, na.rm = T))
+   names(tempdata_2)<-c("industry","Ag_MU")
+   #rename
+
+
+  tempdata_3<- temp_data%>%
+  group_by(industry) %>%
+  summarise(weighted.mean(Adr_MC, sale, na.rm = T))
+   names(tempdata_3)<-c("industry","Ag_adr")
+   #rename
+
+  tempdata=merge(tempdata_2,tempdata_3)
+
+  print(tempdata)
+
+}
+
+
+########## Efficency + MU & Adr ##############
+Efficency_plot_stacked <- function(hold){
+
+  hold2<-hold %>% select(-se)
+
+  names(hold2)=c("industry","C_MU","B_Adr","A_Exad")
+
+  labs=c(C_MU = "Markup (Sales Weighted)", B_Adr = "xad (Sales Weighted)", A_Exad = "Advertising Efficency (2022)")
+
+  temp_data <- gather(hold2, variable,value, -industry)
+
+  temp_data2=merge(temp_data,hold)
+
+  temp_data2<-temp_data2 %>% 
+    mutate(vmin =(value - 1.96*se)*(variable=="A_Exad") )%>% 
+    mutate(vmax =(value + 1.96*se)*(variable=="A_Exad") )
+
+  temp_data2<-temp_data2 %>% 
+    mutate(vmin =na_if(vmin,0) )%>% 
+    mutate(vmax =na_if(vmax, 0))
+
+  plot<-ggplot(temp_data2, aes(x = value, y = reorder(industry,-fit)) ) +
+     geom_col() +
+     theme_bw() +
+     facet_wrap(~variable, scales = "free_x", labeller = as_labeller(labs))+
+     theme(text = element_text(size = 20))+
+     scale_y_discrete(labels=wrap_format(22))+
+     geom_errorbar(aes(xmin = vmin, xmax = vmax),
+            width = 0.2, color = "darkblue") +
+     labs(title = NULL,
+         x = NULL,
+         y = "Industry (2 Digit NAICS Code)")
+
+
+  plot
+
+}
+  

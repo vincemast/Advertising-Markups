@@ -44,25 +44,22 @@ Dset <- read.csv("COMPUSTAT_simp.csv")
 #usercost
 Ucost <- read.csv("usercost.csv")
 
+#load naisc codes
+naics <- read.csv("2022_NAICS_Structure.csv")
+
+colnames(naics) <- c("change", "naics_n", "industry")
+
+
 
 ################## 1.b Clean data ##########################
 #back to functions
-setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/R")
+setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups")
 
 
 Dset<-Variable_Gen(Dset,Ucost)
 
 Data<- Clean_adv(Dset)
 #clean and combine data
-
-
-
-################## 1.c Load Naics ##########################
-
-#load naisc codes
-naics <- read.csv("2022_NAICS_Structure.csv")
-
-colnames(naics) <- c("change", "naics_n", "industry")
 
 
 ############################################################       
@@ -80,7 +77,7 @@ colnames(naics) <- c("change", "naics_n", "industry")
   xad_density #print
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex")
       #ggsave("xad_density.pdf",  xad_density, width = 10, height = 9, units = "in")
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/R")
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups")
 
 
 
@@ -97,7 +94,7 @@ colnames(naics) <- c("change", "naics_n", "industry")
    MU_density #print
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex")
       #ggsave("MU_density.pdf",  MU_density, width = 10, height = 9, units = "in")
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/R")
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups")
 
 
 #zero_subset <- Data %>%
@@ -130,7 +127,7 @@ agg_mu_plot=ggplot()+
 agg_mu_plot
     #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex")
     #ggsave("agg_mu_plot.pdf",  agg_mu_plot, width = 10, height = 9, units = "in")
-    #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/R")
+    #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups")
 
 
 
@@ -166,7 +163,7 @@ setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex")
       #ggsave("scatter_Retail.pdf",  scatter_Retail, width = 9, height = 9, units = "in")
     scatter_Finance
       #ggsave("scatter_Finance.pdf", scatter_Finance, width = 9, height = 9, units = "in")
-setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/R")
+setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups")
 
 
 
@@ -174,7 +171,7 @@ setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/R")
 #0: Test table
 ############################################################  
 
-testtable<-Test_table(Data,naics,2)
+testtable<-Test_table(Data,naics,2) 
 testtable[5,1]="Administrative and Support"
 lign=c("l","c","c","c","c","c")
 
@@ -197,7 +194,13 @@ sector_coef_2d <- data.frame(data.frame(Results_2Digit[3]))
 year_coef_2d <- data.frame(data.frame(Results_2Digit[4]))
 
 table_1_latex<-Results_2Digit[6]
-####################2.a plots#######
+
+#within sector aggregate mu and adr
+
+agg_2_digit <- Sector_MU_Adr(Dset,naics,2)
+
+
+#################### 2.a plots ###########################
 
 
 #time trend plot
@@ -217,7 +220,7 @@ time_co_plot_2d<-
 time_co_plot_2d
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex")
       #ggsave("time_co_plot_2d.pdf", time_co_plot_2d, width = 9, height = 7, units = "in")
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/R")
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups")
 
 
 #sector plot
@@ -228,7 +231,7 @@ industry_co_plot_2d<-Efficency_plot_2_digit(sector_coef_2d)
 industry_co_plot_2d
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex")
       #ggsave("industry_co_plot_2d.pdf", industry_co_plot_2d, width = 9, height = 7, units = "in")
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/R")
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups")
 
 
 
@@ -271,7 +274,7 @@ time_co_plot_3d<-
 time_co_plot_3d
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex")
       #ggsave("time_co_plot_3d.pdf", time_co_plot_3d, width = 9, height = 7, units = "in")
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/R")
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups")
 
 #sector plot
 
