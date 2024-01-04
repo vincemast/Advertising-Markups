@@ -23,7 +23,7 @@ library(xtable)
 library(scales)
 
 #navigate to folder with functions
-setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/R")
+setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups")
 #functions
 source("function_subsets.R")
 source("function_plots.R")
@@ -37,7 +37,7 @@ source("function_regressions.R")
 
 ############# 1.a load data ##############
 #navigate to with datra
-setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/On_Entry_Exit")
+setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/data")
 
 #compustat
 Dset <- read.csv("COMPUSTAT_simp.csv")
