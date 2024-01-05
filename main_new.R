@@ -58,9 +58,9 @@ colnames(naics) <- c("change", "naics_n", "industry")
 setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 
-Dset<-Variable_Gen(Dset, Ucost) # nolint
+Dset<-VariableGen(Dset, Ucost) # nolint
 
-Data<- Clean_adv(Dset) # nolint
+Data<- Cleanadv(Dset) # nolint
 #clean and combine data
 
 
@@ -317,5 +317,3 @@ industry_co_plot_5d_limit
 ############################################################
 #5: Sector and time
 ############################################################
-
-output_list <- Sector_time_coefs_N(Data, naics, 4)

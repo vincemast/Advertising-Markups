@@ -1,130 +1,105 @@
 
-
-
- 
-############################################################   
-############################################################   
+require(dplyr)
+############################################################
+############################################################
 ##############   1: clean data  ############################
-############################################################   
-############################################################  
+############################################################
+############################################################
 
+VariableGen <- function(data, Ucost) { #nolint
 
-
-
-Variable_Gen <- function(data,Ucost){
- 
-  ############################################################       
-  ###1: Convert table to panel data format and create entry and exit years, and age
-  ############################################################ 
-  tempData <- data %>%
-    group_by(GVKEY) %>%
-    mutate(entry = min(fyear),
+  ############################################################
+  ###1: Convert table to panel data format. create entry/exit years, age
+  tempdata <- data %>%
+    group_by(GVKEY) %>% #nolint
+    mutate(entry = min(fyear), #nolint
            exit = max(fyear),
            age = fyear - min(fyear),
            life = max(fyear) - fyear)
-  
-  ############################################################       
+
+  ############################################################
   ###2: Merge and generate
-  ############################################################ 
-  
-  
-  tempData <- merge(tempData, Ucost, by = "fyear", all = TRUE)
-  
+
+  tempdata <- merge(tempdata, Ucost, by = "fyear", all = TRUE)
+
   #MU
-  tempData <- tempData %>%
-    mutate(MU = sale /(cogs+ppegt*usercost) )
-  
-  
+  tempdata <- tempdata %>%
+    mutate(MU = sale / (cogs + ppegt * usercost)) #nolint
+
   #MU -1
-  tempData <- tempData %>%
-    mutate(MU_1 = MU-1 )
-  
+  tempdata <- tempdata %>%
+    mutate(MU_1 = MU - 1) #nolint
+
   #Adr
-  tempData <- tempData %>%
-    mutate(Adr = xad /sale )
-  
-  
+  tempdata <- tempdata %>%
+    mutate(Adr = xad / sale) #nolint
+
   #Adr MC
-  tempData <- tempData %>%
-    mutate(Adr_MC = xad /(cogs+ppegt*usercost) )
-  
-  
+  tempdata <- tempdata %>%
+    mutate(Adr_MC = xad / (cogs + ppegt * usercost)) #nolint
+
   #time untill 2022 (or newest year)
   #grab newest year
-  Maxyear=max(tempData$fyear,na.rm = TRUE)
-  tempData <- tempData %>%
-    mutate(time = fyear-Maxyear )
+  maxyear <- max(tempdata$fyear, na.rm = TRUE)
+  tempdata <- tempdata %>%
+    mutate(time = fyear - maxyear) #nolint
   #make quadratic and cubic
-  tempData <- tempData %>%
-    mutate(time2 = -time*time)
-  tempData <- tempData %>%
-    mutate(time3 = time*time*time)
-  
-  
-  
-  
-  print(tempData)
-  
+  tempdata <- tempdata %>%
+    mutate(time2 = -time * time)
+  tempdata <- tempdata %>%
+    mutate(time3 = time * time * time)
+
+  print(tempdata)
+
 }
 
 
 
-Clean_adv <- function(data){
-  
-  
-  ############################################################       
-  ###2: Merge & filter
-  ############################################################ 
-  
-  tempData <- data %>%
-    filter(MU >= 0 & !is.na(MU)) %>%
-    filter(Adr >= 0 & !is.na(Adr)) %>%
-    filter(Adr_MC >= 0 & !is.na(Adr_MC)) %>%
-    filter(sale > 0 & !is.na(sale)) %>%
-    filter(cogs >= 0 & !is.na(cogs)) %>%
-    filter(xsga >= 0 & !is.na(xsga)) %>%
-    filter(ppegt >= 0 & !is.na(ppegt)) %>%
-    filter(usercost >= 0 & !is.na(usercost)) %>%
-    filter(cogs+ppegt*usercost > 0)
-  
-  
-  
-  
-  print(tempData)
-  
+Cleanadv <- function(data) {  #nolint
+
+  ############################################################
+  ###2: Merge and then filter
+  ############################################################
+
+  tempdata <- data %>%
+    filter(MU >= 0 & !is.na(MU)) %>% #nolint
+    filter(Adr >= 0 & !is.na(Adr)) %>% #nolint
+    filter(Adr_MC >= 0 & !is.na(Adr_MC)) %>% #nolint
+    filter(sale > 0 & !is.na(sale)) %>% #nolint
+    filter(cogs >= 0 & !is.na(cogs)) %>% #nolint
+    filter(xsga >= 0 & !is.na(xsga)) %>% #nolint
+    filter(ppegt >= 0 & !is.na(ppegt)) %>% #nolint
+    filter(usercost >= 0 & !is.na(usercost)) %>% #nolint
+    filter(cogs + ppegt * usercost > 0)
+
+  print(tempdata)
 }
 
 
 
-############################################################   
-############################################################   
+############################################################
+############################################################
 ##############   2: NAiSC Codes  ###########################
-############################################################   
-############################################################  
+############################################################
+############################################################
 
 
 
-Industry_n_dig <- function(Clean_data,naics,n){
-  
+Industry_n_dig <- function(Clean_data, naics, n){  #nolint
+
   #keep only n level codes
   temp_naisc <- naics %>%
-    filter(nchar(naics_n) == n)
-  
+    filter(nchar(naics_n) == n) #nolint
+
   #grab n digit code level from data
   temp_data <- Clean_data %>%
     mutate(naics_n = ifelse(nchar(naics) >= n, substr(naics, 1, n), NA))
-  
+
   temp_data <- merge(temp_data, temp_naisc, by = "naics_n", all = TRUE)
-  
-  temp_data <- temp_data%>%
-    filter(!is.na(naics_n))
-  
+
+  temp_data <- temp_data %>%
+    filter(!is.na(naics_n)) #nolint
+
   print(temp_data)
-  
+
 }
-
-
-
-
-
-
