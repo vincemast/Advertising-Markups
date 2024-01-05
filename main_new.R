@@ -211,7 +211,8 @@ sector_coef_2d <- data.frame(data.frame(Results_2Digit[3]))
 year_coef_2d <- data.frame(data.frame(Results_2Digit[4]))
 
 table_1_latex <- Results_2Digit[6]
-#################### 6.a efficency plot ###########################
+
+#################### 6.a sector efficency plot ###########################
 #collect needed data
 #within sector aggregate mu and adr
 agg_2_digit <- Sector_MU_Adr(Dset, naics, 2)
@@ -221,125 +222,95 @@ hold <- merge(agg_2_digit, sector_coef_2d)
 industry_co_plot_2d <- Efficency_plot_stacked(hold)
 
 industry_co_plot_2d
-setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex")
-#ggsave("industry_co_plot_2d.pdf",  industry_co_plot_2d, width = 15, height = 13.5, units = "in") # nolint
-#setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
-
+  #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+  #ggsave("industry_co_plot_2d.pdf",  industry_co_plot_2d, width = 15, height = 13.5, units = "in") # nolint
+  #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 
 #################### 6.b time plots ###########################
-
-
 #time trend plot
-time_co_plot_2d <-
-  ggplot(year_coef_2d, aes(x = year, y = fit, group = year)) +
-  geom_boxplot() +
-  geom_errorbar(aes(ymin = fit - 1.96 * se, ymax = fit + 1.96 * se),
-                width = 0.2, color = "darkblue") +
-  geom_hline(aes(yintercept = 0),
-             colour = "black", linetype = "dashed", size = 1) +
-  geom_text(aes(1985, 0, label = "2022 Reference", vjust = -1),
-            size = 4, colour = "black") +
-  labs(x = "Year", y = "Time Compoent of Advertising Efficency ") +
-  ggtitle("Advertising Efficiency Over Time With 95% Confidence Intervals (2022 Reference year)")+ # nolint
-  guides(fill = guide_legend(title = NULL)) +
-  theme_minimal()
-
-
+time_co_plot_2d <- time_plot(year_coef_2d, "Advertising Efficiency", "2")
 time_co_plot_2d
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("time_co_plot_2d.pdf", time_co_plot_2d, width = 9, height = 7, units = "in") # nolint
+      #ggsave("time_co_plot_2d.pdf", time_co_plot_2d, width = 4.5, height = 4, units = "in") # nolint
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 
 
 ############################################################
 ############################################################
-#7: 3 digit naics
+#7: more digits naics
 ############################################################
 ############################################################
 
+####################### 7.a 3 digit ####################
 #run regressions and save output
-Results_3Digit<-Regression_output_N(Data,naics,3)
-#[1] clean table, [2] ugly table, [3] model 9 sector coefficients (well named), [4] model 9 year coefficients (well named), [5] all models,
-      #[6] latex clean table #[7] industry count data
-      
-table_3dig<- Results_3Digit[1]
+Results_3Digit <- Regression_output_N(Data, naics, 3) # nolint
 sector_coef_3d <- data.frame(data.frame(Results_3Digit[3]))
 year_coef_3d <- data.frame(data.frame(Results_3Digit[4]))
-
-
-table_3dig_latex<- Results_3Digit[6]
-
-Ind_count3<-Results_3Digit[7]
-####################3.a plots#######
-
+indcount3 <- Results_3Digit[7]
 
 #time trend plot
-time_co_plot_3d<-
-  ggplot(year_coef_3d, aes(x = year, y = fit, group=year)) +
-  geom_boxplot() +
-  geom_errorbar(aes(ymin = fit - 1.96*se, ymax = fit + 1.96*se),
-                width = 0.2, color = "darkblue") +
-  geom_hline(aes(yintercept=0), colour="black", linetype="dashed", size = 1) + 
-  geom_text(aes( 1985, 0, label = "2022 Reference", vjust = -1), size = 4, colour="black")+
-  labs(x = "Year", y = "Time Compoent of Advertising Efficency ") +
-  ggtitle("Advertising Efficiency Over Time With 95% Confidence Intervals (2022 Reference year)")+
-  guides(fill = guide_legend(title = NULL))+
-  theme_minimal()
-
-
+time_co_plot_3d <- time_plot(year_coef_3d, "Advertising Efficiency", "3")
 time_co_plot_3d
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex")
-      #ggsave("time_co_plot_3d.pdf", time_co_plot_3d, width = 9, height = 7, units = "in")
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups")
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("time_co_plot_3d.pdf", time_co_plot_3d, width = 4.5, height = 4, units = "in") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
-#sector plot
-
-# coefficents plot
-industry_co_plot_3d<-Efficency_plot_3_digit(sector_coef_3d)
-
-industry_co_plot_3d
-
-#limited coefficent plot
-industry_co_plot_3d_limit<-Efficency_plot(sector_coef_3d,Ind_count3,100)
-
-
+#sector plot (choose minimal number of obs needed to be included)
+industry_co_plot_3d_limit <-
+  Efficency_plot(sector_coef_3d, indcount3, 100)
 industry_co_plot_3d_limit
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("industry_co_plot_3d_limit.pdf", industry_co_plot_3d_limit, width = 9, height = 13.5, units = "in") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 
-
-
-############################################################       
-#4: 4 digit naics 
-############################################################  
-
+####################### 7.b 4 digit ####################
 #run regressions and save output
-Results_4Digit<-Regression_output_N(Data,naics,4)
-#[1] clean table, [2] ugly table, [3] model 9 sector coefficients (well named), [4] model 9 year coefficients (well named), [5] all models
-
-table_4dig<- Results_4Digit[1]
+Results_4Digit <- Regression_output_N(Data, naics, 4) # nolint
 sector_coef_4d <- data.frame(data.frame(Results_4Digit[3]))
 year_coef_4d <- data.frame(data.frame(Results_4Digit[4]))
-
-####################4.a plots#######
-
+indcount4 <- Results_4Digit[7]
 
 #time trend plot
-time_co_plot_4d<-
-  ggplot(year_coef_4d, aes(x = year, y = fit, group=year)) +
-  geom_boxplot() +
-  geom_errorbar(aes(ymin = fit - 1.96*se, ymax = fit + 1.96*se),
-                width = 0.2, color = "darkblue") +
-  geom_hline(aes(yintercept=0), colour="black", linetype="dashed", size = 1) + 
-  geom_text(aes( 1985, 0, label = "2022 Reference", vjust = -1), size = 4, colour="black")+
-  labs(x = "Year", y = "Time Compoent of Advertising Efficency ") +
-  ggtitle("Advertising Efficiency Over Time With 95% Confidence Intervals (2022 Reference year)")+
-  guides(fill = guide_legend(title = NULL))+
-  theme_minimal()
-
-
+time_co_plot_4d <- time_plot(year_coef_4d, "Advertising Efficiency", "4")
 time_co_plot_4d
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("time_co_plot_4d.pdf", time_co_plot_4d, width = 4.5, height = 4, units = "in") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+
+#sector plot (choose minimal number of obs needed to be included)
+industry_co_plot_4d_limit <-
+  Efficency_plot(sector_coef_4d, indcount4, 100)
+industry_co_plot_4d_limit
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("industry_co_plot_4d_limit.pdf", industry_co_plot_4d_limit, width = 9, height = 13.5, units = "in") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+
+
+####################### 7.b 6 digit ####################
+#run regressions and save output
+Results_5Digit <- Regression_output_N(Data, naics, 5) # nolint
+sector_coef_5d <- data.frame(data.frame(Results_5Digit[3]))
+year_coef_5d <- data.frame(data.frame(Results_5Digit[4]))
+indcount5 <- Results_5Digit[7]
+
+#time trend plot
+time_co_plot_5d <- time_plot(year_coef_5d, "Advertising Efficiency", "5")
+time_co_plot_5d
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("time_co_plot_5d.pdf", time_co_plot_5d, width = 4.5, height = 4, units = "in") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+
+#sector plot (choose minimal number of obs needed to be included)
+industry_co_plot_5d_limit <-
+  Efficency_plot(sector_coef_5d, indcount4, 50)
+industry_co_plot_5d_limit
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("industry_co_plot_5d_limit.pdf", industry_co_plot_5d_limit, width = 9, height = 13.5, units = "in") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+
 
 
 
@@ -347,5 +318,4 @@ time_co_plot_4d
 #5: Sector and time
 ############################################################
 
-output_list<-Sector_time_coefs_N(Data,naics,4)
-
+output_list <- Sector_time_coefs_N(Data, naics, 4)

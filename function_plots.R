@@ -80,17 +80,17 @@ tempdata_4 <- tempdata_3 %>% # nolint
 
 ############################################################
 ############################################################
-##############   1: make MU / ADR  #########################
+##############   1: summary stat plots  #########################
 ############################################################
 ############################################################
 
-
-#scatter plot with sample points and trend lines
+############################################################
+#scatter plots with sample points and trend lines
+############################################################
 MU_advert_plot <- function(Sub_Panel_data, sub_panel_name, N){ # nolint
 
   ############################################################
   ###1: clean
-  ############################################################
 
   #filter vars
   tempData <-  Sub_Panel_data[, c( # nolint
@@ -99,7 +99,6 @@ MU_advert_plot <- function(Sub_Panel_data, sub_panel_name, N){ # nolint
 
   ############################################################
   ###2: objects to plot
-  ############################################################
 
   #sample
   set.seed(123456)
@@ -140,7 +139,6 @@ MU_advert_plot <- function(Sub_Panel_data, sub_panel_name, N){ # nolint
 
   ###########################################################
   ###3: title
-  ############################################################
   #create title
   title_temp <- paste(
                       "Trend lines +", N, " sample points", "\n(",
@@ -153,8 +151,6 @@ MU_advert_plot <- function(Sub_Panel_data, sub_panel_name, N){ # nolint
 
   ############################################################
   ###4: plot
-  ############################################################
-
 
   ggplot() +
     geom_point(aes(samp$MU_1, samp$Adr_MC), shape = 1) +
@@ -181,26 +177,14 @@ MU_advert_plot <- function(Sub_Panel_data, sub_panel_name, N){ # nolint
 
 
 
-
-#loop
+############################################################
+# scatter plot loop (not currently used)
 Scatter_plot_loop <- function(Data, naics, D, N) {# nolint
 
   #run Industry_n_dig to make data
-
-  #clean industry names, store names
-  # loop over industry
-  # run MU_advert_plot
-
-  ########################################################################
-  ################## run Industry_n_dig to make data ##################
-  ########################################################################
-
-  #generate N digit industry names
   temp_data <- Industry_n_dig(Data, naics, D) # nolint
 
-  ####################################################################
-  ################# clean industry names, store names  #################
-  ####################################################################
+  ##clean industry names, store names
 
   #get rid of annoying T's
   temp_data$industry <- paste(temp_data$industry, "")
@@ -209,9 +193,7 @@ Scatter_plot_loop <- function(Data, naics, D, N) {# nolint
   temp_data$industry <- gsub("  ", "", temp_data$industry)
 
 
-  ####################################################################
-  ################# loop over sectors  #################
-  ####################################################################
+  #loop over sectors
 
   output_list <- list()
 
@@ -236,26 +218,13 @@ Scatter_plot_loop <- function(Data, naics, D, N) {# nolint
 
 ########################################################################
 #                   tableloop
-########################################################################
 Test_table <- function(Data, naics, N) { # nolint
 
+
   #run Industry_n_dig to make data
-
-  #clean industry names, store names
-
-  # loop over industry
-  # run MU_advert_plot
-
-  ########################################################################
-  ##################run Industry_n_dig to make data ##################
-  ########################################################################
-
-  #generate N digit industry names
   temp_data <- Industry_n_dig(Data, naics, N) # nolint
 
-  ####################################################################
   ################# clean industry names, store names  #################
-  ####################################################################
 
   #get rid of annoying T's and NA
   temp_data$industry <- paste(temp_data$industry, "")
@@ -276,7 +245,6 @@ Test_table <- function(Data, naics, N) { # nolint
   sectors_temp <- merge(sectors_, Ind_count_temp) %>% filter(n > 2)
   sectors <- sectors_temp$industry
 
-  ####################################################################
   ################# table  #################
   #fill in full sample row
 
@@ -318,9 +286,7 @@ Test_table <- function(Data, naics, N) { # nolint
                     "Sample", "Slope(No intercept)", "Slope",
                     "Intercept", "Reject Intercept=0?")
 
-  ####################################################################
   ################# loop over sectors  #################
-  ####################################################################
 
 
   for (i in 1:length(sectors)) { # nolint
@@ -384,14 +350,17 @@ Test_table <- function(Data, naics, N) { # nolint
 ############################################################
 ############################################################
 
+############################################################
+##############   2.a sectors  ############################
+############################################################
 
 
-#####  #general simple efficincy plot#
+############################################################
+#####  #general simple efficincy plot (sector)
 Efficency_plot <- function(model,Ind_count,N) { # nolint
 
 
 temp_data <- merge(model, Ind_count, by = "industry", all = TRUE) # nolint
-
 
   #filter out ones with less observations
   temp_data <- temp_data %>%
@@ -412,30 +381,22 @@ temp_data <- merge(model, Ind_count, by = "industry", all = TRUE) # nolint
     labs(title = "Estimated Advertising Efficency (2022)",
          x = "Advertising Efficency (Log Scale)",
          y = "Industry (3 Digit Naics Code)") +
+    theme(text = element_text(size = 8)) +
+    scale_y_discrete(labels = wrap_format(60)) + # nolint
     scale_x_continuous(trans = pseudo_log_trans(base = 10), # nolint
                        breaks = breaks * 100,
                        labels = scales::label_comma(scale = .01))
 }
 
 
-
-
-
 ############################################################
-############################################################
-##############   3: Multiple Bar plots  ####################
-############################################################
-############################################################
-
-#grab sector level aggregate MU and adr
+#####  generate MU and Adr neeed for next plot#####
 Sector_MU_Adr <- function(Dset, naics, N) { # nolint
 
   #generate N digit industry names
   temp_data <- Industry_n_dig(Dset, naics, N) # nolint
 
-  ####################################################################
-  ################# clean industry names, store names  #################
-  ####################################################################
+  ################# clean industry names, store names  ###############
 
   #get rid of annoying T's and NA
   temp_data$industry <- paste(temp_data$industry, "")
@@ -472,7 +433,7 @@ Sector_MU_Adr <- function(Dset, naics, N) { # nolint
 
 }
 
-
+############################################################
 ########## Make Efficency + MU & Adr ##############
 Efficency_plot_stacked <- function(hold) { # nolint
 
@@ -507,5 +468,39 @@ Efficency_plot_stacked <- function(hold) { # nolint
 
 
   plot
+
+}
+
+############################################################
+##############   2.b time  ############################
+############################################################
+
+############################################################
+########## flexible time plot ##############
+time_plot <- function(year_coef, tit, D) { # nolint
+
+  tempdata <- year_coef
+
+  #create title allowing for input of title and number of digits
+  temptitle <- paste(tit, " Time Trend\n(2022 Reference year, ",
+                     D, " Digit NAICS)", sep = "")
+
+
+  timecoplot3d <-
+    ggplot(tempdata, aes(x = year, y = fit, group = year)) + #nolint
+    geom_boxplot() +
+    geom_errorbar(aes(ymin = fit - 1.96 * se, ymax = fit + 1.96 * se),
+                  width = 0.2, color = "darkblue") +
+    geom_hline(aes(yintercept = 0), colour = "black",
+               linetype = "dashed", size = 1) +
+    #geom_text(aes(1985, 0, label = "2022 Reference",
+    #             vjust = -1), size = 4, colour = "black") +
+    labs(x = "Year", y="") +
+    ggtitle(temptitle) +
+    guides(fill = guide_legend(title = NULL)) +
+    theme(text = element_text(size = 20)) +
+    theme_minimal()
+
+  print(timecoplot3d)
 
 }
