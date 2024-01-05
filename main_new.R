@@ -187,8 +187,8 @@ setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertis
 ############################################################
 
 testtable <- Test_table(Data, naics, 2)
-testtable[5, 1] = "Administrative and Support"
-lign = c("l", "c", "c", "c", "c", "c")
+testtable[5, 1] <- "Administrative and Support"
+lign <- c("l", "c", "c", "c", "c", "c")
 
 print(xtable(testtable, align = lign), include.rownames = FALSE)
 
@@ -231,13 +231,13 @@ setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex")
 
 
 #time trend plot
-time_co_plot_2d <- 
+time_co_plot_2d <-
   ggplot(year_coef_2d, aes(x = year, y = fit, group = year)) +
   geom_boxplot() +
   geom_errorbar(aes(ymin = fit - 1.96 * se, ymax = fit + 1.96 * se),
                 width = 0.2, color = "darkblue") +
   geom_hline(aes(yintercept = 0),
-            colour = "black", linetype = "dashed", size = 1) +
+             colour = "black", linetype = "dashed", size = 1) +
   geom_text(aes(1985, 0, label = "2022 Reference", vjust = -1),
             size = 4, colour = "black") +
   labs(x = "Year", y = "Time Compoent of Advertising Efficency ") +
