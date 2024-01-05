@@ -179,10 +179,10 @@ MU_advert_plot <- function(Sub_Panel_data, sub_panel_name, N){ # nolint
 
 ############################################################
 # scatter plot loop (not currently used)
-Scatter_plot_loop <- function(Data, naics, D, N) {# nolint
+scatter_plot_loop <- function(data, naics, d, n) {
 
   #run Industry_n_dig to make data
-  temp_data <- Industry_n_dig(Data, naics, D) # nolint
+  temp_data <- industry_n_dig(data, naics, d) # nolint
 
   ##clean industry names, store names
 
@@ -204,9 +204,9 @@ Scatter_plot_loop <- function(Data, naics, D, N) {# nolint
       filter(industry == i) # nolint
 
     #make sure not requesting more points that available
-    n <- min(N, length(sector_temp[, 1]))
+    nn <- min(n, length(sector_temp[, 1]))
 
-    tempplot <- MU_advert_plot(sector_temp, tempname, n)
+    tempplot <- MU_advert_plot(sector_temp, tempname, nn)
 
     #Plot within sector
     output_list[[i]] <- tempplot
@@ -218,11 +218,11 @@ Scatter_plot_loop <- function(Data, naics, D, N) {# nolint
 
 ########################################################################
 #                   tableloop
-Test_table <- function(Data, naics, N) { # nolint
+test_table <- function(data, naics, n) {
 
 
   #run Industry_n_dig to make data
-  temp_data <- Industry_n_dig(Data, naics, N) # nolint
+  temp_data <- industry_n_dig(data, naics, n) # nolint
 
   ################# clean industry names, store names  #################
 
@@ -394,7 +394,7 @@ temp_data <- merge(model, Ind_count, by = "industry", all = TRUE) # nolint
 Sector_MU_Adr <- function(Dset, naics, N) { # nolint
 
   #generate N digit industry names
-  temp_data <- Industry_n_dig(Dset, naics, N) # nolint
+  temp_data <- industry_n_dig(Dset, naics, N) # nolint
 
   ################# clean industry names, store names  ###############
 
@@ -495,7 +495,7 @@ time_plot <- function(year_coef, tit, D) { # nolint
                linetype = "dashed", size = 1) +
     #geom_text(aes(1985, 0, label = "2022 Reference",
     #             vjust = -1), size = 4, colour = "black") +
-    labs(x = "Year", y="") +
+    labs(x = "Year", y = "") +
     ggtitle(temptitle) +
     guides(fill = guide_legend(title = NULL)) +
     theme(text = element_text(size = 20)) +

@@ -84,8 +84,7 @@ xad_density #print
 #ggsave("xad_density.pdf",  xad_density, width = 10, height = 9, units = "in") # nolint
 #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
-
-
+#markup density
 MU_density <- ggplot() + # nolint
   geom_density(data = Dset, aes(x = MU_1, color = "Full Sample")) +
   geom_density(data = Data, aes(x = MU_1, color = "XAD Reported")) +
@@ -94,24 +93,15 @@ MU_density <- ggplot() + # nolint
   scale_x_continuous(trans = log10_trans(),
                      limits = c(.001, 50), labels = comma) +
   theme(legend.position = "bottom")
-
-#markups
+# plots mu
 MU_density #print
 # setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
 # ggsave("MU_density.pdf",  MU_density, width = 10, height = 9, units = "in") # nolint
 # setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
-
 #zero_subset <- Data %>%
 # filter(is.na(Adr_MC)) # nolint
-#zero_subset_sectorknown <- zero_subset %>%
-# filter(!is.na(naics)) # nolint
-##1149/82441= 1.39% report 0 advertising
-#plot(density(zero_subset_sectorknown$naics)) # nolint
-#sector_known_subset <- Data %>%
-# filter(!is.na(naics)) # nolint
-#plot(density(sector_known_subset$naics)) # nolint
-
+#1149/82441= 1.39% report 0 advertising
 
 ############################################################
 ############################################################
@@ -145,7 +135,7 @@ agg_mu_plot
 ############################################################
 ############################################################
 
-two_d_data <- Industry_n_dig(Data, naics, 2)
+two_d_data <- industry_n_dig(Data, naics, 2)
 #add naics industries
 
 plot_all <- MU_advert_plot(Data, "All", 1000)
@@ -186,7 +176,7 @@ setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertis
 ############################################################
 ############################################################
 
-testtable <- Test_table(Data, naics, 2)
+testtable <- test_table(Data, naics, 2)
 testtable[5, 1] <- "Administrative and Support"
 lign <- c("l", "c", "c", "c", "c", "c")
 
@@ -199,7 +189,7 @@ print(xtable(testtable, align = lign), include.rownames = FALSE)
 ############################################################
 
 #run regressions and save output
-Results_2Digit <- Regression_output_N(Data, naics, 2) # nolint
+Results_2Digit <- regression_output_n(Data, naics, 2) # nolint
 #[1] clean table, [2] ugly table, [3] model 9 sector coefficients (well named)
 #[4] model 9 year coefficients (well named), [5] all models
 #[6] latex clean table
@@ -245,7 +235,7 @@ time_co_plot_2d
 
 ####################### 7.a 3 digit ####################
 #run regressions and save output
-Results_3Digit <- Regression_output_N(Data, naics, 3) # nolint
+Results_3Digit <- regression_output_n(Data, naics, 3) # nolint
 sector_coef_3d <- data.frame(data.frame(Results_3Digit[3]))
 year_coef_3d <- data.frame(data.frame(Results_3Digit[4]))
 indcount3 <- Results_3Digit[7]
@@ -268,7 +258,7 @@ industry_co_plot_3d_limit
 
 ####################### 7.b 4 digit ####################
 #run regressions and save output
-Results_4Digit <- Regression_output_N(Data, naics, 4) # nolint
+Results_4Digit <- regression_output_n(Data, naics, 4) # nolint
 sector_coef_4d <- data.frame(data.frame(Results_4Digit[3]))
 year_coef_4d <- data.frame(data.frame(Results_4Digit[4]))
 indcount4 <- Results_4Digit[7]
@@ -291,7 +281,7 @@ industry_co_plot_4d_limit
 
 ####################### 7.b 6 digit ####################
 #run regressions and save output
-Results_5Digit <- Regression_output_N(Data, naics, 5) # nolint
+Results_5Digit <- regression_output_n(Data, naics, 5) # nolint
 sector_coef_5d <- data.frame(data.frame(Results_5Digit[3]))
 year_coef_5d <- data.frame(data.frame(Results_5Digit[4]))
 indcount5 <- Results_5Digit[7]
