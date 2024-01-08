@@ -21,17 +21,7 @@ regression_output_n <- function(data, naics, n) {
   #generate N digit industry names
   temp_data <- industry_n_dig(data, naics, n) #nolint
 
-  ################# clean industry names, store names  #################
-
-  #get rid of annoying T's
-  temp_data$industry <- paste(temp_data$industry, "")
-  temp_data$industry <- gsub("T  ", "", temp_data$industry)
-  temp_data$industry <- gsub("T ", "", temp_data$industry)
-  temp_data$industry <- gsub("  ", "", temp_data$industry)
-  #adding the space to end changes NA to string
-  #replace so regression drops NA values
-  temp_data$industry <- na_if(temp_data$industry, "NA ")
-
+  ################# Store industry names ##############################
 
   #get number of observations for each industry
   ind_count_temp <- temp_data %>% count(industry) #nolint
@@ -239,16 +229,7 @@ sector_time_coefs_n <- function(data, naics, n) {
   #generate N digit industry names
   temp_data <- industry_n_dig(data, naics, n) #nolint
 
-  ################# clean industry names, store names  #################
-
-  #get rid of annoying T's
-  temp_data$industry <- paste(temp_data$industry, "")
-  temp_data$industry <- gsub("T  ", "", temp_data$industry)
-  temp_data$industry <- gsub("T ", "", temp_data$industry)
-  temp_data$industry <- gsub("  ", "", temp_data$industry)
-  #adding the space to end changes NA to string
-  #replace so regression drops NA values
-  temp_data$industry <- na_if(temp_data$industry, "NA ")
+  ################# store industry names,##############################
 
   #get number of observations for each industry
   ind_count_temp <- temp_data %>% count(industry) #nolint

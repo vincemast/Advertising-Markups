@@ -2,12 +2,59 @@
 require(dplyr)
 require(ggplot2)
 require(fixest)
+require(scales)
 ############################################################
 ############################################################
-##############   0:Aggregate Markups #######################
+##############   1: Densities  #######################
+##############  Figures 1 and 2  #######################
+############################################################
+
+############################################################
+##############   1.a XAD density  ############################
+############################################################
+
+xad_density <- function(Data) {# nolint
+  xaddensity <- ggplot(Data, aes(x = Adr_MC)) + # nolint
+    geom_density() +
+    theme(text = element_text(size = 20)) +
+    labs(x = "Advertising/Marginal Cost (Log-scale)", y = "Density") +
+    scale_x_continuous(trans = log10_trans(), # nolint
+                       limits = c(.00001, 30), labels = comma) #nolint
+
+  print(xaddensity)
+}
+
+############################################################
+##############   1.b MU density  ############################
+############################################################
+
+mu_density <- function(Data,Dset) {# nolint
+  mudensity <- ggplot() +
+    geom_density(data = Dset, aes(x = MU_1, color = "Full Sample")) + # nolint
+    geom_density(data = Data, aes(x = MU_1, color = "XAD Reported")) +
+    theme(text = element_text(size = 20)) +
+    labs(x = "Markup (Log-scale)", y = "Density") +
+    scale_x_continuous(trans = log10_trans(), # nolint
+                       limits = c(.001, 50), labels = comma) +
+    theme(legend.position = "bottom")
+
+  print(mudensity)
+}
+
+
+
+
+############################################################
+############################################################
+##############   2:Aggregate Markups #######################
+##############    figure 3           #######################
 ############################################################
 ############################################################
 
+
+############################################################
+##############   2.a create data  ############################
+############################################################
 #aggregate markups
 agg_mu <- function(MU_data, reweight_data) { # nolint
   tempdata <- MU_data %>%
@@ -25,12 +72,6 @@ agg_mu <- function(MU_data, reweight_data) { # nolint
   print(tempdata_2)
 
 }
-
-
-
-
-
-
 
 #Aggregate markups with weight
 agg_mu_reweight <- function(MU_data, reweight_data) {# nolint
@@ -54,8 +95,6 @@ tempdata_weight <- reweight_data %>%
   names(tempdata) <- c("year", "naics", "MU")
   #rename
 
-
-
 tempdata_2 <- tempdata_weight %>% # nolint
   group_by(fyear, naics) %>% # nolint
   summarise(sum(sale, na.rm = TRUE)) # nolint
@@ -76,17 +115,42 @@ tempdata_4 <- tempdata_3 %>% # nolint
 
 }
 
+############################################################
+##############   2.b Plot  ############################
+############################################################
+
+agg_mu_plot <- function(fullsample, subsample) {
+
+  agg_mu_all <- agg_mu(fullsample)
+  agg_mu_insamp <- agg_mu(subsample)
+  agg_mu_rew <- agg_mu_reweight(subsample, fullsample)
+
+  agg_mu_plot <-  ggplot() +
+    geom_line(data = agg_mu_all,
+              aes(y = Ag_MU, x = year, color = "Full Sample")) + # nolint
+    geom_line(data = agg_mu_insamp,
+              aes(y = Ag_MU, x = year, color = "XAD Reported")) +
+    geom_line(data = agg_mu_rew,
+              aes(y = Ag_MU, x = year, color = "Reweighted")) +
+    theme(text = element_text(size = 20)) +
+    labs(x = "Year", y = "Sales Weighted Markup") +
+    theme(legend.position = "bottom")
+
+  print(agg_mu_plot)
+}
+
+############################################################
+############################################################
+##############   3: Scatter plot and table  ################
+##############   figure 4 and table 2  ################
+############################################################
+############################################################
 
 
 ############################################################
-############################################################
-##############   1: summary stat plots  #########################
-############################################################
+#   3.a scatter plots with sample points and trend lines  ##
 ############################################################
 
-############################################################
-#scatter plots with sample points and trend lines
-############################################################
 MU_advert_plot <- function(Sub_Panel_data, sub_panel_name, N){ # nolint
 
   ############################################################
@@ -175,64 +239,20 @@ MU_advert_plot <- function(Sub_Panel_data, sub_panel_name, N){ # nolint
 }
 
 
-
-
 ############################################################
-# scatter plot loop (not currently used)
-scatter_plot_loop <- function(data, naics, d, n) {
-
-  #run Industry_n_dig to make data
-  temp_data <- industry_n_dig(data, naics, d) # nolint
-
-  ##clean industry names, store names
-
-  #get rid of annoying T's
-  temp_data$industry <- paste(temp_data$industry, "")
-  temp_data$industry <- gsub("T  ", "", temp_data$industry)
-  temp_data$industry <- gsub("T ", "", temp_data$industry)
-  temp_data$industry <- gsub("  ", "", temp_data$industry)
-
-
-  #loop over sectors
-
-  output_list <- list()
-
-  for (i in unique(temp_data$industry[!is.na(temp_data$industry)])) {
-    tempname <- paste(i)
-
-    sector_temp <- temp_data %>%
-      filter(industry == i) # nolint
-
-    #make sure not requesting more points that available
-    nn <- min(n, length(sector_temp[, 1]))
-
-    tempplot <- MU_advert_plot(sector_temp, tempname, nn)
-
-    #Plot within sector
-    output_list[[i]] <- tempplot
-  }
-
-  output_list
-}
-
-
-########################################################################
-#                   tableloop
+##################   3.b test table  ########################
+############################################################
 test_table <- function(data, naics, n) {
 
 
   #run Industry_n_dig to make data
   temp_data <- industry_n_dig(data, naics, n) # nolint
 
-  ################# clean industry names, store names  #################
+  ################# Store industry names##################
 
-  #get rid of annoying T's and NA
-  temp_data$industry <- paste(temp_data$industry, "")
-  temp_data$industry <- gsub("T  ", "", temp_data$industry)
-  temp_data$industry <- gsub("T ", "", temp_data$industry)
-  temp_data$industry <- gsub("  ", "", temp_data$industry)
+  #remove NAs
   temp_data <- temp_data %>%
-    filter(!industry == "NA ") # nolint
+    filter(!is.na(industry)) # nolint
 
   #collect sector names
   sectors_ <- data.frame(unique(temp_data$industry))
@@ -339,23 +359,17 @@ test_table <- function(data, naics, n) {
   print(table)
 }
 
-
-
-
-
-
 ############################################################
 ############################################################
-##############   2: Efficency  ############################
+##############   4: Efficency plots ########################
+##############   figure 5 and others  #####################
 ############################################################
 ############################################################
 
 ############################################################
-##############   2.a sectors  ############################
+##############   4.a sectors  ############################
 ############################################################
 
-
-############################################################
 #####  #general simple efficincy plot (sector)
 Efficency_plot <- function(model,Ind_count,N) { # nolint
 
@@ -396,15 +410,11 @@ Sector_MU_Adr <- function(Dset, naics, N) { # nolint
   #generate N digit industry names
   temp_data <- industry_n_dig(Dset, naics, N) # nolint
 
-  ################# clean industry names, store names  ###############
+  ################# Store industry names################################
 
-  #get rid of annoying T's and NA
-  temp_data$industry <- paste(temp_data$industry, "")
-  temp_data$industry <- gsub("T  ", "", temp_data$industry)
-  temp_data$industry <- gsub("T ", "", temp_data$industry)
-  temp_data$industry <- gsub("  ", "", temp_data$industry)
+  #remove NAs
   temp_data <- temp_data %>%
-    filter(!industry == "NA ") # nolint
+    filter(!is.na(industry)) # nolint
 
   temp_data <- temp_data %>%
     filter(!is.na(usercost)) %>% # nolint
@@ -503,4 +513,54 @@ time_plot <- function(year_coef, tit, D) { # nolint
 
   print(timecoplot3d)
 
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+############################################################
+############################################################
+##############   999: Not currently used  ##################
+############################################################
+############################################################
+############################################################
+
+
+# scatter plot loop (not currently used)
+scatter_plot_loop <- function(data, naics, d, n) {
+
+  #run Industry_n_dig to make data
+  temp_data <- industry_n_dig(data, naics, d) # nolint
+
+  #loop over sectors
+
+  output_list <- list()
+
+  for (i in unique(temp_data$industry[!is.na(temp_data$industry)])) {
+    tempname <- paste(i)
+
+    sector_temp <- temp_data %>%
+      filter(industry == i) # nolint
+
+    #make sure not requesting more points that available
+    nn <- min(n, length(sector_temp[, 1]))
+
+    tempplot <- MU_advert_plot(sector_temp, tempname, nn)
+
+    #Plot within sector
+    output_list[[i]] <- tempplot
+  }
+
+  output_list
 }

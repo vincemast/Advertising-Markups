@@ -1,13 +1,12 @@
 To do:
-    1) move get rid of Ts to Naisc file
 
-    2) set up directory to do automatically
+    1) set up directory to do automatically
 
-    3) run regression to get sector x time dummies
+    2) run regression to get sector x time dummies
         a. smoothed plot of coefficients (maybe just big ones?)
         b. repeat 3 table with 2022 elements?
         c. regress log(exad) on time as well as MU and xad
 
-    4) Quantifying error stuff
+    3) Quantifying error stuff
 
-    5) Correcting markups stuff
+    4) Correcting markups stuff

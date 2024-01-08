@@ -72,31 +72,17 @@ Data<- Cleanadv(Dset) # nolint
 ############################################################x
 
 #advertising density
-xad_density <- ggplot(Data, aes(x = Adr_MC)) +
-  geom_density() +
-  theme(text = element_text(size = 20)) +
-  labs(x = "Advertising/Marginal Cost (Log-scale)", y = "Density") +
-  scale_x_continuous(trans = log10_trans(),
-                     limits = c(.00001, 30), labels = comma)
-# plots xad / sales
+xad_density <- xad_density(Data)
 xad_density #print
 #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
 #ggsave("xad_density.pdf",  xad_density, width = 10, height = 9, units = "in") # nolint
 #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 #markup density
-MU_density <- ggplot() + # nolint
-  geom_density(data = Dset, aes(x = MU_1, color = "Full Sample")) +
-  geom_density(data = Data, aes(x = MU_1, color = "XAD Reported")) +
-  theme(text = element_text(size = 20)) +
-  labs(x = "Markup (Log-scale)", y = "Density") +
-  scale_x_continuous(trans = log10_trans(),
-                     limits = c(.001, 50), labels = comma) +
-  theme(legend.position = "bottom")
-# plots mu
-MU_density #print
+mu_density <- mu_density(Data, Dset)
+mu_density #print
 # setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-# ggsave("MU_density.pdf",  MU_density, width = 10, height = 9, units = "in") # nolint
+# ggsave("MU_density.pdf",  mu_density, width = 10, height = 9, units = "in") # nolint
 # setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 #zero_subset <- Data %>%
@@ -109,25 +95,11 @@ MU_density #print
 ############################################################
 ############################################################
 
-agg_mu_all <- agg_mu(Dset)
-agg_mu_insamp <- agg_mu(Data)
-agg_mu_rew <- agg_mu_reweight(Data, Dset)
-
-agg_mu_plot <-  ggplot() +
-  geom_line(data = agg_mu_all,
-            aes(y = Ag_MU, x = year, color = "Full Sample")) +
-  geom_line(data = agg_mu_insamp,
-            aes(y = Ag_MU, x = year, color = "XAD Reported")) +
-  geom_line(data = agg_mu_rew, aes(y = Ag_MU, x = year, color = "Reweighted")) +
-  theme(text = element_text(size = 20)) +
-  labs(x = "Year", y = "Sales Weighted Markup") +
-  theme(legend.position = "bottom")
-
+agg_mu_plot <- agg_mu_plot(Dset, Data)
 agg_mu_plot
     #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
     #ggsave("agg_mu_plot.pdf",  agg_mu_plot, width = 10, height = 9, units = "in") # nolint
     #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
-
 
 ############################################################
 ############################################################
@@ -142,29 +114,31 @@ plot_all <- MU_advert_plot(Data, "All", 1000)
 # generate full sample scatter plot
 
 #generate sub sample data sets and plots
-Retail <- two_d_data %>% # nolint
-  filter(industry == "Retail TradeT")
-scatter_Retail <- MU_advert_plot(Retail, "Retail", 1000) # nolint
+retail <- two_d_data %>%
+  filter(industry == "Retail Trade")
+scatter_retail <- MU_advert_plot(retail, "Retail ", 1000)
 
-Manuf <- two_d_data %>% # nolint
-  filter(industry == "ManufacturingT")
-scatter_Manuf <- MU_advert_plot(Manuf, "Manufacturing", 1000) # nolint
+unique(two_d_data$industry)
 
-Fininc <- two_d_data %>% # nolint
-  filter(industry == "Finance and InsuranceT")
-scatter_Finance <- MU_advert_plot(Fininc, "Finance and Insurance", 1000) # nolint
+manuf <- two_d_data %>%
+  filter(industry == "Manufacturing")
+scatter_manuf <- MU_advert_plot(manuf, "Manufacturing", 1000)
+
+fininc <- two_d_data %>% # nolint
+  filter(industry == "Finance and Insurance")
+scatter_finance <- MU_advert_plot(fininc, "Finance and Insurance", 1000)
 
 #save images
 setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex")
 #make sure to return wd
 plot_all
 # ggsave("scatter_all.pdf", plot_all, width = 9, height = 9, units = "in") # nolint
-scatter_Manuf
-# ggsave("scatter_Manuf.pdf",scatter_Manuf, width = 9, height = 9, units = "in") # nolint
-scatter_Retail
-# ggsave("scatter_Retail.pdf",  scatter_Retail, width = 9, height = 9, units = "in") # nolint
-scatter_Finance
-# ggsave("scatter_Finance.pdf", scatter_Finance, width = 9, height = 9, units = "in") # nolint
+scatter_manuf
+# ggsave("scatter_Manuf.pdf",scatter_manuf, width = 9, height = 9, units = "in") # nolint
+scatter_retail
+# ggsave("scatter_Retail.pdf",  scatter_retail, width = 9, height = 9, units = "in") # nolint
+scatter_finance
+# ggsave("scatter_Finance.pdf", scatter_finance, width = 9, height = 9, units = "in") # nolint
 #return to correct wd
 setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 

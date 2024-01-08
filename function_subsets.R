@@ -85,7 +85,7 @@ Cleanadv <- function(data) {  #nolint
 
 
 
-industry_n_dig <- function(Clean_data, naics, n){
+industry_n_dig <- function(Clean_data, naics, n) {
 
   #keep only n level codes
   temp_naisc <- naics %>%
@@ -99,6 +99,15 @@ industry_n_dig <- function(Clean_data, naics, n){
 
   temp_data <- temp_data %>%
     filter(!is.na(naics_n)) #nolint
+
+  #get rid of annoying T's
+  temp_data$industry <- paste(temp_data$industry, "")
+  temp_data$industry <- gsub("T  ", "", temp_data$industry)
+  temp_data$industry <- gsub("T ", "", temp_data$industry)
+  temp_data$industry <- gsub("  ", "", temp_data$industry)
+  #adding the space to end changes NA to string
+  #replace so regression drops NA values
+  temp_data$industry <- na_if(temp_data$industry, "NA ")
 
   print(temp_data)
 
