@@ -2,6 +2,7 @@
 require(dplyr)
 require(fixest)
 require(modelsummary)
+require(stringr)
 ############################################################
 ############################################################
 ##############   1: Main Regression  #######################
@@ -99,8 +100,6 @@ regression_output_n <- function(data, naics, n) {
 
   #create ugly table and save
   ugly_table <- modelsummary(models_temp, stars = TRUE)
-
-
 
   ################# make nice table, store  #################
 
@@ -215,34 +214,19 @@ regression_output_n <- function(data, naics, n) {
 
 sector_time_coefs_n <- function(data, naics, n) {
 
-  #run Industry_n_dig to make data
-  #clean industry names, store names
-  # loop over industry
-  #regress year dummies
-  #save year dummy coefficents and (clustered) SEs
-
-  #plot coefficents with confy - dince intervals
-
-
   ################## run Industry_n_dig to make data ##################
 
   #generate N digit industry names
   temp_data <- industry_n_dig(data, naics, n) #nolint
 
   ################# store industry names,##############################
-
   #get number of observations for each industry
   ind_count_temp <- temp_data %>% count(industry) #nolint
-
   #only industries with >1 obs will produce an estimate
   industries_temp <- ind_count_temp[ind_count_temp$n > 1, ]
-  #number of industries (last column is N/A so -1)
-  numberofcategories_temp <- length(industries_temp$industry) - 1
-
 
   ################# loop over sectors  #################
-
-  output_list <- list()
+  output <- data.frame()
 
   for (i in industries_temp$industry[!is.na(industries_temp$industry)]){
 
@@ -259,18 +243,18 @@ sector_time_coefs_n <- function(data, naics, n) {
                                  gsub("fyear::", "",
                                       names(model_temp$coefficients))))
 
-    ceos_temp$coefficients <- data.frame(model_temp$coefficients)
-
-    ceos_temp$se <- data.frame(model_temp$se)
+    ceos_temp$efficency <- model_temp$coefficients
 
     ceos_temp$se <- summary(model_temp, cluster = "GVKEY")$se
     #need to change this correct SEs
 
-    names(ceos_temp) <- NULL
-    names(ceos_temp) <- c("year", "coefficent", "se")
+    ceos_temp$industry <- i
 
-    output_list[[i]] <- data.frame(ceos_temp)
+    output <- rbind(output, ceos_temp)
   }
-  output <- output_list
+  #some cleaning
+  names(output) <- c("year", "fit", "se", "industry")
+  output$year <- as.numeric(output$year)
+  output$industry <- str_wrap(temp$industry, width = 20)
   output
 }

@@ -19,6 +19,7 @@ library(fixest)
 library(modelsummary)
 library(tibble)
 
+library(stringr)
 library(xtable)
 library(tidyr)
 
@@ -72,17 +73,17 @@ Data<- Cleanadv(Dset) # nolint
 ############################################################x
 
 #advertising density
-xad_density <- xad_density(Data)
-xad_density #print
+xaddensity <- xad_density(Data)
+xaddensity #print
 #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-#ggsave("xad_density.pdf",  xad_density, width = 10, height = 9, units = "in") # nolint
+#ggsave("xad_density.pdf",  xaddensity, width = 10, height = 9, units = "in") # nolint
 #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 #markup density
-mu_density <- mu_density(Data, Dset)
-mu_density #print
+mudensity <- mu_density(Data, Dset)
+mudensity #print
 # setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-# ggsave("MU_density.pdf",  mu_density, width = 10, height = 9, units = "in") # nolint
+# ggsave("MU_density.pdf",  mudensity, width = 10, height = 9, units = "in") # nolint
 # setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 #zero_subset <- Data %>%
@@ -95,10 +96,10 @@ mu_density #print
 ############################################################
 ############################################################
 
-agg_mu_plot <- agg_mu_plot(Dset, Data)
-agg_mu_plot
+agg_muplot <- agg_mu_plot(Dset, Data)
+agg_muplot
     #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-    #ggsave("agg_mu_plot.pdf",  agg_mu_plot, width = 10, height = 9, units = "in") # nolint
+    #ggsave("agg_mu_plot.pdf",  agg_muplot, width = 10, height = 9, units = "in") # nolint
     #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 ############################################################
@@ -141,7 +142,6 @@ scatter_finance
 # ggsave("scatter_Finance.pdf", scatter_finance, width = 9, height = 9, units = "in") # nolint
 #return to correct wd
 setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
-
 
 
 ############################################################
@@ -279,5 +279,42 @@ industry_co_plot_5d_limit
 
 
 ############################################################
-#5: Sector and time
+############# 8: Sector and time ###########################
 ############################################################
+
+############################################################
+############# 8.a plot over time ##################
+############################################################
+
+#run regressions and save output
+sector_time_coefs <- sector_time_coefs_n(Data, naics, 2)
+
+#plot sector coefficients over time
+exad_ot_plot_ <- exad_ot_plot(sector_time_coefs, 10, "")
+exad_ot_plot_smooth <- exad_ot_plot(sector_time_coefs, 10, "smooth")
+#function checks if last input is set to "smooth" and if so plots a smooth line
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("exad_ot_plot.pdf", exad_ot_plot_, width = 9, height = 9, units = "in") # nolint
+      #ggsave("exad_ot_plot_smooth.pdf", exad_ot_plot_smooth, width = 9, height = 9, units = "in") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+############ interesting sectors ############
+
+fsector_time_coefs_interesting <- sector_time_coefs %>%
+  filter(industry %in%
+           c("Information", "Retail Trade", "Manufacturing", "Wholesale Trade",
+             "Finance and\nInsurance", "Health Care and\nSocial Assistance"))
+
+
+exad_ot_interesting <-
+  exad_ot_plot(fsector_time_coefs_interesting, 16, "")
+exad_ot_interesting_smooth <-
+  exad_ot_plot(fsector_time_coefs_interesting, 16, "smooth")
+      setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      ggsave("exad_ot_interesting.pdf", exad_ot_interesting, width = 9, height = 9, units = "in") # nolint
+      ggsave("exad_ot_interesting_smooth.pdf", exad_ot_interesting_smooth, width = 9, height = 8, units = "in") # nolint
+      setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+
+############################################################
+############# 8.b regress against time ##################
+############################################################
+

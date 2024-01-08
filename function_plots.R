@@ -367,7 +367,7 @@ test_table <- function(data, naics, n) {
 ############################################################
 
 ############################################################
-##############   4.a sectors  ############################
+##############   4.a simple sector efficency plot  ##########
 ############################################################
 
 #####  #general simple efficincy plot (sector)
@@ -402,8 +402,10 @@ temp_data <- merge(model, Ind_count, by = "industry", all = TRUE) # nolint
                        labels = scales::label_comma(scale = .01))
 }
 
-
 ############################################################
+##############   4.b 3-stack sector efficency plot  ##########
+############################################################
+
 #####  generate MU and Adr neeed for next plot#####
 Sector_MU_Adr <- function(Dset, naics, N) { # nolint
 
@@ -444,7 +446,8 @@ Sector_MU_Adr <- function(Dset, naics, N) { # nolint
 }
 
 ############################################################
-########## Make Efficency + MU & Adr ##############
+########## plot ##############
+
 Efficency_plot_stacked <- function(hold) { # nolint
 
   hold2 <- hold %>% select(-se)
@@ -518,8 +521,36 @@ time_plot <- function(year_coef, tit, D) { # nolint
 
 
 
+############################################################
+############################################################
+##############   5: plots ########################
+##############   figure 5 and others  #####################
+############################################################
+############################################################
 
+exad_ot_plot <- function(data, textsize, linetype) {
 
+  #checks if linetype ="smooth"
+  #pass through text size as textsize
+
+  line <- geom_line()
+
+  titlee <- "Estimated Advertising Response Elasticity"
+  #create title noting if geometric smoothing
+
+  if (linetype == "smooth") {
+    titlee <- paste(titlee, " (With LOESS smoothing)", sep = "")
+    line <- geom_smooth()
+  }
+
+  plot <- ggplot(data, aes(x = year, y = fit, group = industry)) +# nolint
+    line +
+    facet_wrap(~industry, scales = "free_y") +
+    theme(text = element_text(size = textsize)) +
+    labs(x = "Year", y = "", title = titlee)
+
+  print(plot)
+}
 
 
 
