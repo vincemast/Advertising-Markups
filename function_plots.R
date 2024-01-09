@@ -69,7 +69,7 @@ agg_mu <- function(MU_data, reweight_data) { # nolint
   names(tempdata_2) <- c("year", "Ag_MU")
   #rename
 
-  print(tempdata_2)
+  tempdata_2
 
 }
 
@@ -216,7 +216,7 @@ MU_advert_plot <- function(Sub_Panel_data, sub_panel_name, N){ # nolint
   ############################################################
   ###4: plot
 
-  ggplot() +
+  plot <- ggplot() +
     geom_point(aes(samp$MU_1, samp$Adr_MC), shape = 1) +
     geom_line(aes(tempData$MU_1, predict(model_2),
                   color = "OLS line (with intercept)"), size = 1.5) +
@@ -235,6 +235,8 @@ MU_advert_plot <- function(Sub_Panel_data, sub_panel_name, N){ # nolint
     theme(plot.title = element_text(hjust = 0.5),
           plot.caption = element_text(hjust = 0)) +
     scale_color_manual(values = colors)
+
+  print(plot)
 
 }
 
@@ -390,7 +392,7 @@ temp_data <- merge(model, Ind_count, by = "industry", all = TRUE) # nolint
 
   breaks <- unique(c(0, .01, .05, .1, .2, .5, seq(1, Max, by = 1)))
 
-  ggplot(temp_data, aes(fit * 100,industry)) + # nolint
+  plot <- ggplot(temp_data, aes(fit * 100,industry)) + # nolint
     geom_bar(stat = "identity") +
     labs(title = "Estimated Advertising Efficency (2022)",
          x = "Advertising Efficency (Log Scale)",
@@ -400,6 +402,8 @@ temp_data <- merge(model, Ind_count, by = "industry", all = TRUE) # nolint
     scale_x_continuous(trans = pseudo_log_trans(base = 10), # nolint
                        breaks = breaks * 100,
                        labels = scales::label_comma(scale = .01))
+
+  print(plot)
 }
 
 ############################################################
@@ -477,7 +481,7 @@ Efficency_plot_stacked <- function(hold,labs) { # nolint
     labs(title = NULL, x = NULL, y = "Industry (2 Digit NAICS Code)")
 
 
-  plot
+  print(plot)
 
 }
 
@@ -586,6 +590,8 @@ coef_reg_plot_stacked <- function(hold) { # nolint
     geom_errorbar(aes(xmin = value+se*1.96, xmax = value-se*1.96), # nolint
                   width = 0.2, color = "darkblue") +
     labs(title = NULL, x = NULL, y = "Industry (2 Digit NAICS Code)")
+
+  print(plot)
 
 }
 

@@ -77,17 +77,15 @@ Data<- Cleanadv(Dset) # nolint
 
 #advertising density
 xaddensity <- xad_density(Data)
-xaddensity #print
-#setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-#ggsave("xad_density.pdf",  xaddensity, width = 10, height = 9, units = "in") # nolint
-#setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("xad_density.pdf",  xaddensity, width = 10, height = 9, units = "in") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 #markup density
 mudensity <- mu_density(Data, Dset)
-mudensity #print
-# setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-# ggsave("MU_density.pdf",  mudensity, width = 10, height = 9, units = "in") # nolint
-# setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+      # setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      # ggsave("MU_density.pdf",  mudensity, width = 10, height = 9, units = "in") # nolint
+      # setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 #zero_subset <- Data %>%
 # filter(is.na(Adr_MC)) # nolint
@@ -100,7 +98,6 @@ mudensity #print
 ############################################################
 
 agg_muplot <- agg_mu_plot(Dset, Data)
-agg_muplot
     #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
     #ggsave("agg_mu_plot.pdf",  agg_muplot, width = 10, height = 9, units = "in") # nolint
     #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
@@ -121,8 +118,6 @@ retail <- two_d_data %>%
   filter(industry == "Retail Trade")
 scatter_retail <- MU_advert_plot(retail, "Retail ", 1000)
 
-unique(two_d_data$industry)
-
 manuf <- two_d_data %>%
   filter(industry == "Manufacturing")
 scatter_manuf <- MU_advert_plot(manuf, "Manufacturing", 1000)
@@ -132,22 +127,14 @@ fininc <- two_d_data %>% # nolint
 scatter_finance <- MU_advert_plot(fininc, "Finance and Insurance", 1000)
 
 #save images
-setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex")
-#make sure to return wd
-
-plot_all
-# ggsave("scatter_all.pdf", plot_all, width = 9, height = 9, units = "in") # nolint
-
-scatter_manuf
-# ggsave("scatter_Manuf.pdf",scatter_manuf, width = 9, height = 9, units = "in") # nolint
-
-scatter_retail
-# ggsave("scatter_Retail.pdf",  scatter_retail, width = 9, height = 9, units = "in") # nolint
-
-scatter_finance
-# ggsave("scatter_Finance.pdf", scatter_finance, width = 9, height = 9, units = "in") # nolint
-#return to correct wd
-setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #make sure to return wd
+      # ggsave("scatter_all.pdf", plot_all, width = 9, height = 9, units = "in") # nolint
+      # ggsave("scatter_Manuf.pdf",scatter_manuf, width = 9, height = 9, units = "in") # nolint
+      # ggsave("scatter_Retail.pdf",  scatter_retail, width = 9, height = 9, units = "in") # nolint
+      # ggsave("scatter_Finance.pdf", scatter_finance, width = 9, height = 9, units = "in") # nolint
+      #return to correct wd
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 
 ############################################################
@@ -172,7 +159,8 @@ print(xtable(testtable, align = lign), include.rownames = FALSE)
 Results_2Digit <- regression_output_n(Data, naics, 2) # nolint
 #[1] clean table, [2] ugly table, [3] model 9 sector coefficients (well named)
 #[4] model 9 year coefficients (well named), [5] all models
-#[6] latex clean table #[7] industry count temp #[8] Main Model (called Main_model)
+#[6] latex clean table #[7] industry count temp
+#[8] Main Model (called Main_model)
 
 table_1 <- Results_2Digit[1]
 table_1
@@ -194,8 +182,6 @@ labs <- c(C_MU = "Markup (Sales Weighted)", B_Adr = "xad (Sales Weighted)",
           A_Exad = "Advertising Efficency (2022)")
 
 industry_co_plot_2d <- Efficency_plot_stacked(hold, labs)
-
-industry_co_plot_2d
   #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
   #ggsave("industry_co_plot_2d.pdf",  industry_co_plot_2d, width = 15, height = 13.5, units = "in") # nolint
   #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
@@ -205,8 +191,6 @@ industry_co_plot_2d
 #time trend plot
 time_co_plot_2d <- time_plot(year_coef_2d,
                              "Advertising Response Elasticity", "2")
-
-time_co_plot_2d
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
       #ggsave("time_co_plot_2d.pdf", time_co_plot_2d, width = 4.5, height = 4, units = "in") # nolint
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
@@ -229,8 +213,6 @@ indcount3 <- Results_3Digit[7]
 #time trend plot
 time_co_plot_3d <- time_plot(year_coef_3d,
                              "Advertising Response Elasticity", "3")
-
-time_co_plot_3d
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
       #ggsave("time_co_plot_3d.pdf", time_co_plot_3d, width = 4.5, height = 4, units = "in") # nolint
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
@@ -238,8 +220,6 @@ time_co_plot_3d
 #sector plot (choose minimal number of obs needed to be included)
 industry_co_plot_3d_limit <-
   Efficency_plot(sector_coef_3d, indcount3, 100)
-
-industry_co_plot_3d_limit
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
       #ggsave("industry_co_plot_3d_limit.pdf", industry_co_plot_3d_limit, width = 9, height = 13.5, units = "in") # nolint
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
@@ -255,8 +235,6 @@ indcount4 <- Results_4Digit[7]
 #time trend plot
 time_co_plot_4d <- time_plot(year_coef_4d,
                              "Advertising Response Elasticity", "4")
-
-time_co_plot_4d
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
       #ggsave("time_co_plot_4d.pdf", time_co_plot_4d, width = 4.5, height = 4, units = "in") # nolint
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
@@ -264,12 +242,9 @@ time_co_plot_4d
 #sector plot (choose minimal number of obs needed to be included)
 industry_co_plot_4d_limit <-
   Efficency_plot(sector_coef_4d, indcount4, 100)
-
-industry_co_plot_4d_limit
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
       #ggsave("industry_co_plot_4d_limit.pdf", industry_co_plot_4d_limit, width = 9, height = 13.5, units = "in") # nolint
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
-
 
 ####################### 7.b 5 digit ####################
 #run regressions and save output
@@ -281,8 +256,6 @@ indcount5 <- Results_5Digit[7]
 #time trend plot
 time_co_plot_5d <- time_plot(year_coef_5d,
                              "Advertising Response Elasticity", "5")
-
-time_co_plot_5d
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
       #ggsave("time_co_plot_5d.pdf", time_co_plot_5d, width = 4.5, height = 4, units = "in") # nolint
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
@@ -290,12 +263,9 @@ time_co_plot_5d
 #sector plot (choose minimal number of obs needed to be included)
 industry_co_plot_5d_limit <-
   Efficency_plot(sector_coef_5d, indcount4, 50)
-
-industry_co_plot_5d_limit
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
       #ggsave("industry_co_plot_5d_limit.pdf", industry_co_plot_5d_limit, width = 9, height = 13.5, units = "in") # nolint
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
-
 
 
 ############################################################
@@ -349,11 +319,9 @@ time_regression_table <- coef_regression(sector_time_coefs, Dset, naics, 2)
 time_regression_table
 
 coef_reg_plot <- coef_reg_plot_stacked(time_regression_table)
-      setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      ggsave("coef_reg_plot.pdf", coef_reg_plot, width = 15, height = 13.5, units = "in") # nolint
-      setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
-
-coef_reg_plot
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("coef_reg_plot.pdf", coef_reg_plot, width = 15, height = 13.5, units = "in") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 ############################################################
 ############################################################
@@ -376,7 +344,6 @@ labs <- c(C_MU = "Markup (Sales Weighted)", B_Adr = "xad (Sales Weighted)",
           A_Exad = "Intercept (2022)")
 #plot
 intercept_plot <- intercept_plot_stacked(industry_ints, agg_2_digit, labs)
-intercept_plot
   #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
   #ggsave("intercept_plot.pdf",  intercept_plot, width = 15, height = 13.5, units = "in") # nolint
   #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
@@ -389,9 +356,9 @@ intercept_plot
 year_ints <- data.frame(intercepts_and_errors$fyear)
 
 time_int_plot_2d <- ints_timeplot(year_ints, "Intercept", "2")
-      setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      ggsave("time_int_plot_2d.pdf", time_int_plot_2d, width = 4.5, height = 4, units = "in") # nolint
-      setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("time_int_plot_2d.pdf", time_int_plot_2d, width = 4.5, height = 4, units = "in") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 
 ############################################################
@@ -403,32 +370,36 @@ intercepts_and_errors_3 <- get_intercepts_and_errors(Data, naics, 3)
 year_ints_3 <- data.frame(intercepts_and_errors_3$fyear)
 
 time_int_plot_3d <- ints_timeplot(year_ints_3, "Intercept", "3")
-time_int_plot_3d
-      setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      ggsave("time_int_plot_3d.pdf", time_int_plot_3d, width = 4.5, height = 4, units = "in") # nolint
-      setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("time_int_plot_3d.pdf", time_int_plot_3d, width = 4.5, height = 4, units = "in") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 #4 digit
 intercepts_and_errors_4 <- get_intercepts_and_errors(Data, naics, 4)
 year_ints_4 <- data.frame(intercepts_and_errors_4$fyear)
 
 time_int_plot_4d <- ints_timeplot(year_ints_4, "Intercept", "4")
-time_int_plot_4d
-      setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      ggsave("time_int_plot_4d.pdf", time_int_plot_4d, width = 4.5, height = 4, units = "in") # nolint
-      setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("time_int_plot_4d.pdf", time_int_plot_4d, width = 4.5, height = 4, units = "in") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 #5 digit
 intercepts_and_errors_5 <- get_intercepts_and_errors(Data, naics, 5)
 year_ints_5 <- data.frame(intercepts_and_errors_5$fyear)
 
 time_int_plot_5d <- ints_timeplot(year_ints_5, "Intercept", "5")
-time_int_plot_5d
-      setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      ggsave("time_int_plot_5d.pdf", time_int_plot_5d, width = 4.5, height = 4, units = "in") # nolint
-      setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("time_int_plot_5d.pdf", time_int_plot_5d, width = 4.5, height = 4, units = "in") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 
 ############################################################
 ############# 9.d: sector x time  ##########################
+############################################################
+
+
+############################################################
+############################################################
+############# 10: Correcting error #########################
+############################################################
 ############################################################
