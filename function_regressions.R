@@ -212,12 +212,32 @@ regression_output_n <- function(data, naics, n) {
 ############################################################
 ############################################################
 
+############################################################
+##############   2.a: by sector time trend Regression  #####
+############################################################
+
 sector_time_coefs_n <- function(data, naics, n) {
 
   ################## run Industry_n_dig to make data ##################
 
   #generate N digit industry names
   temp_data <- industry_n_dig(data, naics, n) #nolint
+
+
+  ################# full sample  #################
+  model_temp <- feols(
+    Adr_MC ~ i(fyear, MU_1) | fyear,
+    cluster = "GVKEY",
+    data = temp_data #nolint
+  )
+  ceos_temp <- data.frame(gsub(":MU_1", "",
+                               gsub("fyear::", "",
+                                    names(model_temp$coefficients))))
+  ceos_temp$efficency <- model_temp$coefficients
+  ceos_temp$se <- summary(model_temp, cluster = "GVKEY")$se
+  #need to change this correct SEs
+  ceos_temp$industry <- "Full Sample"
+  output <- ceos_temp
 
   ################# store industry names,##############################
   #get number of observations for each industry
@@ -226,8 +246,6 @@ sector_time_coefs_n <- function(data, naics, n) {
   industries_temp <- ind_count_temp[ind_count_temp$n > 1, ]
 
   ################# loop over sectors  #################
-  output <- data.frame()
-
   for (i in industries_temp$industry[!is.na(industries_temp$industry)]){
 
     #estimate model within sector
@@ -255,6 +273,83 @@ sector_time_coefs_n <- function(data, naics, n) {
   #some cleaning
   names(output) <- c("year", "fit", "se", "industry")
   output$year <- as.numeric(output$year)
-  output$industry <- str_wrap(temp$industry, width = 20)
-  output
+  output$industry <- str_wrap(output$industry, width = 20) # nolint
+  print(output)
+}
+############################################################
+########  2.b: regression of coefficents over time  ########
+############################################################
+
+coef_regression <- function(coefs, data, naics, n) {
+
+  #run Industry_n_dig to make full sample data
+  temp_data <- industry_n_dig(data, naics, n) # nolint
+  temp_data$industry <- str_wrap(temp_data$industry, width = 20)
+  #rename sectors so they match
+  ################# grab names ##################
+  sectors <- unique(subset(coefs,industry!="Full Sample")$industry) # nolint
+
+  ################# table  #################
+  #fill in full sample row
+
+  #coef regression
+  coef_model <- feols(log(fit) ~ log(year-1960), # nolint
+                       data = subset(coefs, industry == "Full Sample")) # nolint
+  #adv regression
+  adv_model <- feols(log(Adr) ~ log(fyear-1960), # nolint
+                       data = temp_data) # nolint
+  #MU regression
+  MU_model <- feols(log(MU_1) ~ log(fyear-1960), # nolint
+                       data = temp_data) # nolint
+
+
+  #fill in point estimates in row 1 (default to not)
+  table <- data.frame(
+    "All",
+    coef_model$coefficients[2],
+    adv_model$coefficients[2],
+    MU_model$coefficients[2],
+    summary(coef_model)$se[2],
+    summary(adv_model)$se[2],
+    summary(MU_model)$se[2]
+  )
+
+  names(table) <- c(
+                    "Sample", "Exad_trend", "adv_trend", "MU_trend",
+                    "Exad_se", "adv_se", "MU_se")
+
+  ################# loop over sectors  #################
+
+  for (i in sectors) { # nolint
+
+    #coef regression
+    coef_model = feols(log(fit) ~ log(year-1960), # nolint
+                        data = subset(coefs, industry == i)) # nolint
+    #adv regression
+    adv_model <- feols(log(Adr) ~ log(fyear-1960), # nolint
+                        data = subset(temp_data,industry == i)) # nolint
+    #MU regression
+    MU_model <- feols(log(MU_1) ~ log(fyear-1960), # nolint
+                        data = subset(temp_data,industry == i)) # nolint
+
+    #fill in point estimates in row 1 (default to not)
+    temp_table <- data.frame(
+      i,
+      coef_model$coefficients[2],
+      adv_model$coefficients[2],
+      MU_model$coefficients[2],
+      summary(coef_model)$se[2],
+      summary(adv_model)$se[2],
+      summary(MU_model)$se[2]
+    )
+    names(temp_table) <- c(
+                     "Sample", "Exad_trend", "adv_trend", "MU_trend",
+                     "Exad_se", "adv_se", "MU_se")
+
+
+    table <- rbind(table, temp_table)
+  }
+
+  rownames(table) <- NULL
+  print(table)
 }

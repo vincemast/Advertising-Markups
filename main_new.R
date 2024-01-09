@@ -277,9 +277,10 @@ industry_co_plot_5d_limit
 
 
 
-
+############################################################
 ############################################################
 ############# 8: Sector and time ###########################
+############################################################
 ############################################################
 
 ############################################################
@@ -287,6 +288,7 @@ industry_co_plot_5d_limit
 ############################################################
 
 #run regressions and save output
+
 sector_time_coefs <- sector_time_coefs_n(Data, naics, 2)
 
 #plot sector coefficients over time
@@ -294,27 +296,35 @@ exad_ot_plot_ <- exad_ot_plot(sector_time_coefs, 10, "")
 exad_ot_plot_smooth <- exad_ot_plot(sector_time_coefs, 10, "smooth")
 #function checks if last input is set to "smooth" and if so plots a smooth line
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("exad_ot_plot.pdf", exad_ot_plot_, width = 9, height = 9, units = "in") # nolint
-      #ggsave("exad_ot_plot_smooth.pdf", exad_ot_plot_smooth, width = 9, height = 9, units = "in") # nolint
+      #ggsave("exad_ot_plot.pdf", exad_ot_plot_, width = 9, height = 7, units = "in") # nolint
+      #ggsave("exad_ot_plot_smooth.pdf", exad_ot_plot_smooth, width = 7, height = 9, units = "in") # nolint
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
-############ interesting sectors ############
 
+############ interesting sectors ############
+#fliter to interesting
 fsector_time_coefs_interesting <- sector_time_coefs %>%
   filter(industry %in%
            c("Information", "Retail Trade", "Manufacturing", "Wholesale Trade",
              "Finance and\nInsurance", "Health Care and\nSocial Assistance"))
-
-
+#plot interesting
 exad_ot_interesting <-
   exad_ot_plot(fsector_time_coefs_interesting, 16, "")
 exad_ot_interesting_smooth <-
   exad_ot_plot(fsector_time_coefs_interesting, 16, "smooth")
-      setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      ggsave("exad_ot_interesting.pdf", exad_ot_interesting, width = 9, height = 9, units = "in") # nolint
-      ggsave("exad_ot_interesting_smooth.pdf", exad_ot_interesting_smooth, width = 9, height = 8, units = "in") # nolint
-      setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("exad_ot_interesting.pdf", exad_ot_interesting, width = 9, height = 7, units = "in") # nolint
+      #ggsave("exad_ot_interesting_smooth.pdf", exad_ot_interesting_smooth, width = 9, height = 7, units = "in") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 ############################################################
 ############# 8.b regress against time ##################
 ############################################################
 
+time_regression_table <- coef_regression(sector_time_coefs, Dset, naics, 2)
+time_regression_table
+
+coef_reg_plot <- coef_reg_plot_stacked(time_regression_table)
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("coef_reg_plot.pdf", coef_reg_plot, width = 9, height = 12, units = "in") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+coef_reg_plot

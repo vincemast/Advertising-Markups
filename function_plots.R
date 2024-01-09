@@ -528,6 +528,9 @@ time_plot <- function(year_coef, tit, D) { # nolint
 ############################################################
 ############################################################
 
+############################################################
+##############   5.a Exad over time plot  ##########
+############################################################
 exad_ot_plot <- function(data, textsize, linetype) {
 
   #checks if linetype ="smooth"
@@ -539,7 +542,7 @@ exad_ot_plot <- function(data, textsize, linetype) {
   #create title noting if geometric smoothing
 
   if (linetype == "smooth") {
-    titlee <- paste(titlee, " (With LOESS smoothing)", sep = "")
+    titlee <- paste(titlee, " (Smoothed via LOESS)", sep = "")
     line <- geom_smooth()
   }
 
@@ -553,6 +556,43 @@ exad_ot_plot <- function(data, textsize, linetype) {
 }
 
 
+############################################################
+##############   5.b coefficent regression plots  ##########
+############################################################
+
+coef_reg_plot_stacked <- function(hold) { # nolint
+
+  labs <- c(C_MU = "Markup Trend", B_Adr = "xad Trend",
+            A_Exad = "Coefficent Trend")
+
+  hold2 <- hold %>% select(-Exad_se, -adv_se, -MU_se) # nolint
+  names(hold2) <- c("industry", "A_Exad", "B_Adr", "C_MU")
+  temp_data <- gather(hold2, variable,value, -industry) # nolint
+
+  hold3 <- hold %>% select(-Exad_trend, -adv_trend, -MU_trend) # nolint
+  names(hold3) <- c("industry", "A_Exad", "B_Adr", "C_MU")
+  tempdata <- gather(hold3, variable,se, -industry) # nolint
+
+  temp_data2 <- merge(temp_data, tempdata)
+
+  order <- hold %>% select(Sample, Exad_trend) # nolint
+  order <- order %>% mutate(Exad_trend = 1000 * (Sample == "All") + Exad_trend) # nolint
+  names(order) <- c("industry", "order")
+
+  temp_data2 <- merge(temp_data2, order)
+
+  plot <- ggplot(temp_data2, aes(x = value,  # nolint
+                                 y = reorder(industry, order))) + # nolint
+    geom_col() +
+    theme_bw() +
+    facet_wrap(~variable, scales = "free_x", labeller = as_labeller(labs)) +
+    theme(text = element_text(size = 15)) +
+    scale_y_discrete(labels = wrap_format(22)) + # nolint
+    geom_errorbar(aes(xmin = value+se*1.96, xmax = value-se*1.96), # nolint
+                  width = 0.2, color = "darkblue") +
+    labs(title = NULL, x = NULL, y = "Industry (2 Digit NAICS Code)")
+
+}
 
 
 
