@@ -1,9 +1,9 @@
 To do:
 
-    1) set up directory to do automatically
+    1) Correcting markups stuff
 
-    2) add some quietlys
+    2) set up directory to do automatically
 
-    3) Quantifying error stuff
+    3) add some quietlys
 
-    4) Correcting markups stuff
+    4) Quantifying error stuff  time trend in sector

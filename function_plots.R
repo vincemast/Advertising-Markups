@@ -448,14 +448,11 @@ Sector_MU_Adr <- function(Dset, naics, N) { # nolint
 ############################################################
 ########## plot ##############
 
-Efficency_plot_stacked <- function(hold) { # nolint
+Efficency_plot_stacked <- function(hold,labs) { # nolint
 
   hold2 <- hold %>% select(-se)
 
   names(hold2) <- c("industry", "C_MU", "B_Adr", "A_Exad")
-
-  labs <- c(C_MU = "Markup (Sales Weighted)", B_Adr = "xad (Sales Weighted)",
-            A_Exad = "Advertising Efficency (2022)")
 
   temp_data <- gather(hold2, variable,value, -industry) # nolint
 
@@ -519,11 +516,9 @@ time_plot <- function(year_coef, tit, D) { # nolint
 }
 
 
-
-
 ############################################################
 ############################################################
-##############   5: plots ########################
+##############   5: trend plots ########################
 ##############   figure 5 and others  #####################
 ############################################################
 ############################################################
@@ -595,9 +590,82 @@ coef_reg_plot_stacked <- function(hold) { # nolint
 }
 
 
+############################################################
+############################################################
+##############   6: intercept plots ########################
+##############   figure 6? and others  #####################
+############################################################
+############################################################
+
+############################################################
+##############   6.a stacked intercept plots  ##########
+############################################################
+
+intercept_plot_stacked <- function(intercept, agg_2_digit, labs) {
+  # Remove the row names
+  rownames(intercept) <- NULL
+  names(intercept) <- c("fit", "se", "industry")
+  temp <- intercept %>% select(industry, fit, se) # nolint
+
+  #merge with agg_2_digit
+  hold2 <- merge(agg_2_digit, temp)
+
+  #run plot
+  intercept_co_plot_2d <- Efficency_plot_stacked(hold2, labs)
+  intercept_co_plot_2d
+}
+
+############################################################
+##############   6.a stacked intercept plots  ##########
+############################################################
+############################################################
+
+time_plot <- function(year_coef, tit, D) { # nolint
+
+  tempdata <- year_coef
+
+  #create title allowing for input of title and number of digits
+  temptitle <- paste(tit, " Time Trend\n(2022 Reference year, ",
+                     D, " Digit NAICS)", sep = "")
 
 
+  timecoplot3d <-
+    ggplot(tempdata, aes(x = year, y = fit, group = year)) + #nolint
+    geom_boxplot() +
+    geom_errorbar(aes(ymin = fit - 1.96 * se, ymax = fit + 1.96 * se),
+                  width = 0.2, color = "darkblue") +
+    geom_hline(aes(yintercept = 0), colour = "black",
+               linetype = "dashed", size = 1) +
+    #geom_text(aes(1985, 0, label = "2022 Reference",
+    #             vjust = -1), size = 4, colour = "black") +
+    labs(x = "Year", y = "") +
+    ggtitle(temptitle) +
+    guides(fill = guide_legend(title = NULL)) +
+    theme(text = element_text(size = 20)) +
+    theme_minimal()
 
+  print(timecoplot3d)
+
+}
+
+############################################################
+##############   6.b time plot  ############################
+############################################################
+############################################################
+
+ints_timeplot <- function(ints, title, D) { # nolint
+
+  ints$year <- as.numeric(gsub("fyear", "", rownames(ints)))
+  # Remove the row names and name for time plot
+  rownames(ints) <- NULL
+  names(ints) <- c("fit", "se", "year")
+
+  plot <- time_plot(ints,
+                    title, D)
+
+  plot
+
+}
 
 
 ############################################################

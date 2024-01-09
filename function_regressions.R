@@ -3,6 +3,8 @@ require(dplyr)
 require(fixest)
 require(modelsummary)
 require(stringr)
+require(lmtest)
+require(sandwich)
 ############################################################
 ############################################################
 ##############   1: Main Regression  #######################
@@ -196,7 +198,8 @@ regression_output_n <- function(data, naics, n) {
   #make into list
   output <- list(
                  table_temp, ugly_table, sector_cos, year_cos,
-                 models_temp, table_temp_latex, ind_count_temp)
+                 models_temp, table_temp_latex, ind_count_temp,
+                 Main_model = model_9)
   #print list so that it appears as output of function
   output
 
@@ -352,4 +355,57 @@ coef_regression <- function(coefs, data, naics, n) {
 
   rownames(table) <- NULL
   print(table)
+}
+
+
+############################################################
+############################################################
+############## 2: Ses on intercepts  #######################
+############################################################
+############################################################
+
+get_intercepts_and_errors <- function(data, naics, n) {
+
+  data <- industry_n_dig(data, naics, n) #nolint
+
+  # Convert 'industry' and 'fyear' to factor variables
+  data$industry <- as.factor(data$industry)
+  data$fyear <- as.factor(data$fyear)
+
+  # Run the regression
+  model <- lm(Adr_MC ~ industry * MU_1 + fyear * MU_1 - MU_1, data = data)
+
+  # Compute the clustered standard errors
+  clustered_se <- sqrt(diag(vcovCL(model, cluster = ~industry, type = "HC1")))
+
+  # Get the coefficients
+  coefficients <- coef(model)
+
+  # Save the intercepts and their clustered standard errors for 'industry'
+  industry_intercepts <- coefficients[grep("industry", names(coefficients))]
+  l <- length(industry_intercepts) / 2 # number of industries are in first half
+  industry_intercepts <- industry_intercepts[1:l]
+  industry_clustered_se <- clustered_se[grep("industry", names(clustered_se))]
+  industry_clustered_se <- industry_clustered_se[1:l]
+
+  # Save the intercepts and their clustered standard errors for 'fyear'
+  fyear_intercepts <- coefficients[grep("fyear", names(coefficients))]
+  l <- length(fyear_intercepts) / 2 # number of industries are in first half
+  fyear_intercepts <- fyear_intercepts[1:l]
+  fyear_clustered_se <- clustered_se[grep("fyear", names(clustered_se))]
+  fyear_clustered_se <- fyear_clustered_se[1:l]
+
+  # Return a list containing the intercepts and their clustered standard errors
+  return(
+    list(
+      industry = list(
+        intercepts = industry_intercepts,
+        std_errors = industry_clustered_se
+      ),
+      fyear = list(
+        intercepts = fyear_intercepts,
+        std_errors = fyear_clustered_se
+      )
+    )
+  )
 }
