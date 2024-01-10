@@ -279,8 +279,8 @@ industry_co_plot_5d_limit <-
 ############################################################
 
 #run regressions and save output
-
-sector_time_coefs <- sector_time_coefs_n(Data, naics, 2)
+sector_time_estimates <- sector_time_n(Data, naics, 2)
+sector_time_coefs <- sector_time_estimates %>% select(-intercept)
 
 #plot sector coefficients over time
 
@@ -397,9 +397,197 @@ time_int_plot_5d <- ints_timeplot(year_ints_5, "Intercept", "5")
 ############# 9.d: sector x time  ##########################
 ############################################################
 
+#to do, not a priority rn
 
 ############################################################
 ############################################################
 ############# 10: Correcting error #########################
 ############################################################
 ############################################################
+
+
+#try at 4 digit level
+
+n <- 2
+
+sector_time_estimates_n <- sector_time_n(Data, naics, n)
+
+sector_time_estimates_n <- sector_time_estimates_n %>%
+  mutate(correction = 1 - intercept / fit)
+
+sector_time_correction <- sector_time_estimates_n %>%
+  filter(industry != "Full Sample") %>%
+  select(-fit, -se, -intercept)
+
+head(sector_time_correction)
+
+names(sector_time_correction) <- c("fyear", "industry", "correction")
+
+use_data <- industry_n_dig(Data, naics, n) %>%
+  select(-naics_n, -GVKEY, -xopr, -gind, -naics, -emp, -ppegt,
+         -xad, -xlr, -cogs, -xsga, -entry, -age, -life, -X, -CPI,
+         -Adr, -Adr_MC, -time, -time2, -time3, -exit, -change, -usercost)
+
+head(use_data)
+
+data_correction <- merge(use_data, sector_time_correction,
+                         by = c("industry", "fyear"))
+
+head(data_correction)
+
+data_correction <- data_correction %>%
+  mutate(MU_C = MU * correction)
+
+data_correction <- data_correction %>%
+  mutate(MU_C1 = MU_C - 1)
+
+mudensity <- ggplot() +
+  geom_density(data = data_correction, aes(x = MU_C1),
+               color = "red") +
+  geom_density(data = data_correction, aes(x = MU_1),
+               color = "blue") +
+  theme(text = element_text(size = 20)) +
+  labs(x = "Markup (Log-scale)", y = "Density") +
+  scale_x_continuous(trans = log10_trans(), # nolint
+                     limits = c(.0001, 200), labels = comma) +
+  theme(legend.position = "bottom")
+
+mudensity
+
+data_corrected <- data_correction %>%
+  mutate(MU = MU_C)
+
+agg_mu_all_2 <- agg_mu(data_correction)
+agg_mu_c <- agg_mu(data_corrected)
+
+
+agg_mu_c_plot <-  ggplot() +
+  geom_line(data = agg_mu_all_2,
+              aes(y = Ag_MU, x = year, color = "Full Sample")) + # nolint
+  geom_line(data = agg_mu_c,
+            aes(y = Ag_MU, x = year, color = "Corrected")) +
+  theme(text = element_text(size = 20)) +
+  labs(x = "Year", y = "Sales Weighted Markup") +
+  theme(legend.position = "bottom")
+
+agg_mu_c_plot
+
+ggplot() +
+  geom_smooth(data = agg_mu_all_2,
+              aes(y = Ag_MU, x = year, color = "Full Sample")) + # nolint
+  geom_smooth(data = agg_mu_c,
+              aes(y = Ag_MU, x = year, color = "Corrected")) +
+  theme(text = element_text(size = 20)) +
+  labs(x = "Year", y = "Sales Weighted Markup") +
+  theme(legend.position = "bottom")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#zll ready generated all coefficients as sector_time_estimates
+sector_time_estimates$correction <-
+  (1 - sector_time_estimates$intercept / sector_time_estimates$fit)
+
+
+sector_time_correction <- sector_time_estimates %>%
+  filter(industry != "Full Sample") %>%
+  select(-fit, -se, -intercept)
+
+use_data <- two_d_data %>%
+  select(-naics_n, -GVKEY, -xopr, -gind, -naics, -emp, -ppegt,
+         -xad, -xlr, -cogs, -xsga, -entry, -age, -life, -X, -CPI,
+         -Adr, -Adr_MC, -time, -time2, -time3, -exit, -change)
+
+names(use_data) <- c("year", "usercost", "sale", "MU", "MU_1", "industry")
+
+data_correction <- merge(use_data, sector_time_correction,
+                         by = c("industry", "year"))
+
+names(data_correction) <- c("industry", "fyear",
+                            "usercost", "sale", "MU", "MU_1", "correction")
+
+data_correction <- data_correction %>%
+  mutate(MU_C = MU * correction)
+
+data_correction <- data_correction %>%
+  mutate(MU_C1 = MU_C - 1)
+
+mudensity <- ggplot() +
+  geom_density(data = data_correction, aes(x = MU_C1),
+               color = "red") +
+  geom_density(data = data_correction, aes(x = MU_1),
+               color = "blue") +
+  theme(text = element_text(size = 20)) +
+  labs(x = "Markup (Log-scale)", y = "Density") +
+  scale_x_continuous(trans = log10_trans(), # nolint
+                     limits = c(.0001, 200), labels = comma) +
+  theme(legend.position = "bottom")
+
+mudensity
+
+data_corrected <- data_correction %>%
+  mutate(MU = MU_C)
+
+agg_mu_all_2 <- agg_mu(data_correction)
+agg_mu_c <- agg_mu(data_corrected)
+
+agg_mu_c_plot <-  ggplot() +
+  geom_line(data = agg_mu_all_2,
+              aes(y = Ag_MU, x = year, color = "Full Sample")) + # nolint
+  geom_line(data = agg_mu_c,
+            aes(y = Ag_MU, x = year, color = "Corrected")) +
+  theme(text = element_text(size = 20)) +
+  labs(x = "Year", y = "Sales Weighted Markup") +
+  theme(legend.position = "bottom")
+
+agg_mu_c_plot
+
+
+
+order(sector_time_estimates$correction, decreasing = TRUE)
+
+plot(y = sector_time_estimates$correction, x = sector_time_estimates$year)
+
+sector_time_estimates_all <- sector_time_estimates %>%
+  filter(industry == "Full Sample")
+
+plot(y = sector_time_estimates_all$correction, x = sector_time_estimates_all$year)
+
+plot(density(sector_time_estimates$correction))
+
+plot(density(sector_time_estimates_all$correction))
+
+hold <- Winsorize(sector_time_estimates$correction, probs = c(0.05, 0.95))
+
+plot(density(hold))
+
+hold_all <-
+  Winsorize(sector_time_estimates_all$correction, probs = c(0.05, 0.95))
+
+plot(density(hold_all))
+

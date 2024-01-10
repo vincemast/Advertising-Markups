@@ -219,7 +219,7 @@ regression_output_n <- function(data, naics, n) {
 ##############   2.a: by sector time trend Regression  #####
 ############################################################
 
-sector_time_coefs_n <- function(data, naics, n) {
+sector_time_n <- function(data, naics, n) {
 
   ################## run Industry_n_dig to make data ##################
 
@@ -233,51 +233,69 @@ sector_time_coefs_n <- function(data, naics, n) {
     cluster = "GVKEY",
     data = temp_data #nolint
   )
+  #extract coefficients and ses
   ceos_temp <- data.frame(gsub(":MU_1", "",
                                gsub("fyear::", "",
                                     names(model_temp$coefficients))))
+  #create holder for intercepts
+  intercept_temp <- ceos_temp
+  #input data
   ceos_temp$efficency <- model_temp$coefficients
   ceos_temp$se <- summary(model_temp, cluster = "GVKEY")$se
-  #need to change this correct SEs
   ceos_temp$industry <- "Full Sample"
-  output <- ceos_temp
+  intercept_temp$intercept <- fixef(model_temp)$fyear
+  #clean names
+  names(ceos_temp) <- c("year", "fit", "se", "industry")
+  names(intercept_temp) <- c("year", "intercept")
+  #merge to output
+  output <- merge(ceos_temp, intercept_temp, by = "year")
 
   ################# store industry names,##############################
   #get number of observations for each industry
   ind_count_temp <- temp_data %>% count(industry) #nolint
   #only industries with >1 obs will produce an estimate
-  industries_temp <- ind_count_temp[ind_count_temp$n > 1, ]
+  industries_temp <- ind_count_temp[ind_count_temp$n > 2, ]
 
   ################# loop over sectors  #################
   for (i in industries_temp$industry[!is.na(industries_temp$industry)]){
+    #allow to continue if error
+    tryCatch({
+      #estimate model within sector
+      model_temp <- feols(
+        Adr_MC ~ i(fyear, MU_1) | fyear,
+        cluster = "GVKEY",
+        data = subset(temp_data, industry == i) #nolint
+      )
 
-    #estimate model within sector
-    model_temp <- feols(
-      Adr_MC ~ i(fyear, MU_1) | fyear,
-      cluster = "GVKEY",
-      data = subset(temp_data, industry == i) #nolint
-    )
-
-    #save, need to clean name of year
-    ceos_temp <- data.frame(
-                            gsub(":MU_1", "",
-                                 gsub("fyear::", "",
-                                      names(model_temp$coefficients))))
-
-    ceos_temp$efficency <- model_temp$coefficients
-
-    ceos_temp$se <- summary(model_temp, cluster = "GVKEY")$se
-    #need to change this correct SEs
-
-    ceos_temp$industry <- i
-
-    output <- rbind(output, ceos_temp)
+      #extract coefficients and ses
+      ceos_temp <- data.frame(gsub(":MU_1", "",
+                                  gsub("fyear::", "",
+                                        names(model_temp$coefficients))))
+      #input data
+      ceos_temp$efficency <- model_temp$coefficients
+      ceos_temp$se <- summary(model_temp, cluster = "GVKEY")$se
+      ceos_temp$industry <- i
+      #create holder for intercepts
+      intercept_temp <- data.frame(gsub(":MU_1", "",
+                                        gsub("fyear::", "",
+                                            names(fixef(model_temp)$fyear))))
+      intercept_temp$intercept <- fixef(model_temp)$fyear
+      #clean names
+      names(ceos_temp) <- c("year", "fit", "se", "industry")
+      names(intercept_temp) <- c("year", "intercept")
+      #merge to output temp
+      output_temp <- merge(ceos_temp, intercept_temp, by = "year")
+      #combine output
+      output <- rbind(output, output_temp)
+    }, error = function(e) {
+      # What to do when an error occurs: just print the error message
+      print(paste("Error:", e$message))
+    })
   }
   #some cleaning
-  names(output) <- c("year", "fit", "se", "industry")
   output$year <- as.numeric(output$year)
   output$industry <- str_wrap(output$industry, width = 20) # nolint
-  print(output)
+  output
 }
 ############################################################
 ########  2.b: regression of coefficents over time  ########
