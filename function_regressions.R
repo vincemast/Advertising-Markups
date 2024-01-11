@@ -97,7 +97,7 @@ regression_output_n <- function(data, naics, n) {
   )
 
   #grab all models
-  notused <- list(model_5, model_6, model_7)
+  notused <- list(model_5, model_6, model_7) #nolint
   models_temp <- list(model_1, model_2, model_3, model_4, model_8, model_9)
 
   #create ugly table and save
