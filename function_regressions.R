@@ -297,6 +297,7 @@ sector_time_n <- function(data, naics, n) {
   output$industry <- str_wrap(output$industry, width = 20) # nolint
   output
 }
+
 ############################################################
 ########  2.b: regression of coefficents over time  ########
 ############################################################
@@ -377,9 +378,7 @@ coef_regression <- function(coefs, data, naics, n) {
 
 
 ############################################################
-############################################################
-############## 2: Ses on intercepts  #######################
-############################################################
+############## 2.c: Ses on intercepts  #######################
 ############################################################
 
 get_intercepts_and_errors <- function(data, naics, n) {
@@ -426,4 +425,90 @@ get_intercepts_and_errors <- function(data, naics, n) {
       )
     )
   )
+}
+
+############################################################
+#### 2.d: reverse regression of coefficents over time  #####
+############################################################
+
+#reverse the estimation equation to get:
+# MU = adv*(1/E_xad) + \theta
+
+sector_time_reverse <- function(data, naics, n) {
+
+  ################## run Industry_n_dig to make data ##################
+
+  #generate N digit industry names
+  temp_data <- industry_n_dig(data, naics, n) #nolint
+
+
+  ################# full sample  #################
+  model_temp <- feols(
+    MU ~ i(fyear, Adr_MC) | fyear,
+    cluster = "GVKEY",
+    data = temp_data #nolint
+  )
+  #extract coefficients and ses
+  ceos_temp <- data.frame(gsub(":Adr_MC", "",
+                               gsub("fyear::", "",
+                                    names(model_temp$coefficients))))
+  #create holder for intercepts
+  intercept_temp <- ceos_temp
+  #input data
+  ceos_temp$efficency <- model_temp$coefficients
+  ceos_temp$se <- summary(model_temp, cluster = "GVKEY")$se
+  ceos_temp$industry <- "Full Sample"
+  intercept_temp$intercept <- fixef(model_temp)$fyear
+  #clean names
+  names(ceos_temp) <- c("year", "fit", "se", "industry")
+  names(intercept_temp) <- c("year", "intercept")
+  #merge to output
+  output <- merge(ceos_temp, intercept_temp, by = "year")
+
+  ################# store industry names,##############################
+  #get number of observations for each industry
+  ind_count_temp <- temp_data %>% count(industry) #nolint
+  #only industries with >1 obs will produce an estimate
+  industries_temp <- ind_count_temp[ind_count_temp$n > 2, ]
+
+  ################# loop over sectors  #################
+  for (i in industries_temp$industry[!is.na(industries_temp$industry)]){
+    #allow to continue if error
+    tryCatch({
+      #estimate model within sector
+      model_temp <- feols(
+        MU ~ i(fyear, Adr_MC) | fyear,
+        cluster = "GVKEY",
+        data = subset(temp_data, industry == i) #nolint
+      )
+
+      #extract coefficients and ses
+      ceos_temp <- data.frame(gsub(":Adr_MC", "",
+                                   gsub("fyear::", "",
+                                         names(model_temp$coefficients))))
+      #input data
+      ceos_temp$efficency <- model_temp$coefficients
+      ceos_temp$se <- summary(model_temp, cluster = "GVKEY")$se
+      ceos_temp$industry <- i
+      #create holder for intercepts
+      intercept_temp <- data.frame(gsub(":Adr_MC", "",
+                                        gsub("fyear::", "",
+                                             names(fixef(model_temp)$fyear))))
+      intercept_temp$intercept <- fixef(model_temp)$fyear
+      #clean names
+      names(ceos_temp) <- c("year", "fit", "se", "industry")
+      names(intercept_temp) <- c("year", "intercept")
+      #merge to output temp
+      output_temp <- merge(ceos_temp, intercept_temp, by = "year")
+      #combine output
+      output <- rbind(output, output_temp)
+    }, error = function(e) {
+      # What to do when an error occurs: just print the error message
+      print(paste("Error:", e$message))
+    })
+  }
+  #some cleaning
+  output$year <- as.numeric(output$year)
+  output$industry <- str_wrap(output$industry, width = 20) # nolint
+  output
 }

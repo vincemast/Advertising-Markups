@@ -195,8 +195,6 @@ time_co_plot_2d <- time_plot(year_coef_2d,
       #ggsave("time_co_plot_2d.pdf", time_co_plot_2d, width = 4.5, height = 4, units = "in") # nolint
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
-
-
 ############################################################
 ############################################################
 #7: more digits naics
@@ -223,7 +221,6 @@ industry_co_plot_3d_limit <-
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
       #ggsave("industry_co_plot_3d_limit.pdf", industry_co_plot_3d_limit, width = 9, height = 13.5, units = "in") # nolint
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
-
 
 ####################### 7.b 4 digit ####################
 #run regressions and save output
@@ -405,189 +402,82 @@ time_int_plot_5d <- ints_timeplot(year_ints_5, "Intercept", "5")
 ############################################################
 ############################################################
 
+############################################################
+########## 10.a sector x time og specification #############
+############################################################
 
-#try at 4 digit level
+corrected_mu <- mu_correction(Data, naics, 2)
 
-n <- 2
+mu_c_density <- mu_c_plot(corrected_mu)
 
-sector_time_estimates_n <- sector_time_n(Data, naics, n)
+agg_mu_c_plot <- agg_mu_c(corrected_mu)
 
-sector_time_estimates_n <- sector_time_estimates_n %>%
-  mutate(correction = 1 - intercept / fit)
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("mu_c_density.pdf", mu_c_density, width = 9, height = 7, units = "in") # nolint
+      #ggsave("agg_mu_c_plot.pdf", agg_mu_c_plot, width = 9, height = 7, units = "in") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
-sector_time_correction <- sector_time_estimates_n %>%
-  filter(industry != "Full Sample") %>%
-  select(-fit, -se, -intercept)
+############################################################
+############## 10.b reverse specification ##################
+############################################################
 
-head(sector_time_correction)
+corrected_mu_r <- mu_correction_reverse(Data, naics, 2)
 
-names(sector_time_correction) <- c("fyear", "industry", "correction")
+mu_c_density_r <- mu_c_plot(corrected_mu_r)
 
-use_data <- industry_n_dig(Data, naics, n) %>%
-  select(-naics_n, -GVKEY, -xopr, -gind, -naics, -emp, -ppegt,
-         -xad, -xlr, -cogs, -xsga, -entry, -age, -life, -X, -CPI,
-         -Adr, -Adr_MC, -time, -time2, -time3, -exit, -change, -usercost)
+agg_mu_c_plot_r <- agg_mu_c(corrected_mu_r)
 
-head(use_data)
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("agg_mu_c_plot_r.pdf", agg_mu_c_plot_r, width = 9, height = 7, units = "in") # nolint
+      #ggsave("mu_c_density_r.pdf", mu_c_density_r, width = 9, height = 7, units = "in") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
-data_correction <- merge(use_data, sector_time_correction,
-                         by = c("industry", "fyear"))
+############################################################
+################# 10.c more digits #########################
+############################################################
 
-head(data_correction)
+################# 10.c.1 main #########################
+corrected_mu_3 <- mu_correction(Data, naics, 3)
+agg_mu_c_plot_3 <- agg_mu_c(corrected_mu_3)
 
-data_correction <- data_correction %>%
-  mutate(MU_C = MU * correction)
+corrected_mu_4 <- mu_correction(Data, naics, 4)
+agg_mu_c_plot_4 <- agg_mu_c(corrected_mu_4)
 
-data_correction <- data_correction %>%
-  mutate(MU_C1 = MU_C - 1)
+corrected_mu_5 <- mu_correction(Data, naics, 5)
+agg_mu_c_plot_5 <- agg_mu_c(corrected_mu_5)
 
-mudensity <- ggplot() +
-  geom_density(data = data_correction, aes(x = MU_C1),
-               color = "red") +
-  geom_density(data = data_correction, aes(x = MU_1),
-               color = "blue") +
-  theme(text = element_text(size = 20)) +
-  labs(x = "Markup (Log-scale)", y = "Density") +
-  scale_x_continuous(trans = log10_trans(), # nolint
-                     limits = c(.0001, 200), labels = comma) +
-  theme(legend.position = "bottom")
+corrected_mu_6 <- mu_correction(Data, naics, 6)
+agg_mu_c_plot_6 <- agg_mu_c(corrected_mu_6)
 
-mudensity
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("agg_mu_c_plot_3.pdf", agg_mu_c_plot_3, width = 9, height = 7, units = "in") # nolint
+      #ggsave("agg_mu_c_plot_4.pdf", agg_mu_c_plot_4, width = 9, height = 7, units = "in") # nolint
+      #ggsave("agg_mu_c_plot_5.pdf", agg_mu_c_plot_5, width = 9, height = 7, units = "in") # nolint
+      #ggsave("agg_mu_c_plot_6.pdf", agg_mu_c_plot_6, width = 9, height = 7, units = "in") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
-data_corrected <- data_correction %>%
-  mutate(MU = MU_C)
+################# 10.c.1 reverse #########################
+corrected_mu_3_r <- mu_correction_reverse(Data, naics, 3)
+agg_mu_c_plot_3_r <- agg_mu_c(corrected_mu_3_r)
 
-agg_mu_all_2 <- agg_mu(data_correction)
-agg_mu_c <- agg_mu(data_corrected)
+corrected_mu_4_r <- mu_correction_reverse(Data, naics, 4)
+agg_mu_c_plot_4_r <- agg_mu_c(corrected_mu_4_r)
 
+corrected_mu_5_r <- mu_correction_reverse(Data, naics, 5)
+agg_mu_c_plot_5_r <- agg_mu_c(corrected_mu_5_r)
 
-agg_mu_c_plot <-  ggplot() +
-  geom_line(data = agg_mu_all_2,
-              aes(y = Ag_MU, x = year, color = "Full Sample")) + # nolint
-  geom_line(data = agg_mu_c,
-            aes(y = Ag_MU, x = year, color = "Corrected")) +
-  theme(text = element_text(size = 20)) +
-  labs(x = "Year", y = "Sales Weighted Markup") +
-  theme(legend.position = "bottom")
+corrected_mu_6_r <- mu_correction_reverse(Data, naics, 6)
+agg_mu_c_plot_6_r <- agg_mu_c(corrected_mu_6)
 
-agg_mu_c_plot
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("agg_mu_c_plot_3_r.pdf", agg_mu_c_plot_3_r, width = 9, height = 7, units = "in") # nolint
+      #ggsave("agg_mu_c_plot_4_r.pdf", agg_mu_c_plot_4_r, width = 9, height = 7, units = "in") # nolint
+      #ggsave("agg_mu_c_plot_5_r.pdf", agg_mu_c_plot_5_r, width = 9, height = 7, units = "in") # nolint
+      #ggsave("agg_mu_c_plot_6_r.pdf", agg_mu_c_plot_6_r, width = 9, height = 7, units = "in") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
-ggplot() +
-  geom_smooth(data = agg_mu_all_2,
-              aes(y = Ag_MU, x = year, color = "Full Sample")) + # nolint
-  geom_smooth(data = agg_mu_c,
-              aes(y = Ag_MU, x = year, color = "Corrected")) +
-  theme(text = element_text(size = 20)) +
-  labs(x = "Year", y = "Sales Weighted Markup") +
-  theme(legend.position = "bottom")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#zll ready generated all coefficients as sector_time_estimates
-sector_time_estimates$correction <-
-  (1 - sector_time_estimates$intercept / sector_time_estimates$fit)
-
-
-sector_time_correction <- sector_time_estimates %>%
-  filter(industry != "Full Sample") %>%
-  select(-fit, -se, -intercept)
-
-use_data <- two_d_data %>%
-  select(-naics_n, -GVKEY, -xopr, -gind, -naics, -emp, -ppegt,
-         -xad, -xlr, -cogs, -xsga, -entry, -age, -life, -X, -CPI,
-         -Adr, -Adr_MC, -time, -time2, -time3, -exit, -change)
-
-names(use_data) <- c("year", "usercost", "sale", "MU", "MU_1", "industry")
-
-data_correction <- merge(use_data, sector_time_correction,
-                         by = c("industry", "year"))
-
-names(data_correction) <- c("industry", "fyear",
-                            "usercost", "sale", "MU", "MU_1", "correction")
-
-data_correction <- data_correction %>%
-  mutate(MU_C = MU * correction)
-
-data_correction <- data_correction %>%
-  mutate(MU_C1 = MU_C - 1)
-
-mudensity <- ggplot() +
-  geom_density(data = data_correction, aes(x = MU_C1),
-               color = "red") +
-  geom_density(data = data_correction, aes(x = MU_1),
-               color = "blue") +
-  theme(text = element_text(size = 20)) +
-  labs(x = "Markup (Log-scale)", y = "Density") +
-  scale_x_continuous(trans = log10_trans(), # nolint
-                     limits = c(.0001, 200), labels = comma) +
-  theme(legend.position = "bottom")
-
-mudensity
-
-data_corrected <- data_correction %>%
-  mutate(MU = MU_C)
-
-agg_mu_all_2 <- agg_mu(data_correction)
-agg_mu_c <- agg_mu(data_corrected)
-
-agg_mu_c_plot <-  ggplot() +
-  geom_line(data = agg_mu_all_2,
-              aes(y = Ag_MU, x = year, color = "Full Sample")) + # nolint
-  geom_line(data = agg_mu_c,
-            aes(y = Ag_MU, x = year, color = "Corrected")) +
-  theme(text = element_text(size = 20)) +
-  labs(x = "Year", y = "Sales Weighted Markup") +
-  theme(legend.position = "bottom")
-
-agg_mu_c_plot
-
-
-
-order(sector_time_estimates$correction, decreasing = TRUE)
-
-plot(y = sector_time_estimates$correction, x = sector_time_estimates$year)
-
-sector_time_estimates_all <- sector_time_estimates %>%
-  filter(industry == "Full Sample")
-
-plot(y = sector_time_estimates_all$correction, x = sector_time_estimates_all$year)
-
-plot(density(sector_time_estimates$correction))
-
-plot(density(sector_time_estimates_all$correction))
-
-hold <- Winsorize(sector_time_estimates$correction, probs = c(0.05, 0.95))
-
-plot(density(hold))
-
-hold_all <-
-  Winsorize(sector_time_estimates_all$correction, probs = c(0.05, 0.95))
-
-plot(density(hold_all))
-
+#############################################################
+#############################################################
+#############################################################
+#############################################################
+#############################################################

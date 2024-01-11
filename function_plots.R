@@ -41,16 +41,12 @@ mu_density <- function(Data,Dset) {# nolint
   print(mudensity)
 }
 
-
-
-
 ############################################################
 ############################################################
 ##############   2:Aggregate Markups #######################
 ##############    figure 3           #######################
 ############################################################
 ############################################################
-
 
 ############################################################
 ##############   2.a create data  ############################
@@ -146,7 +142,6 @@ agg_mu_plot <- function(fullsample, subsample) {
 ############################################################
 ############################################################
 
-
 ############################################################
 #   3.a scatter plots with sample points and trend lines  ##
 ############################################################
@@ -239,7 +234,6 @@ MU_advert_plot <- function(Sub_Panel_data, sub_panel_name, N){ # nolint
   print(plot)
 
 }
-
 
 ############################################################
 ##################   3.b test table  ########################
@@ -673,6 +667,115 @@ ints_timeplot <- function(ints, title, D) { # nolint
 
 }
 
+
+############################################################
+############################################################
+##############   7: Correcting markups #####################
+############################################################
+############################################################
+
+############################################################
+#############   7.a: main specification ####################
+############################################################
+
+############## 7.a.1 run regression and save data ###########
+
+mu_correction <- function(Data, naics, n) { #nolint
+
+  sector_time_estimates_n <- sector_time_n(Data, naics, n) #nolint
+
+  sector_time_estimates_n <- sector_time_estimates_n %>%
+    mutate(correction = 1 - intercept / fit)              #nolint
+
+  sector_time_correction <- sector_time_estimates_n %>%
+    filter(industry != "Full Sample") %>% #nolint
+    select(-fit, -se, -intercept) #nolint
+
+  names(sector_time_correction) <- c("fyear", "industry", "correction")
+
+  use_data <- industry_n_dig(Data, naics, n) %>% #nolint
+    select(-naics_n, -GVKEY, -xopr, -gind, -naics, -emp, -ppegt, #nolint
+          -xad, -xlr, -cogs, -xsga, -entry, -age, -life, -X, -CPI, #nolint
+          -Adr, -Adr_MC, -time, -time2, -time3, -exit, -change) #nolint
+
+  data_correction <- merge(use_data, sector_time_correction,
+                           by = c("industry", "fyear"))
+
+  data_correction <- data_correction %>%
+    mutate(MU_C = MU / correction) #nolint
+
+  print(data_correction)
+
+}
+
+############## 7.a.2 plot density ###########
+
+mu_c_plot <- function(correctdata) {
+
+  mudensity <- ggplot() +
+    geom_density(data = correctdata, aes(x = MU_C - 1, color = "Corrected")) + # nolint
+    geom_density(data = correctdata, aes(x = MU_1, color = "Raw")) + # nolint
+    theme(text = element_text(size = 20)) +
+    labs(x = "Markup (Log-scale)", y = "Density") +
+    scale_x_continuous(trans = log10_trans(), # nolint
+                       limits = c(.0001, 200), labels = comma) +
+    theme(legend.position = "bottom")
+
+  print(mudensity)
+
+}
+
+############## 7.a.3 plot agg MU ###########
+
+agg_mu_c <-  function(correctdata) {
+
+  correctdata_c <- correctdata %>%
+    mutate(MU = MU_C) #nolint
+
+  agg_temp <- agg_mu(correctdata)
+  agg_temp_c <- agg_mu(correctdata_c) #nolint
+
+  agg_mu_c_plot <-  ggplot() +
+    geom_line(data = agg_temp_c,
+              aes(y = Ag_MU -1 , x = year, color = "Corrected")) + #nolint
+    geom_line(data = agg_temp,
+                aes(y = Ag_MU - 1, x = year, color = "Raw")) + # nolint
+    theme(text = element_text(size = 20)) +
+    labs(x = "Year", y = "Sales Weighted Markup") +
+    theme(legend.position = "bottom")
+
+  print(agg_mu_c_plot)
+
+}
+
+############################################################
+############   7.b: reverse specification ##################
+############################################################
+
+mu_correction_reverse <- function(Data, naics, n) { #nolint
+
+  sector_time_estimates_n <- sector_time_reverse(Data, naics, n) #nolint
+
+  sector_time_correction <- sector_time_estimates_n %>%
+    filter(industry != "Full Sample") %>% #nolint
+    select(-fit, -se) #nolint
+
+  names(sector_time_correction) <- c("fyear", "industry", "correction")
+
+  use_data <- industry_n_dig(Data, naics, n) %>% #nolint
+    select(-naics_n, -GVKEY, -xopr, -gind, -naics, -emp, -ppegt, #nolint
+          -xad, -xlr, -cogs, -xsga, -entry, -age, -life, -X, -CPI, #nolint
+          -Adr, -Adr_MC, -time, -time2, -time3, -exit, -change) #nolint
+
+  data_correction <- merge(use_data, sector_time_correction,
+                           by = c("industry", "fyear"))
+
+  data_correction <- data_correction %>%
+    mutate(MU_C = MU / correction) #nolint
+
+  print(data_correction)
+
+}
 
 ############################################################
 ############################################################
