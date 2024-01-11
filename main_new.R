@@ -62,9 +62,9 @@ colnames(naics) <- c("change", "naics_n", "industry")
 setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 
-Dset<-VariableGen(Dset, Ucost) # nolint
+Dset<-invisible(VariableGen(Dset, Ucost)) # nolint
 
-Data<- Cleanadv(Dset) # nolint
+Data<- invisible(Cleanadv(Dset)) # nolint
 #clean and combine data
 
 
@@ -108,7 +108,7 @@ agg_muplot <- agg_mu_plot(Dset, Data)
 ############################################################
 ############################################################
 
-two_d_data <- industry_n_dig(Data, naics, 2)
+two_d_data <- invisible(industry_n_dig(Data, naics, 2))
 #add naics industries
 plot_all <- MU_advert_plot(Data, "All", 1000)
 # generate full sample scatter plot
@@ -185,7 +185,6 @@ industry_co_plot_2d <- Efficency_plot_stacked(hold, labs)
   #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
   #ggsave("industry_co_plot_2d.pdf",  industry_co_plot_2d, width = 15, height = 13.5, units = "in") # nolint
   #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
-
 
 #################### 6.b time plots ###########################
 #time trend plot

@@ -107,7 +107,7 @@ tempdata_4 <- tempdata_3 %>% # nolint
   #apply weights
   names(tempdata_4) <- c("year", "Ag_MU")
 
-  print(tempdata_4)
+  tempdata_4
 
 }
 
@@ -117,9 +117,9 @@ tempdata_4 <- tempdata_3 %>% # nolint
 
 agg_mu_plot <- function(fullsample, subsample) {
 
-  agg_mu_all <- agg_mu(fullsample)
-  agg_mu_insamp <- agg_mu(subsample)
-  agg_mu_rew <- agg_mu_reweight(subsample, fullsample)
+  agg_mu_all <- invisible(agg_mu(fullsample))
+  agg_mu_insamp <- invisible(agg_mu(subsample))
+  agg_mu_rew <- invisible(agg_mu_reweight(subsample, fullsample))
 
   agg_mu_plot <-  ggplot() +
     geom_line(data = agg_mu_all,
@@ -439,7 +439,7 @@ Sector_MU_Adr <- function(Dset, naics, N) { # nolint
 
   tempdata <- merge(tempdata_2, tempdata_3)
 
-  print(tempdata)
+  tempdata
 
 }
 
@@ -704,7 +704,7 @@ mu_correction <- function(Data, naics, n) { #nolint
   data_correction <- data_correction %>%
     mutate(MU_C = MU / correction) #nolint
 
-  print(data_correction)
+  data_correction
 
 }
 
@@ -773,7 +773,7 @@ mu_correction_reverse <- function(Data, naics, n) { #nolint
   data_correction <- data_correction %>%
     mutate(MU_C = MU / correction) #nolint
 
-  print(data_correction)
+  data_correction
 
 }
 

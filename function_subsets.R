@@ -49,7 +49,7 @@ VariableGen <- function(data, Ucost) { #nolint
   tempdata <- tempdata %>%
     mutate(time3 = time * time * time)
 
-  print(tempdata)
+  tempdata
 
 }
 
@@ -72,7 +72,7 @@ Cleanadv <- function(data) {  #nolint
     filter(usercost >= 0 & !is.na(usercost)) %>% #nolint
     filter(cogs + ppegt * usercost > 0)
 
-  print(tempdata)
+  tempdata
 }
 
 
@@ -109,6 +109,6 @@ industry_n_dig <- function(Clean_data, naics, n) {
   #replace so regression drops NA values
   temp_data$industry <- na_if(temp_data$industry, "NA ")
 
-  print(temp_data)
+  temp_data
 
 }
