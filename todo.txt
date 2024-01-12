@@ -1,9 +1,8 @@
 To do:
 
     1) Correcting markups stuff
+        - Try with main specification
 
     2) set up directory to do automatically
-
-    3) add some quietlys
 
     4) Quantifying error stuff  time trend in sector
