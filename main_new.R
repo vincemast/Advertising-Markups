@@ -179,7 +179,7 @@ agg_2_digit <- Sector_MU_Adr(Dset, naics, 2)
 hold <- merge(agg_2_digit, sector_coef_2d)
 
 labs <- c(C_MU = "Markup (Sales Weighted)", B_Adr = "xad (Sales Weighted)",
-          A_Exad = "Advertising Efficency (2022)")
+          A_Exad = "Advertising Response Elasticity \n (2020)")
 
 industry_co_plot_2d <- Efficency_plot_stacked(hold, labs)
   #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
@@ -466,7 +466,7 @@ corrected_mu_5_r <- mu_correction_reverse(Data, naics, 5)
 agg_mu_c_plot_5_r <- agg_mu_c(corrected_mu_5_r)
 
 corrected_mu_6_r <- mu_correction_reverse(Data, naics, 6)
-agg_mu_c_plot_6_r <- agg_mu_c(corrected_mu_6)
+agg_mu_c_plot_6_r <- agg_mu_c(corrected_mu_6_r)
 
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
       #ggsave("agg_mu_c_plot_3_r.pdf", agg_mu_c_plot_3_r, width = 9, height = 7, units = "in") # nolint

@@ -315,13 +315,13 @@ coef_regression <- function(coefs, data, naics, n) {
   #fill in full sample row
 
   #coef regression
-  coef_model <- feols(log(fit) ~ log(year-1960), # nolint
+  coef_model <- feols(log(fit) ~ as.numeric(year), # nolint
                        data = subset(coefs, industry == "Full Sample")) # nolint
   #adv regression
-  adv_model <- feols(log(Adr) ~ log(fyear-1960), # nolint
+  adv_model <- feols(log(Adr) ~ fyear, # nolint
                        data = temp_data) # nolint
   #MU regression
-  MU_model <- feols(log(MU_1) ~ log(fyear-1960), # nolint
+  MU_model <- feols(log(MU_1) ~ fyear, # nolint
                        data = temp_data) # nolint
 
 
@@ -351,7 +351,7 @@ coef_regression <- function(coefs, data, naics, n) {
     adv_model <- feols(log(Adr) ~ log(fyear-1960), # nolint
                         data = subset(temp_data,industry == i)) # nolint
     #MU regression
-    MU_model <- feols(log(MU_1) ~ log(fyear-1960), # nolint
+    MU_model <- feols(log(MU_1+1) ~ log(fyear-1960), # nolint
                         data = subset(temp_data,industry == i)) # nolint
 
     #fill in point estimates in row 1 (default to not)

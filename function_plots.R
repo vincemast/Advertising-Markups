@@ -579,8 +579,8 @@ coef_reg_plot_stacked <- function(hold) { # nolint
     geom_col() +
     theme_bw() +
     facet_wrap(~variable, scales = "free_x", labeller = as_labeller(labs)) +
-    theme(text = element_text(size = 15)) +
-    scale_y_discrete(labels = wrap_format(22)) + # nolint
+    theme(text = element_text(size = 20)) +
+    scale_y_discrete(labels = wrap_format(30)) + # nolint
     geom_errorbar(aes(xmin = value+se*1.96, xmax = value-se*1.96), # nolint
                   width = 0.2, color = "darkblue") +
     labs(title = NULL, x = NULL, y = "Industry (2 Digit NAICS Code)")
