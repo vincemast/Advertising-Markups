@@ -335,6 +335,7 @@ intercepts_and_errors <- get_intercepts_and_errors(Data, naics, 2)
 #save industry ints and names
 industry_ints <- data.frame(intercepts_and_errors$industry)
 industry_ints$industry <- gsub("industry", "", rownames(industry_ints))
+rownames(industry_ints) <- NULL
 #labels for plot
 labs <- c(C_MU = "Markup (Sales Weighted)", B_Adr = "xad (Sales Weighted)",
           A_Exad = "Intercept (2022)")
@@ -350,6 +351,8 @@ intercept_plot <- intercept_plot_stacked(industry_ints, agg_2_digit, labs)
 
 #save year ints and clean names
 year_ints <- data.frame(intercepts_and_errors$fyear)
+year_ints$fyear <- as.numeric(gsub("fyear", "", rownames(year_ints)))
+rownames(year_ints) <- NULL
 
 time_int_plot_2d <- ints_timeplot(year_ints, "Intercept", "2")
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
@@ -402,14 +405,34 @@ time_int_plot_5d <- ints_timeplot(year_ints_5, "Intercept", "5")
 ############################################################
 
 ############################################################
-########## 10.a sector x time og specification #############
+################ 10.a mains pecification ###################
 ############################################################
 
-corrected_mu <- mu_correction(Data, naics, 2)
+mu_correct_main <- mu_correction(Data, naics, 2)
 
-mu_c_density <- mu_c_plot(corrected_mu)
+corrected_mu <- mu_c_plot(mu_correct_main)
 
-agg_mu_c_plot <- agg_mu_c(corrected_mu)
+agg_mu_c_plot <- agg_mu_c(mu_correct_main)
+
+############################################################
+#################### 10.b reverse ##########################
+############################################################
+
+mu_correct_main_r <- mu_correction_r(Data, naics, 2)
+
+corrected_mu_r <- mu_c_plot(mu_correct_main_r)
+
+agg_mu_c_plot_r <- agg_mu_c(mu_correct_main_r)
+
+############################################################
+########## 10.c sector x time og specification #############
+############################################################
+
+corrected_mu_st <- mu_correction_st(Data, naics, 2)
+
+mu_c_density_st <- mu_c_plot(corrected_mu_st)
+
+agg_mu_c_plot_st <- agg_mu_c(corrected_mu_st)
 
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
       #ggsave("mu_c_density.pdf", mu_c_density, width = 9, height = 7, units = "in") # nolint
@@ -417,14 +440,14 @@ agg_mu_c_plot <- agg_mu_c(corrected_mu)
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 ############################################################
-############## 10.b reverse specification ##################
+############## 10.d reverse specification ##################
 ############################################################
 
-corrected_mu_r <- mu_correction_reverse(Data, naics, 2)
+corrected_mu_st_r <- mu_correction_st_reverse(Data, naics, 2)
 
-mu_c_density_r <- mu_c_plot(corrected_mu_r)
+mu_c_density_st_r <- mu_c_plot(corrected_mu_st_r)
 
-agg_mu_c_plot_r <- agg_mu_c(corrected_mu_r)
+agg_mu_c_plot_st_r <- agg_mu_c(corrected_mu_st_r)
 
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
       #ggsave("agg_mu_c_plot_r.pdf", agg_mu_c_plot_r, width = 9, height = 7, units = "in") # nolint
@@ -432,7 +455,7 @@ agg_mu_c_plot_r <- agg_mu_c(corrected_mu_r)
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 ############################################################
-################# 10.c more digits #########################
+################# 10.e more digits #########################
 ############################################################
 
 ################# 10.c.1 main #########################

@@ -85,7 +85,7 @@ Cleanadv <- function(data) {  #nolint
 
 
 
-industry_n_dig <- function(Clean_data, naics, n) {
+industry_n_dig <- function(Clean_data, naics, n) { #nolint
 
   #keep only n level codes
   temp_naisc <- naics %>%

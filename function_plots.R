@@ -30,12 +30,13 @@ xad_density <- function(Data) {# nolint
 
 mu_density <- function(Data,Dset) {# nolint
   mudensity <- ggplot() +
-    geom_density(data = Dset, aes(x = MU_1, color = "Full Sample")) + # nolint
-    geom_density(data = Data, aes(x = MU_1, color = "XAD Reported")) +
+    geom_density(data = Dset, aes(x = MU, color = "Full Sample")) + # nolint
+    geom_density(data = Data, aes(x = MU, color = "XAD Reported")) +
     theme(text = element_text(size = 20)) +
     labs(x = "Markup (Log-scale)", y = "Density") +
     scale_x_continuous(trans = log10_trans(), # nolint
-                       limits = c(.001, 50), labels = comma) +
+                       limits = c(0.5, 11),
+                       labels = function(x) comma(x - 1)) +
     theme(legend.position = "bottom")
 
   print(mudensity)
@@ -55,7 +56,7 @@ mu_density <- function(Data,Dset) {# nolint
 agg_mu <- function(MU_data, reweight_data) { # nolint
   tempdata <- MU_data %>%
     filter(!is.na(usercost)) %>% # nolint
-    filter(MU > -100) %>% # nolint
+    filter(MU >= -10) %>% # nolint
     filter(MU < 100000)
 
   tempdata_2 <- tempdata %>%
@@ -123,11 +124,11 @@ agg_mu_plot <- function(fullsample, subsample) {
 
   agg_mu_plot <-  ggplot() +
     geom_line(data = agg_mu_all,
-              aes(y = Ag_MU, x = year, color = "Full Sample")) + # nolint
+              aes(y = Ag_MU - 1, x = year, color = "Full Sample")) + # nolint
     geom_line(data = agg_mu_insamp,
-              aes(y = Ag_MU, x = year, color = "XAD Reported")) +
+              aes(y = Ag_MU - 1, x = year, color = "XAD Reported")) +
     geom_line(data = agg_mu_rew,
-              aes(y = Ag_MU, x = year, color = "Reweighted")) +
+              aes(y = Ag_MU - 1, x = year, color = "Reweighted")) +
     theme(text = element_text(size = 20)) +
     labs(x = "Year", y = "Sales Weighted Markup") +
     theme(legend.position = "bottom")
@@ -678,9 +679,90 @@ ints_timeplot <- function(ints, title, D) { # nolint
 #############   7.a: main specification ####################
 ############################################################
 
-############## 7.a.1 run regression and save data ###########
+mu_correction <- function(data, naics, n) { #nolint
 
-mu_correction <- function(Data, naics, n) { #nolint
+  temp_all <- industry_n_dig(data, naics, n) #nolint
+
+  #run regression to gen slope
+  temp_results <- invisible(regression_output_n(data, naics, n)) #nolint
+  #save slopes
+  sector_coef_2d <- data.frame(temp_results[3])
+  year_coef_2d <- data.frame(temp_results[4])
+  year_slope_2d <- year_coef_2d
+  names(year_slope_2d) <- c("year_slope", "fyear", "year_s_se")
+  sector_slope_2d <- sector_coef_2d
+  names(sector_slope_2d) <- c("sec_slope", "industry", "sec_s_se")
+
+  #gen intercept coefs
+  temp_intercepts <- get_intercepts_and_errors(data, naics, 2) #nolint
+  industry_ints <- data.frame(temp_intercepts$industry)
+  year_ints <- data.frame(temp_intercepts$fyear)
+  #save intercepts
+  industry_ints$industry <- gsub("industry", "", rownames(industry_ints))
+  year_ints$fyear <- as.numeric(gsub("fyear", "", rownames(year_ints)))
+  #intercepts
+  year_int_2d <- year_ints
+  names(year_int_2d) <- c("year_int", "year_i_se", "fyear")
+  sec_int_2d <- industry_ints
+  names(sec_int_2d) <- c("sec_int", "sec_i_se", "industry")
+
+  #merge
+  year_corrects <- merge(year_slope_2d, year_int_2d, by = "fyear")
+  sec_corrects <- merge(sector_slope_2d, sec_int_2d, by = "industry")
+
+  temp <- merge(temp_all, sec_corrects, by = "industry")
+
+  temp <- merge(temp, year_corrects, by = "fyear")
+
+  temp <- temp %>%
+    mutate(slope = year_slope + sec_slope)  %>%
+    mutate(intercept = year_int + sec_int) %>%
+    mutate(correction = 1 - intercept / slope)
+
+
+  temp <- temp %>%
+    mutate(MU_C = MU / correction)
+
+  temp
+
+}
+
+############################################################
+################   7.b: main reverse ######################
+############################################################
+
+mu_correction_r <- function(data, naics, n) { #nolint
+
+  temp_all <- industry_n_dig(data, naics, n) #nolint
+
+  model_reverse <- feols(
+    MU ~ i(industry, Adr_MC) + i(fyear, Adr_MC, ref = 2022) - Adr_MC
+    | industry + fyear, data = temp_all #nolint
+  )
+
+  year_correction <- data.frame(fixef(model_reverse)$fyear)
+  year_correction$fyear <- row.names(year_correction)
+  names(year_correction) <- c("year_correction", "fyear")
+  sec_correction <- data.frame(fixef(model_reverse)$industry)
+  sec_correction$industry <- row.names(sec_correction)
+  names(sec_correction) <- c("sec_correction", "industry")
+
+
+  rev_hold <- merge(temp_all, sec_correction, by = "industry")
+
+  rev_hold_2 <- merge(rev_hold, year_correction, by = "fyear")
+
+  rev_hold_2 <- rev_hold_2 %>%
+    mutate(correction = year_correction + sec_correction) %>%
+    mutate(MU_C = MU / correction) #nolint
+
+}
+
+############################################################
+##########   7.c: sector x time specification ##############
+############################################################
+
+mu_correction_st <- function(Data, naics, n) { #nolint
 
   sector_time_estimates_n <- sector_time_n(Data, naics, n) #nolint
 
@@ -708,51 +790,11 @@ mu_correction <- function(Data, naics, n) { #nolint
 
 }
 
-############## 7.a.2 plot density ###########
-
-mu_c_plot <- function(correctdata) {
-
-  mudensity <- ggplot() +
-    geom_density(data = correctdata, aes(x = MU_C - 1, color = "Corrected")) + # nolint
-    geom_density(data = correctdata, aes(x = MU_1, color = "Raw")) + # nolint
-    theme(text = element_text(size = 20)) +
-    labs(x = "Markup (Log-scale)", y = "Density") +
-    scale_x_continuous(trans = log10_trans(), # nolint
-                       limits = c(.0001, 200), labels = comma) +
-    theme(legend.position = "bottom")
-
-  print(mudensity)
-
-}
-
-############## 7.a.3 plot agg MU ###########
-
-agg_mu_c <-  function(correctdata) {
-
-  correctdata_c <- correctdata %>%
-    mutate(MU = MU_C) #nolint
-
-  agg_temp <- agg_mu(correctdata)
-  agg_temp_c <- agg_mu(correctdata_c) #nolint
-
-  agg_mu_c_plot <-  ggplot() +
-    geom_line(data = agg_temp_c,
-              aes(y = Ag_MU -1 , x = year, color = "Corrected")) + #nolint
-    geom_line(data = agg_temp,
-                aes(y = Ag_MU - 1, x = year, color = "Raw")) + # nolint
-    theme(text = element_text(size = 20)) +
-    labs(x = "Year", y = "Sales Weighted Markup") +
-    theme(legend.position = "bottom")
-
-  print(agg_mu_c_plot)
-
-}
-
 ############################################################
-############   7.b: reverse specification ##################
+############   7.d: reverse specification ##################
 ############################################################
 
-mu_correction_reverse <- function(Data, naics, n) { #nolint
+mu_correction_st_reverse <- function(Data, naics, n) { #nolint
 
   sector_time_estimates_n <- sector_time_reverse(Data, naics, n) #nolint
 
@@ -776,6 +818,53 @@ mu_correction_reverse <- function(Data, naics, n) { #nolint
   data_correction
 
 }
+
+
+############################################################
+#################   7.e: plot density ######################
+############################################################
+
+mu_c_plot <- function(correctdata) {
+
+  mudensity <- ggplot() +
+    geom_density(data = correctdata, aes(x = MU_C, color = "Corrected")) + # nolint
+    geom_density(data = correctdata, aes(x = MU, color = "Raw")) + # nolint
+    theme(text = element_text(size = 20)) +
+    labs(x = "Markup (Log-scale)", y = "Density") +
+    scale_x_continuous(trans = log10_trans(), # nolint
+                       limits = c(.1, 13),
+                       labels = function(x) comma(x - 1)) +
+    theme(legend.position = "bottom")
+
+  print(mudensity)
+
+}
+
+############################################################
+#################   7.f:  plot agg MU ######################
+############################################################
+
+agg_mu_c <-  function(correctdata) {
+
+  correctdata_c <- correctdata %>%
+    mutate(MU = MU_C) #nolint
+
+  agg_temp <- agg_mu(correctdata)
+  agg_temp_c <- agg_mu(correctdata_c) #nolint
+
+  agg_mu_c_plot <-  ggplot() +
+    geom_line(data = agg_temp_c,
+              aes(y = Ag_MU -1 , x = year, color = "Corrected")) + #nolint
+    geom_line(data = agg_temp,
+                aes(y = Ag_MU - 1, x = year, color = "Raw")) + # nolint
+    theme(text = element_text(size = 20)) +
+    labs(x = "Year", y = "Sales Weighted Markup") +
+    theme(legend.position = "bottom")
+
+  print(agg_mu_c_plot)
+
+}
+
 
 ############################################################
 ############################################################
