@@ -866,39 +866,72 @@ agg_mu_c <-  function(correctdata) {
 
 }
 
-
 ############################################################
-############################################################
-##############   999: Not currently used  ##################
-############################################################
-############################################################
+###########   7.g:  rolling window correction ##############
 ############################################################
 
+rolling_window_c <- function(data, naics, d, n) {
 
-# scatter plot loop (not currently used)
-scatter_plot_loop <- function(data, naics, d, n) {
+  temp <- industry_n_dig(data, naics, d) #nolint
 
-  #run Industry_n_dig to make data
-  temp_data <- industry_n_dig(data, naics, d) # nolint
+  # Get the range of years
+  two_d_data <- temp %>%
+    mutate(fyear = as.numeric(fyear)) %>% #nolint
+    filter(!is.na(fyear))
 
-  #loop over sectors
+  years <- range(two_d_data$fyear)
 
-  output_list <- list()
+  # Create a sequence of n-year windows
+  all_years <- seq(from = years[1], to = years[2])
 
-  for (i in unique(temp_data$industry[!is.na(temp_data$industry)])) {
-    tempname <- paste(i)
+  # Initialize an empty list to store the results
+  results <- list()
 
-    sector_temp <- temp_data %>%
-      filter(industry == i) # nolint
+  # Iterate over each window
+  for (current_year in all_years) {
+    # Subset the data to the 7-year window
+    data_window <- two_d_data %>%
+      filter(fyear >= current_year - (n - 1) / 2, #nolint
+       fyear <= current_year + (n - 1) / 2) #nolint
 
-    #make sure not requesting more points that available
-    nn <- min(n, length(sector_temp[, 1]))
+    # Run the model
+    model_pooled <- feols(
+      Adr_MC ~ i(industry, MU_1) - MU_1 | industry,
+      data = data_window
+    )
 
-    tempplot <- MU_advert_plot(sector_temp, tempname, nn)
+    # Process the coefficients
+    model_pooled_cos <- data.frame(model_pooled$coefficients)
+    model_pooled_cos$industry <-
+      gsub(":MU_1", "", gsub("industry::", "", rownames(model_pooled_cos)))
+    rownames(model_pooled_cos) <- NULL
+    names(model_pooled_cos) <- c("coefs", "industry")
 
-    #Plot within sector
-    output_list[[i]] <- tempplot
+    # Process the intercepts
+    model_pooled_ints <- data.frame(fixef(model_pooled)$industry)
+    model_pooled_ints$industry <- rownames(model_pooled_ints)
+    rownames(model_pooled_ints) <- NULL
+    names(model_pooled_ints) <- c("intercept", "industry")
+
+    # Merge and compute correction
+    model_pooled_c <- merge(model_pooled_cos, model_pooled_ints)
+    model_pooled_c <- model_pooled_c %>%
+      mutate(correction = 1 - intercept / coefs) #nolint
+
+    # Merge with original data and compute MU_C
+    hold <- merge(data_window, model_pooled_c, by = "industry")
+    hold <- hold %>%
+      mutate(MU_C = MU_1 / correction) #nolint
+
+    # Add the start year to the results
+    hold$start_year <- current_year #nolint
+
+    # Append the results to the list
+    results[[length(results) + 1]] <- hold
   }
 
-  output_list
+  # Combine the results into a single data frame
+  results <- bind_rows(results)
+  results
+
 }

@@ -126,6 +126,10 @@ fininc <- two_d_data %>% # nolint
   filter(industry == "Finance and Insurance")
 scatter_finance <- MU_advert_plot(fininc, "Finance and Insurance", 1000)
 
+info <- two_d_data %>% # nolint
+  filter(industry == "Information")
+scatter_info <- MU_advert_plot(info, "Information", 1000)
+
 #save images
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
       #make sure to return wd
@@ -409,7 +413,7 @@ time_int_plot_5d <- ints_timeplot(year_ints_5, "Intercept", "5")
 
 mu_correct_main <- mu_correction(Data, naics, 2)
 
-corrected_mu <- mu_c_plot(mu_correct_main)
+mu_c_density <- mu_c_plot(mu_correct_main)
 
 agg_mu_c_plot <- agg_mu_c(mu_correct_main)
 
@@ -419,9 +423,17 @@ agg_mu_c_plot <- agg_mu_c(mu_correct_main)
 
 mu_correct_main_r <- mu_correction_r(Data, naics, 2)
 
-corrected_mu_r <- mu_c_plot(mu_correct_main_r)
+mu_c_density_r <- mu_c_plot(mu_correct_main_r)
 
 agg_mu_c_plot_r <- agg_mu_c(mu_correct_main_r)
+
+###################### save plots ###########################
+   #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("mu_c_density.pdf", mu_c_density, width = 9, height = 7, units = "in") # nolint
+      #ggsave("mu_c_density_r.pdf", mu_c_density_r, width = 9, height = 7, units = "in") # nolint
+      #ggsave("agg_mu_c_plot.pdf", agg_mu_c_plot, width = 9, height = 7, units = "in") # nolint
+      #ggsave("agg_mu_c_plot_r.pdf", agg_mu_c_plot_r, width = 9, height = 7, units = "in") # nolint
+      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 ############################################################
 ########## 10.c sector x time og specification #############
@@ -433,11 +445,6 @@ mu_c_density_st <- mu_c_plot(corrected_mu_st)
 
 agg_mu_c_plot_st <- agg_mu_c(corrected_mu_st)
 
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("mu_c_density.pdf", mu_c_density, width = 9, height = 7, units = "in") # nolint
-      #ggsave("agg_mu_c_plot.pdf", agg_mu_c_plot, width = 9, height = 7, units = "in") # nolint
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
-
 ############################################################
 ############## 10.d reverse specification ##################
 ############################################################
@@ -448,57 +455,67 @@ mu_c_density_st_r <- mu_c_plot(corrected_mu_st_r)
 
 agg_mu_c_plot_st_r <- agg_mu_c(corrected_mu_st_r)
 
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("agg_mu_c_plot_r.pdf", agg_mu_c_plot_r, width = 9, height = 7, units = "in") # nolint
-      #ggsave("mu_c_density_r.pdf", mu_c_density_r, width = 9, height = 7, units = "in") # nolint
+###################### save plots ###########################
+   #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("mu_c_density_st.pdf", mu_c_density_st, width = 9, height = 7, units = "in") # nolint
+      #ggsave("mu_c_density_st_r.pdf", mu_c_density_st_r, width = 9, height = 7, units = "in") # nolint
+      #ggsave("agg_mu_c_plot_st.pdf", agg_mu_c_plot_st, width = 9, height = 7, units = "in") # nolint
+      #ggsave("agg_mu_c_plot_st_r.pdf", agg_mu_c_plot_st_r, width = 9, height = 7, units = "in") # nolint
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 ############################################################
-################# 10.e more digits #########################
+############ 10.e Time rolling sample ######################
 ############################################################
 
-################# 10.c.1 main #########################
-corrected_mu_3 <- mu_correction(Data, naics, 3)
-agg_mu_c_plot_3 <- agg_mu_c(corrected_mu_3)
+rolling_window_corrected <- rolling_window_c(Data, naics, 2, 5)
 
-corrected_mu_4 <- mu_correction(Data, naics, 4)
-agg_mu_c_plot_4 <- agg_mu_c(corrected_mu_4)
+mu_c_density_rolling <- mu_c_plot(rolling_window_corrected)
 
-corrected_mu_5 <- mu_correction(Data, naics, 5)
-agg_mu_c_plot_5 <- agg_mu_c(corrected_mu_5)
+agg_mu_c_plot_rolling <- agg_mu_c(rolling_window_corrected)
 
-corrected_mu_6 <- mu_correction(Data, naics, 6)
-agg_mu_c_plot_6 <- agg_mu_c(corrected_mu_6)
-
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("agg_mu_c_plot_3.pdf", agg_mu_c_plot_3, width = 9, height = 7, units = "in") # nolint
-      #ggsave("agg_mu_c_plot_4.pdf", agg_mu_c_plot_4, width = 9, height = 7, units = "in") # nolint
-      #ggsave("agg_mu_c_plot_5.pdf", agg_mu_c_plot_5, width = 9, height = 7, units = "in") # nolint
-      #ggsave("agg_mu_c_plot_6.pdf", agg_mu_c_plot_6, width = 9, height = 7, units = "in") # nolint
+###################### save plots ###########################
+   #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
+      #ggsave("mu_c_density_rolling.pdf", mu_c_density_rolling, width = 9, height = 7, units = "in") # nolint
+      #ggsave("agg_mu_c_plot_rolling.pdf", agg_mu_c_plot_rolling, width = 9, height = 7, units = "in") # nolint
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
-################# 10.c.1 reverse #########################
-corrected_mu_3_r <- mu_correction_reverse(Data, naics, 3)
-agg_mu_c_plot_3_r <- agg_mu_c(corrected_mu_3_r)
 
-corrected_mu_4_r <- mu_correction_reverse(Data, naics, 4)
-agg_mu_c_plot_4_r <- agg_mu_c(corrected_mu_4_r)
-
-corrected_mu_5_r <- mu_correction_reverse(Data, naics, 5)
-agg_mu_c_plot_5_r <- agg_mu_c(corrected_mu_5_r)
-
-corrected_mu_6_r <- mu_correction_reverse(Data, naics, 6)
-agg_mu_c_plot_6_r <- agg_mu_c(corrected_mu_6_r)
-
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("agg_mu_c_plot_3_r.pdf", agg_mu_c_plot_3_r, width = 9, height = 7, units = "in") # nolint
-      #ggsave("agg_mu_c_plot_4_r.pdf", agg_mu_c_plot_4_r, width = 9, height = 7, units = "in") # nolint
-      #ggsave("agg_mu_c_plot_5_r.pdf", agg_mu_c_plot_5_r, width = 9, height = 7, units = "in") # nolint
-      #ggsave("agg_mu_c_plot_6_r.pdf", agg_mu_c_plot_6_r, width = 9, height = 7, units = "in") # nolint
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+############################################################
+################# 10.f more digits #########################
+############################################################
 
 #############################################################
 #############################################################
 #############################################################
 #############################################################
 #############################################################
+
+
+#playgound 
+  temp_all <- industry_n_dig(Data, naics, 2) #nolint
+
+  model_reverse <- feols(
+    MU ~ i(fyear, Adr_MC, ref = 2022) - Adr_MC
+    | fyear, data = temp_all #nolint
+  )
+
+hold <- fixef(model_reverse)
+
+  model_reverse <- feols(
+    MU ~ i(industry, Adr_MC) + i(fyear, Adr_MC, ref = 2022) - Adr_MC
+    | industry + fyear, data = temp_all #nolint
+  )
+
+
+
+  model_reverse <- feols(
+    Adr_MC ~ MU_1 , data = temp_all #nolint
+  )
+
+model_reverse
+
+  model_reverse <- feols(
+    MU_1 ~ Adr_MC , data = temp_all #nolint
+  )
+
+model_reverse
