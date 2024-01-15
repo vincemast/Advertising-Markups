@@ -715,13 +715,13 @@ mu_correction <- function(data, naics, n) { #nolint
   temp <- merge(temp, year_corrects, by = "fyear")
 
   temp <- temp %>%
-    mutate(slope = year_slope + sec_slope)  %>%
-    mutate(intercept = year_int + sec_int) %>%
-    mutate(correction = 1 - intercept / slope)
+    mutate(slope = year_slope + sec_slope)  %>% #nolint
+    mutate(intercept = year_int + sec_int) %>% #nolint
+    mutate(correction = 1 - intercept / slope) #nolint
 
 
   temp <- temp %>%
-    mutate(MU_C = MU / correction)
+    mutate(MU_C = MU / correction) #nolint
 
   temp
 
