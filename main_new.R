@@ -312,7 +312,6 @@ exad_ot_interesting_smooth <-
 ############################################################
 
 time_regression_table <- coef_regression(sector_time_coefs, Dset, naics, 2)
-time_regression_table
 
 coef_reg_plot <- coef_reg_plot_stacked(time_regression_table)
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint

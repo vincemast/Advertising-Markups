@@ -56,8 +56,9 @@ mu_density <- function(Data,Dset) {# nolint
 agg_mu <- function(MU_data, reweight_data) { # nolint
   tempdata <- MU_data %>%
     filter(!is.na(usercost)) %>% # nolint
-    filter(MU >= -10) %>% # nolint
+    filter(MU >= 0) %>% # nolint
     filter(MU < 100000)
+    #drop crazy values
 
   tempdata_2 <- tempdata %>%
     group_by(fyear) %>% # nolint
