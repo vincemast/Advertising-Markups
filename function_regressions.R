@@ -215,83 +215,103 @@ regression_output_n <- function(data, naics, n) {
 ##############   2.a: by sector time trend Regression  #####
 ############################################################
 
-sector_time_n <- function(data, naics, n) {
+#rolling window, set window to 1 for no rolling
+#also outputs corrections
+#coefficents saved as results$coefs
 
-  ################## run Industry_n_dig to make data ##################
+rolling_window <- function(data, naics, d, n) {
 
-  #generate N digit industry names
-  temp_data <- industry_n_dig(data, naics, n) #nolint
+  temp <- industry_n_dig(data, naics, d) #nolint
+
+  # Get the range of years
+  two_d_data <- temp %>%
+    mutate(fyear = as.numeric(fyear)) %>% #nolint
+    filter(!is.na(fyear))
+
+  years <- range(two_d_data$fyear)
+
+  # Create a sequence of n-year windows
+  all_years <- seq(from = years[1], to = years[2])
+
+  # Initialize an empty lists to store the results
+  results <- list()
+  corrections <- list()
+  coefs <- list()
+
+  # Iterate over each window
+  for (current_year in all_years) {
+    # Subset the data to the 7-year window
+    data_window <- two_d_data %>%
+      filter(fyear >= current_year - (n - 1) / 2, #nolint
+       fyear <= current_year + (n - 1) / 2) #nolint
+
+    # Run the model by sector
+    model_pooled <- feols(
+      Adr_MC ~ i(industry, MU_1) - MU_1 | industry,
+      data = data_window
+    )
+
+    # Process the coefficients
+    model_pooled_cos <- data.frame(model_pooled$coefficients)
+    model_pooled_cos$industry <-
+      gsub(":MU_1", "", gsub("industry::", "", rownames(model_pooled_cos)))
+    rownames(model_pooled_cos) <- NULL
+    model_pooled_cos$se <- model_pooled$se
+    names(model_pooled_cos) <- c("fit", "industry", "se")
 
 
-  ################# full sample  #################
-  model_temp <- feols(
-    Adr_MC ~ i(fyear, MU_1) | fyear,
-    cluster = "GVKEY",
-    data = temp_data #nolint
-  )
-  #extract coefficients and ses
-  ceos_temp <- data.frame(gsub(":MU_1", "",
-                               gsub("fyear::", "",
-                                    names(model_temp$coefficients))))
-  #create holder for intercepts
-  intercept_temp <- ceos_temp
-  #input data
-  ceos_temp$efficency <- model_temp$coefficients
-  ceos_temp$se <- summary(model_temp, cluster = "GVKEY")$se
-  ceos_temp$industry <- "Full Sample"
-  intercept_temp$intercept <- fixef(model_temp)$fyear
-  #clean names
-  names(ceos_temp) <- c("year", "fit", "se", "industry")
-  names(intercept_temp) <- c("year", "intercept")
-  #merge to output
-  output <- merge(ceos_temp, intercept_temp, by = "year")
+    # Process the intercepts
+    model_pooled_ints <- data.frame(fixef(model_pooled)$industry)
+    model_pooled_ints$industry <- rownames(model_pooled_ints)
+    rownames(model_pooled_ints) <- NULL
+    names(model_pooled_ints) <- c("intercept", "industry")
 
-  ################# store industry names,##############################
-  #get number of observations for each industry
-  ind_count_temp <- temp_data %>% count(industry) #nolint
-  #only industries with >1 obs will produce an estimate
-  industries_temp <- ind_count_temp[ind_count_temp$n > 2, ]
+    # Merge and compute correction
+    model_pooled_ints <- merge(model_pooled_cos, model_pooled_ints)
+    model_pooled_c <- model_pooled_ints %>%
+      mutate(correction = 1 - intercept / fit) #nolint
 
-  ################# loop over sectors  #################
-  for (i in industries_temp$industry[!is.na(industries_temp$industry)]){
-    #allow to continue if error
-    tryCatch({
-      #estimate model within sector
-      model_temp <- feols(
-        Adr_MC ~ i(fyear, MU_1) | fyear,
-        cluster = "GVKEY",
-        data = subset(temp_data, industry == i) #nolint
-      )
+    # Merge with original data and compute MU_C
+    hold <- merge(data_window, model_pooled_c, by = "industry")
+    hold <- hold %>%
+      mutate(MU_C = MU_1 / correction) #nolint
 
-      #extract coefficients and ses
-      ceos_temp <- data.frame(gsub(":MU_1", "",
-                                  gsub("fyear::", "",
-                                        names(model_temp$coefficients))))
-      #input data
-      ceos_temp$efficency <- model_temp$coefficients
-      ceos_temp$se <- summary(model_temp, cluster = "GVKEY")$se
-      ceos_temp$industry <- i
-      #create holder for intercepts
-      intercept_temp <- data.frame(gsub(":MU_1", "",
-                                        gsub("fyear::", "",
-                                            names(fixef(model_temp)$fyear))))
-      intercept_temp$intercept <- fixef(model_temp)$fyear
-      #clean names
-      names(ceos_temp) <- c("year", "fit", "se", "industry")
-      names(intercept_temp) <- c("year", "intercept")
-      #merge to output temp
-      output_temp <- merge(ceos_temp, intercept_temp, by = "year")
-      #combine output
-      output <- rbind(output, output_temp)
-    }, error = function(e) {
-      # What to do when an error occurs: just print the error message
-      print(paste("Error:", e$message))
-    })
+    # Add the start year to the results
+    hold$start_year <- current_year #nolint
+
+    # Append the results to the list
+    corrections[[length(corrections) + 1]] <- hold
+
+    # run full sample regression and save results
+    model_full <- feols(
+      Adr_MC ~ MU_1,
+      data = data_window
+    )
+    full_sampr <- data.frame(
+      fit = model_full$coefficients[2],
+      industry = "Full Sample",
+      se = model_full$se[2],
+      intercept = model_full$coefficients[1]
+    )
+    row.names(full_sampr) <- NULL
+
+    #add full sample results to model ints, add year
+    temp_coefs <- rbind(model_pooled_ints, full_sampr)
+    temp_coefs$year <- current_year
+
+    #add the results to its list
+    coefs[[length(coefs) + 1]] <- temp_coefs
+
   }
-  #some cleaning
-  output$year <- as.numeric(output$year)
-  output$industry <- str_wrap(output$industry, width = 20) # nolint
-  output
+
+  # Combine the corrections and coefs into a single data frames
+  corrections <- bind_rows(corrections)
+  coefs <- bind_rows(coefs)
+
+  #add to results and print
+  results$corrections <- corrections
+  results$coefs <- coefs
+  results
 }
 
 ############################################################
@@ -302,8 +322,6 @@ coef_regression <- function(coefs, data, naics, n) {
 
   #run Industry_n_dig to make full sample data
   temp_data <- industry_n_dig(data, naics, n) # nolint
-  temp_data$industry <- str_wrap(temp_data$industry, width = 20)
-  #rename sectors so they match
   ################# grab names ##################
   sectors <- unique(subset(coefs,industry!="Full Sample")$industry) # nolint
 
@@ -317,7 +335,7 @@ coef_regression <- function(coefs, data, naics, n) {
   adv_model <- feols(log(Adr) ~ fyear, # nolint
                        data = temp_data) # nolint
   #MU regression
-  MU_model <- feols(log(MU_1) ~ fyear, # nolint
+  MU_model <- feols(log(MU) ~ fyear, # nolint
                        data = temp_data) # nolint
 
 

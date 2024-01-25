@@ -279,43 +279,43 @@ industry_co_plot_5d_limit <-
 ############################################################
 
 #run regressions and save output
-sector_time_estimates <- sector_time_n(Data, naics, 2)
-sector_time_coefs <- sector_time_estimates %>% select(-intercept)
+rolling_results <- rolling_window(Data, naics, 2, 5)
+sector_time_coefs <- rolling_results$coefs
+sector_time_coefs <- sector_time_coefs %>% select(-intercept)
 
 #plot sector coefficients over time
-
 exad_ot_plot_ <- exad_ot_plot(sector_time_coefs, 10, "")
-
-exad_ot_plot_smooth <- exad_ot_plot(sector_time_coefs, 10, "smooth")
-#function checks if last input is set to "smooth" and if so plots a smooth line
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("exad_ot_plot.pdf", exad_ot_plot_, width = 9, height = 7, units = "in") # nolint
-      #ggsave("exad_ot_plot_smooth.pdf", exad_ot_plot_smooth, width = 7, height = 9, units = "in") # nolint
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 ############ interesting sectors ############
 #fliter to interesting
 fsector_time_coefs_interesting <- sector_time_coefs %>%
   filter(industry %in%
            c("Information", "Retail Trade", "Manufacturing", "Wholesale Trade",
-             "Finance and\nInsurance", "Health Care and\nSocial Assistance"))
-#plot interesting
+             "Finance and Insurance", "Health Care and Social Assistance"))
+
+fsector_time_coefs_inter_2 <- sector_time_coefs %>%
+  filter(industry %in%
+           c("Information", "Retail Trade", "Manufacturing", "Wholesale Trade",
+             "Finance and Insurance", "Accommodation and Food Services"))
 
 exad_ot_interesting <-
   exad_ot_plot(fsector_time_coefs_interesting, 16, "")
 
-exad_ot_interesting_smooth <-
-  exad_ot_plot(fsector_time_coefs_interesting, 16, "smooth")
+exad_ot_interesting2 <-
+  exad_ot_plot(fsector_time_coefs_inter_2, 16, "")
+
+#save plots
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("exad_ot_interesting.pdf", exad_ot_interesting, width = 9, height = 7, units = "in") # nolint
-      #ggsave("exad_ot_interesting_smooth.pdf", exad_ot_interesting_smooth, width = 9, height = 7, units = "in") # nolint
+      #ggsave("exad_ot_plot.pdf", exad_ot_plot_, width = 9, height = 7, units = "in") # nolint
+      #ggsave("exad_ot_interesting.pdf", exad_ot_interesting, width = 9, height = 7, units = "in") # nolint  
+      #ggsave("exad_ot_interesting2.pdf", exad_ot_interesting2, width = 9, height = 7, units = "in") # nolint
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 ############################################################
 ############# 8.b regress against time ##################
 ############################################################
 
-time_regression_table <- coef_regression(sector_time_coefs, Dset, naics, 2)
+time_regression_table <- coef_regression(sector_time_coefs, Data, naics, 2)
 
 coef_reg_plot <- coef_reg_plot_stacked(time_regression_table)
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
@@ -439,14 +439,14 @@ agg_mu_c_plot_r <- agg_mu_c(mu_correct_main_r)
 ########## 10.c sector x time og specification #############
 ############################################################
 
-corrected_mu_st <- mu_correction_st(Data, naics, 2)
+rolling_results <- rolling_window(Data, naics, 2, 1)
 
-mu_c_density_st <- mu_c_plot(corrected_mu_st)
+mu_c_density_st <- mu_c_plot(rolling_results$corrections)
 
-agg_mu_c_plot_st <- agg_mu_c(corrected_mu_st)
+agg_mu_c_plot_st <- agg_mu_c(rolling_results$corrections)
 
 ############################################################
-############## 10.d reverse specification ##################
+######### 10.d reverse specification sector x time #########
 ############################################################
 
 corrected_mu_st_r <- mu_correction_st_reverse(Data, naics, 2)
@@ -467,16 +467,24 @@ agg_mu_c_plot_st_r <- agg_mu_c(corrected_mu_st_r)
 ############ 10.e Time rolling sample ######################
 ############################################################
 
-rolling_window_corrected <- rolling_window_c(Data, naics, 2, 5)
+rolling_results <- rolling_window(Data, naics, 2, 5)
 
-mu_c_density_rolling <- mu_c_plot(rolling_window_corrected)
+mu_c_density_rolling <- mu_c_plot(rolling_results$corrections)
 
-agg_mu_c_plot_rolling <- agg_mu_c(rolling_window_corrected)
+agg_mu_c_plot_rolling <- agg_mu_c(rolling_results$corrections)
+
+rolling_results7 <- rolling_window(Data, naics, 2, 7)
+
+mu_c_density_rolling7 <- mu_c_plot(rolling_results7$corrections)
+
+agg_mu_c_plot_rolling7 <- agg_mu_c(rolling_results7$corrections)
 
 ###################### save plots ###########################
    #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
       #ggsave("mu_c_density_rolling.pdf", mu_c_density_rolling, width = 9, height = 7, units = "in") # nolint
       #ggsave("agg_mu_c_plot_rolling.pdf", agg_mu_c_plot_rolling, width = 9, height = 7, units = "in") # nolint
+      #ggsave("mu_c_density_rolling7.pdf", mu_c_density_rolling7, width = 9, height = 7, units = "in") # nolint
+      #ggsave("agg_mu_c_plot_rolling7.pdf", agg_mu_c_plot_rolling7, width = 9, height = 7, units = "in") # nolint
       #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 
@@ -484,38 +492,15 @@ agg_mu_c_plot_rolling <- agg_mu_c(rolling_window_corrected)
 ################# 10.f more digits #########################
 ############################################################
 
+
+
+
 #############################################################
 #############################################################
 #############################################################
+#########################  Sandbox  #########################
 #############################################################
 #############################################################
+#############################################################
 
 
-#playgound 
-  temp_all <- industry_n_dig(Data, naics, 2) #nolint
-
-  model_reverse <- feols(
-    MU ~ i(fyear, Adr_MC, ref = 2022) - Adr_MC
-    | fyear, data = temp_all #nolint
-  )
-
-hold <- fixef(model_reverse)
-
-  model_reverse <- feols(
-    MU ~ i(industry, Adr_MC) + i(fyear, Adr_MC, ref = 2022) - Adr_MC
-    | industry + fyear, data = temp_all #nolint
-  )
-
-
-
-  model_reverse <- feols(
-    Adr_MC ~ MU_1 , data = temp_all #nolint
-  )
-
-model_reverse
-
-  model_reverse <- feols(
-    MU_1 ~ Adr_MC , data = temp_all #nolint
-  )
-
-model_reverse

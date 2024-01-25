@@ -34,8 +34,9 @@ mu_density <- function(Data,Dset) {# nolint
     geom_density(data = Data, aes(x = MU, color = "XAD Reported")) +
     theme(text = element_text(size = 20)) +
     labs(x = "Markup (Log-scale)", y = "Density") +
-    scale_x_continuous(trans = log10_trans(), # nolint
-                       limits = c(0.5, 11),
+    scale_x_continuous(trans = pseudo_log_trans(), # nolint
+                       limits = c(-.1, 6),
+                       breaks = c(0, 1, 6, 11),
                        labels = function(x) comma(x - 1)) +
     theme(legend.position = "bottom")
 
@@ -531,6 +532,9 @@ exad_ot_plot <- function(data, textsize, linetype) {
   #checks if linetype ="smooth"
   #pass through text size as textsize
 
+  data$industry <- str_wrap(data$industry, width = 20) # nolint
+  #space industry
+
   line <- geom_line()
 
   titlee <- "Estimated Advertising Response Elasticity"
@@ -763,33 +767,9 @@ mu_correction_r <- function(data, naics, n) { #nolint
 ##########   7.c: sector x time specification ##############
 ############################################################
 
-mu_correction_st <- function(Data, naics, n) { #nolint
-
-  sector_time_estimates_n <- sector_time_n(Data, naics, n) #nolint
-
-  sector_time_estimates_n <- sector_time_estimates_n %>%
-    mutate(correction = 1 - intercept / fit)              #nolint
-
-  sector_time_correction <- sector_time_estimates_n %>%
-    filter(industry != "Full Sample") %>% #nolint
-    select(-fit, -se, -intercept) #nolint
-
-  names(sector_time_correction) <- c("fyear", "industry", "correction")
-
-  use_data <- industry_n_dig(Data, naics, n) %>% #nolint
-    select(-naics_n, -GVKEY, -xopr, -gind, -naics, -emp, -ppegt, #nolint
-          -xad, -xlr, -cogs, -xsga, -entry, -age, -life, -X, -CPI, #nolint
-          -Adr, -Adr_MC, -time, -time2, -time3, -exit, -change) #nolint
-
-  data_correction <- merge(use_data, sector_time_correction,
-                           by = c("industry", "fyear"))
-
-  data_correction <- data_correction %>%
-    mutate(MU_C = MU / correction) #nolint
-
-  data_correction
-
-}
+#done in rolling_window in regression.R
+# set window to 1 for no rolling
+#saved as results$corrections
 
 ############################################################
 ############   7.d: reverse specification ##################
@@ -870,68 +850,6 @@ agg_mu_c <-  function(correctdata) {
 ###########   7.g:  rolling window correction ##############
 ############################################################
 
-rolling_window_c <- function(data, naics, d, n) {
-
-  temp <- industry_n_dig(data, naics, d) #nolint
-
-  # Get the range of years
-  two_d_data <- temp %>%
-    mutate(fyear = as.numeric(fyear)) %>% #nolint
-    filter(!is.na(fyear))
-
-  years <- range(two_d_data$fyear)
-
-  # Create a sequence of n-year windows
-  all_years <- seq(from = years[1], to = years[2])
-
-  # Initialize an empty list to store the results
-  results <- list()
-
-  # Iterate over each window
-  for (current_year in all_years) {
-    # Subset the data to the 7-year window
-    data_window <- two_d_data %>%
-      filter(fyear >= current_year - (n - 1) / 2, #nolint
-       fyear <= current_year + (n - 1) / 2) #nolint
-
-    # Run the model
-    model_pooled <- feols(
-      Adr_MC ~ i(industry, MU_1) - MU_1 | industry,
-      data = data_window
-    )
-
-    # Process the coefficients
-    model_pooled_cos <- data.frame(model_pooled$coefficients)
-    model_pooled_cos$industry <-
-      gsub(":MU_1", "", gsub("industry::", "", rownames(model_pooled_cos)))
-    rownames(model_pooled_cos) <- NULL
-    names(model_pooled_cos) <- c("coefs", "industry")
-
-    # Process the intercepts
-    model_pooled_ints <- data.frame(fixef(model_pooled)$industry)
-    model_pooled_ints$industry <- rownames(model_pooled_ints)
-    rownames(model_pooled_ints) <- NULL
-    names(model_pooled_ints) <- c("intercept", "industry")
-
-    # Merge and compute correction
-    model_pooled_c <- merge(model_pooled_cos, model_pooled_ints)
-    model_pooled_c <- model_pooled_c %>%
-      mutate(correction = 1 - intercept / coefs) #nolint
-
-    # Merge with original data and compute MU_C
-    hold <- merge(data_window, model_pooled_c, by = "industry")
-    hold <- hold %>%
-      mutate(MU_C = MU_1 / correction) #nolint
-
-    # Add the start year to the results
-    hold$start_year <- current_year #nolint
-
-    # Append the results to the list
-    results[[length(results) + 1]] <- hold
-  }
-
-  # Combine the results into a single data frame
-  results <- bind_rows(results)
-  results
-
-}
+#done in rolling_window in regression.R
+# set window to 1 for no rolling
+#saved as results$corrections
