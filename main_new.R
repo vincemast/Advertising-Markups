@@ -1,10 +1,37 @@
 ############################################################
 ############################################################
+#-1: Set working directories
+############################################################
+############################################################
+
+#edit directories to match your computer
+
+#edit to include location of fuctions:
+f_folder <-
+  "C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups" #nolint
+
+#edit to include location of data:
+d_folder <-
+  "C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/data"
+
+#edit to include location of where to save tables and plots:
+p_folder <-
+  "C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex"
+
+#switch to save files or not
+save_files <- FALSE
+
+#directories
+dircs <- c(f_folder, d_folder, p_folder)
+keep_varws <- c("dircs", "save_files")
+
+############################################################
+############################################################
 #0: clear all and load functions
 ############################################################
 ############################################################
 cat("\014")
-rm(list = ls())
+rm(list = setdiff(ls(), keep_vars))
 
 library(ks)
 library(robustHD)
@@ -12,29 +39,25 @@ library(dplyr)
 library(plm)
 library(ggplot2)
 library(DescTools)
-
 library(broom)
 library(huxtable)
 library(fixest)
 library(modelsummary)
 library(tibble)
-
 library(stringr)
 library(xtable)
 library(tidyr)
-
 library(scales)
-
 library(sandwich)
 library(multiwayvcov)
 
 #navigate to folder with functions
-setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint: line_length_linter.
+setwd(dircs[1])
 #functions
 source("function_subsets.R")
 source("function_plots.R")
 source("function_regressions.R")
-
+source("function_usefull.R")
 
 ############################################################
 ############################################################
@@ -43,8 +66,8 @@ source("function_regressions.R")
 ############################################################
 
 ############# 1.a load data ##############
-#navigate to with datra
-setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/data")
+#navigate to with data
+setwd(dircs[2])
 
 #compustat
 Dset <- read.csv("COMPUSTAT_simp.csv") # nolint
@@ -55,19 +78,14 @@ naics <- read.csv("2022_NAICS_Structure.csv")
 
 colnames(naics) <- c("change", "naics_n", "industry")
 
-
-
 ################## 1.b Clean data ##########################
-#back to functions
-setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
-
+#back to functions (incase you want to rerun functions following edit)
+setwd(dircs[1])
 
 Dset<-invisible(VariableGen(Dset, Ucost)) # nolint
 
 Data<- invisible(Cleanadv(Dset)) # nolint
 #clean and combine data
-
-
 
 ############################################################x
 ############################################################x
@@ -77,19 +95,16 @@ Data<- invisible(Cleanadv(Dset)) # nolint
 
 #advertising density
 xaddensity <- xad_density(Data)
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("xad_density.pdf",  xaddensity, width = 10, height = 9, units = "in") # nolint
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 #markup density
 mudensity <- mu_density(Data, Dset)
-      # setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      # ggsave("MU_density.pdf",  mudensity, width = 10, height = 9, units = "in") # nolint
-      # setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
-
 #zero_subset <- Data %>%
 # filter(is.na(Adr_MC)) # nolint
 #1149/82441= 1.39% report 0 advertising
+
+#save files
+save_f(xaddensity, "xaddensity.pdf", dircs, 10, 9, save_files)
+save_f(mudensity, "MU_density.pdf", dircs, 10, 9, save_files)
 
 ############################################################
 ############################################################
@@ -98,9 +113,9 @@ mudensity <- mu_density(Data, Dset)
 ############################################################
 
 agg_muplot <- agg_mu_plot(Dset, Data)
-    #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-    #ggsave("agg_mu_plot.pdf",  agg_muplot, width = 10, height = 9, units = "in") # nolint
-    #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+
+#save files
+save_f(agg_mu_plot, "agg_mu_plot.pdf", dircs, 10, 9, save_files)
 
 ############################################################
 ############################################################
@@ -131,15 +146,10 @@ info <- two_d_data %>% # nolint
 scatter_info <- MU_advert_plot(info, "Information", 1000)
 
 #save images
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #make sure to return wd
-      # ggsave("scatter_all.pdf", plot_all, width = 9, height = 9, units = "in") # nolint
-      # ggsave("scatter_Manuf.pdf",scatter_manuf, width = 9, height = 9, units = "in") # nolint
-      # ggsave("scatter_Retail.pdf",  scatter_retail, width = 9, height = 9, units = "in") # nolint
-      # ggsave("scatter_Finance.pdf", scatter_finance, width = 9, height = 9, units = "in") # nolint
-      #return to correct wd
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
-
+save_f(plot_all, "scatter_all.pdf", dircs, 9, 9, save_files)
+save_f(scatter_retail, "scatter_Retail.pdf", dircs, 9, 9, save_files)
+save_f(scatter_manuf, "scatter_Manuf.pdf", dircs, 9, 9, save_files)
+save_f(scatter_finance, "scatter_Finance.pdf", dircs, 9, 9, save_files)
 
 ############################################################
 ############################################################
@@ -186,17 +196,16 @@ labs <- c(C_MU = "Markup (Sales Weighted)", B_Adr = "xad (Sales Weighted)",
           A_Exad = "Advertising Response Elasticity \n (2020)")
 
 industry_co_plot_2d <- Efficency_plot_stacked(hold, labs)
-  #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-  #ggsave("industry_co_plot_2d.pdf",  industry_co_plot_2d, width = 15, height = 13.5, units = "in") # nolint
-  #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+#save plot
+save_f(industry_co_plot_2d,
+       "industry_co_plot_2d.pdf", dircs, 15, 13.5, save_files)
 
 #################### 6.b time plots ###########################
 #time trend plot
 time_co_plot_2d <- time_plot(year_coef_2d,
                              "Advertising Response Elasticity", "2")
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("time_co_plot_2d.pdf", time_co_plot_2d, width = 4.5, height = 4, units = "in") # nolint
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+#save plot
+save_f(time_co_plot_2d, "time_co_plot_2d.pdf", dircs, 4.5, 4, save_files)
 
 ############################################################
 ############################################################
@@ -214,17 +223,15 @@ indcount3 <- Results_3Digit[7]
 #time trend plot
 time_co_plot_3d <- time_plot(year_coef_3d,
                              "Advertising Response Elasticity", "3")
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("time_co_plot_3d.pdf", time_co_plot_3d, width = 4.5, height = 4, units = "in") # nolint
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 #sector plot (choose minimal number of obs needed to be included)
 industry_co_plot_3d_limit <-
   Efficency_plot(sector_coef_3d, indcount3, 100)
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("industry_co_plot_3d_limit.pdf", industry_co_plot_3d_limit, width = 9, height = 13.5, units = "in") # nolint
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
+#save plots
+save_f(time_co_plot_3d, "time_co_plot_3d.pdf", dircs, 4.5, 4, save_files)
+save_f(industry_co_plot_3d_limit,
+       "industry_co_plot_3d_limit.pdf", dircs, 9, 13.5, save_files)
 ####################### 7.b 4 digit ####################
 #run regressions and save output
 Results_4Digit <- regression_output_n(Data, naics, 4) # nolint
@@ -235,17 +242,15 @@ indcount4 <- Results_4Digit[7]
 #time trend plot
 time_co_plot_4d <- time_plot(year_coef_4d,
                              "Advertising Response Elasticity", "4")
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("time_co_plot_4d.pdf", time_co_plot_4d, width = 4.5, height = 4, units = "in") # nolint
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 #sector plot (choose minimal number of obs needed to be included)
 industry_co_plot_4d_limit <-
   Efficency_plot(sector_coef_4d, indcount4, 100)
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("industry_co_plot_4d_limit.pdf", industry_co_plot_4d_limit, width = 9, height = 13.5, units = "in") # nolint
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
+#save plots
+save_f(time_co_plot_4d, "time_co_plot_4d.pdf", dircs, 4.5, 4, save_files)
+save_f(industry_co_plot_4d_limit,
+       "industry_co_plot_4d_limit.pdf", dircs, 9, 13.5, save_files)
 ####################### 7.b 5 digit ####################
 #run regressions and save output
 Results_5Digit <- regression_output_n(Data, naics, 5) # nolint
@@ -256,17 +261,15 @@ indcount5 <- Results_5Digit[7]
 #time trend plot
 time_co_plot_5d <- time_plot(year_coef_5d,
                              "Advertising Response Elasticity", "5")
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("time_co_plot_5d.pdf", time_co_plot_5d, width = 4.5, height = 4, units = "in") # nolint
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 #sector plot (choose minimal number of obs needed to be included)
 industry_co_plot_5d_limit <-
   Efficency_plot(sector_coef_5d, indcount4, 50)
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("industry_co_plot_5d_limit.pdf", industry_co_plot_5d_limit, width = 9, height = 13.5, units = "in") # nolint
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
+#save plots
+save_f(time_co_plot_5d, "time_co_plot_5d.pdf", dircs, 4.5, 4, save_files)
+save_f(industry_co_plot_5d_limit,
+       "industry_co_plot_5d_limit.pdf", dircs, 9, 13.5, save_files)
 
 ############################################################
 ############################################################
@@ -284,6 +287,7 @@ sector_time_coefs <- rolling_results$coefs
 sector_time_coefs <- sector_time_coefs %>% select(-intercept)
 
 #plot sector coefficients over time
+#can make it plot smooth, leave last argument blank for non smoothed
 exad_ot_plot_ <- exad_ot_plot(sector_time_coefs, 10, "")
 
 ############ interesting sectors ############
@@ -305,11 +309,10 @@ exad_ot_interesting2 <-
   exad_ot_plot(fsector_time_coefs_inter_2, 16, "")
 
 #save plots
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("exad_ot_plot.pdf", exad_ot_plot_, width = 9, height = 7, units = "in") # nolint
-      #ggsave("exad_ot_interesting.pdf", exad_ot_interesting, width = 9, height = 7, units = "in") # nolint  
-      #ggsave("exad_ot_interesting2.pdf", exad_ot_interesting2, width = 9, height = 7, units = "in") # nolint
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+save_f(exad_ot_plot, "exad_ot_plot.pdf", dircs, 9, 7, save_files)
+save_f(exad_ot_interesting, "exad_ot_interesting.pdf", dircs, 9, 7, save_files)
+save_f(exad_ot_interesting2,
+       "exad_ot_interesting2.pdf", dircs, 9, 7, save_files)
 
 ############################################################
 ############# 8.b regress against time ##################
@@ -318,9 +321,9 @@ exad_ot_interesting2 <-
 time_regression_table <- coef_regression(sector_time_coefs, Data, naics, 2)
 
 coef_reg_plot <- coef_reg_plot_stacked(time_regression_table)
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("coef_reg_plot.pdf", coef_reg_plot, width = 15, height = 13.5, units = "in") # nolint
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+
+#save plot
+save_f(coef_reg_plot, "coef_reg_plot.pdf", dircs, 15, 13.5, save_files)
 
 ############################################################
 ############################################################
@@ -344,9 +347,9 @@ labs <- c(C_MU = "Markup (Sales Weighted)", B_Adr = "xad (Sales Weighted)",
           A_Exad = "Intercept (2022)")
 #plot
 intercept_plot <- intercept_plot_stacked(industry_ints, agg_2_digit, labs)
-  #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-  #ggsave("intercept_plot.pdf",  intercept_plot, width = 15, height = 13.5, units = "in") # nolint
-  #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+
+#save plot
+save_f(intercept_plot, "intercept_plot.pdf", dircs, 15, 13.5, save_files)
 
 ############################################################
 ############# 9.b: intercept time trend ###################
@@ -358,10 +361,9 @@ year_ints$fyear <- as.numeric(gsub("fyear", "", rownames(year_ints)))
 rownames(year_ints) <- NULL
 
 time_int_plot_2d <- ints_timeplot(year_ints, "Intercept", "2")
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("time_int_plot_2d.pdf", time_int_plot_2d, width = 4.5, height = 4, units = "in") # nolint
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
+#save plot
+save_f(time_int_plot_2d, "time_int_plot_2d.pdf", dircs, 4.5, 4, save_files)
 
 ############################################################
 ############# 9.c: intercept time trend more digits ########
@@ -370,30 +372,23 @@ time_int_plot_2d <- ints_timeplot(year_ints, "Intercept", "2")
 #3 digit
 intercepts_and_errors_3 <- get_intercepts_and_errors(Data, naics, 3)
 year_ints_3 <- data.frame(intercepts_and_errors_3$fyear)
-
 time_int_plot_3d <- ints_timeplot(year_ints_3, "Intercept", "3")
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("time_int_plot_3d.pdf", time_int_plot_3d, width = 4.5, height = 4, units = "in") # nolint
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 #4 digit
 intercepts_and_errors_4 <- get_intercepts_and_errors(Data, naics, 4)
 year_ints_4 <- data.frame(intercepts_and_errors_4$fyear)
-
 time_int_plot_4d <- ints_timeplot(year_ints_4, "Intercept", "4")
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("time_int_plot_4d.pdf", time_int_plot_4d, width = 4.5, height = 4, units = "in") # nolint
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
 #5 digit
 intercepts_and_errors_5 <- get_intercepts_and_errors(Data, naics, 5)
 year_ints_5 <- data.frame(intercepts_and_errors_5$fyear)
-
 time_int_plot_5d <- ints_timeplot(year_ints_5, "Intercept", "5")
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("time_int_plot_5d.pdf", time_int_plot_5d, width = 4.5, height = 4, units = "in") # nolint
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
 
+
+#save plotS
+save_f(time_int_plot_3d, "time_int_plot_3d.pdf", dircs, 4.5, 4, save_files)
+save_f(time_int_plot_4d, "time_int_plot_4d.pdf", dircs, 4.5, 4, save_files)
+save_f(time_int_plot_5d, "time_int_plot_5e.pdf", dircs, 4.5, 4, save_files)
 
 ############################################################
 ############# 9.d: sector x time  ##########################
@@ -427,13 +422,11 @@ mu_c_density_r <- mu_c_plot(mu_correct_main_r)
 
 agg_mu_c_plot_r <- agg_mu_c(mu_correct_main_r)
 
-###################### save plots ###########################
-   #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("mu_c_density.pdf", mu_c_density, width = 9, height = 7, units = "in") # nolint
-      #ggsave("mu_c_density_r.pdf", mu_c_density_r, width = 9, height = 7, units = "in") # nolint
-      #ggsave("agg_mu_c_plot.pdf", agg_mu_c_plot, width = 9, height = 7, units = "in") # nolint
-      #ggsave("agg_mu_c_plot_r.pdf", agg_mu_c_plot_r, width = 9, height = 7, units = "in") # nolint
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+# save plots
+save_f(mu_c_density, "mu_c_density.pdf", dircs, 9, 7, save_files)
+save_f(mu_c_density_r, "mu_c_density_r.pdf", dircs, 9, 7, save_files)
+save_f(agg_mu_c_plot, "agg_mu_c_plot.pdf", dircs, 9, 7, save_files)
+save_f(agg_mu_c_plot_r, "agg_mu_c_plot_r.pdf", dircs, 9, 7, save_files)
 
 ############################################################
 ########## 10.c sector x time og specification #############
@@ -455,38 +448,35 @@ mu_c_density_st_r <- mu_c_plot(corrected_mu_st_r)
 
 agg_mu_c_plot_st_r <- agg_mu_c(corrected_mu_st_r)
 
-###################### save plots ###########################
-   #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("mu_c_density_st.pdf", mu_c_density_st, width = 9, height = 7, units = "in") # nolint
-      #ggsave("mu_c_density_st_r.pdf", mu_c_density_st_r, width = 9, height = 7, units = "in") # nolint
-      #ggsave("agg_mu_c_plot_st.pdf", agg_mu_c_plot_st, width = 9, height = 7, units = "in") # nolint
-      #ggsave("agg_mu_c_plot_st_r.pdf", agg_mu_c_plot_st_r, width = 9, height = 7, units = "in") # nolint
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
+#save plot
+save_f(mu_c_density_st, "mu_c_density_st.pdf", dircs, 9, 7, save_files)
+save_f(mu_c_density_st_r, "mu_c_density_st_r.pdf", dircs, 9, 7, save_files)
+save_f(agg_mu_c_plot_st, "agg_mu_c_plot_st.pdf", dircs, 9, 7, save_files)
+save_f(agg_mu_c_plot_st_r, "agg_mu_c_plot_st_r.pdf", dircs, 9, 7, save_files)
 
 ############################################################
 ############ 10.e Time rolling sample ######################
 ############################################################
 
+#5 digit 
 rolling_results <- rolling_window(Data, naics, 2, 5)
-
 mu_c_density_rolling <- mu_c_plot(rolling_results$corrections)
-
 agg_mu_c_plot_rolling <- agg_mu_c(rolling_results$corrections)
 
+#7 digit
 rolling_results7 <- rolling_window(Data, naics, 2, 7)
-
 mu_c_density_rolling7 <- mu_c_plot(rolling_results7$corrections)
-
 agg_mu_c_plot_rolling7 <- agg_mu_c(rolling_results7$corrections)
 
-###################### save plots ###########################
-   #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex") # nolint
-      #ggsave("mu_c_density_rolling.pdf", mu_c_density_rolling, width = 9, height = 7, units = "in") # nolint
-      #ggsave("agg_mu_c_plot_rolling.pdf", agg_mu_c_plot_rolling, width = 9, height = 7, units = "in") # nolint
-      #ggsave("mu_c_density_rolling7.pdf", mu_c_density_rolling7, width = 9, height = 7, units = "in") # nolint
-      #ggsave("agg_mu_c_plot_rolling7.pdf", agg_mu_c_plot_rolling7, width = 9, height = 7, units = "in") # nolint
-      #setwd("C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups") # nolint
-
+#save plots
+save_f(mu_c_density_rolling,
+       "mu_c_density_rolling.pdf", dircs, 9, 7, save_files)
+save_f(mu_c_density_rolling7,
+       "mu_c_density_rolling7.pdf", dircs, 9, 7, save_files)
+save_f(agg_mu_c_plot_rolling,
+       "agg_mu_c_plot_rolling.pdf", dircs, 9, 7, save_files)
+save_f(agg_mu_c_plot_rolling7,
+       "agg_mu_c_plot_rolling7.pdf", dircs, 9, 7, save_files)
 
 ############################################################
 ################# 10.f more digits #########################

@@ -67,7 +67,6 @@ Cleanadv <- function(data) {  #nolint
     filter(Adr_MC >= 0 & !is.na(Adr_MC)) %>% #nolint
     filter(sale > 0 & !is.na(sale)) %>% #nolint
     filter(cogs >= 0 & !is.na(cogs)) %>% #nolint
-    filter(xsga >= 0 & !is.na(xsga)) %>% #nolint
     filter(ppegt >= 0 & !is.na(ppegt)) %>% #nolint
     filter(usercost >= 0 & !is.na(usercost)) %>% #nolint
     filter(cogs + ppegt * usercost > 0)
