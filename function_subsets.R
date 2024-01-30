@@ -56,6 +56,18 @@ VariableGen <- function(data, Ucost) { #nolint
   tempdata <- tempdata %>%
     mutate(time3 = time * time * time)
 
+  #deflate with CPI and convert from millions to thousands
+  #CPI is 100 in 2015, so to convert to millions multiply by 100000
+  tempdata <- tempdata %>%
+    mutate(
+      sale = sale * 1000 * 100 / CPI, #nolint
+      cogs = cogs * 1000 * 100 / CPI, #nolint
+      xsga = xsga * 1000 * 100 / CPI, #nolint
+      xad = xad * 1000 * 100 / CPI,   #nolint
+      ppegt = ppegt * 1000 * 100 / CPI #nolint
+    ) #nolint
+
+
   tempdata
 
 }
@@ -126,9 +138,6 @@ industry_n_dig <- function(Clean_data, naics, n) { #nolint
 ############################################################
 ############################################################
 
-full_samp <- Dset
-balanced <- Data
-
 sum_stat_table <- function(full_samp, balanced) {
 
   table <- data.frame(
@@ -152,30 +161,30 @@ sum_stat_table <- function(full_samp, balanced) {
   )
 
   table[5, ] <- c(
-    "Cost of Goods Sold", "COGS", round(mean(full_samp$cogs, na.rm = TRUE), 2),
-    round(median(full_samp$cogs, na.rm = TRUE), 2), sum(!is.na(full_samp$cogs))
+    "Cost of Goods Sold", "COGS", round(mean(full_samp$cogs, na.rm = TRUE), 0),
+    round(median(full_samp$cogs, na.rm = TRUE), 0), sum(!is.na(full_samp$cogs))
   )
 
   table[6, ] <- c(
-    "SG\\&A", "XSGA", round(mean(full_samp$xsga, na.rm = TRUE), 2),
-    round(median(full_samp$xsga, na.rm = TRUE), 2), sum(!is.na(full_samp$xsga))
+    "SG\\&A", "XSGA", round(mean(full_samp$xsga, na.rm = TRUE), 0),
+    round(median(full_samp$xsga, na.rm = TRUE), 0), sum(!is.na(full_samp$xsga))
   )
 
   table[7, ] <- c(
-    "Capital", "PPEGT", round(mean(full_samp$ppegt, na.rm = TRUE), 2),
-    round(median(full_samp$ppegt, na.rm = TRUE), 2),
+    "Capital", "PPEGT", round(mean(full_samp$ppegt, na.rm = TRUE), 0),
+    round(median(full_samp$ppegt, na.rm = TRUE), 0),
     sum(!is.na(full_samp$ppegt))
   )
 
   table[8, ] <- c(
-    "Advertising", "XAD", round(mean(full_samp$xad, na.rm = TRUE), 2),
-    round(median(full_samp$xad, na.rm = TRUE), 2),
+    "Advertising", "XAD", round(mean(full_samp$xad, na.rm = TRUE), 0),
+    round(median(full_samp$xad, na.rm = TRUE), 0),
     sum(!is.na(full_samp$xad))
   )
 
   table[9, ] <- c(
-    "Revenue", "SALE", round(mean(full_samp$sale, na.rm = TRUE), 2),
-    round(median(full_samp$sale, na.rm = TRUE), 2), sum(!is.na(full_samp$sale))
+    "Revenue", "SALE", round(mean(full_samp$sale, na.rm = TRUE), 0),
+    round(median(full_samp$sale, na.rm = TRUE), 0), sum(!is.na(full_samp$sale))
   )
 
 
@@ -213,14 +222,14 @@ sum_stat_table <- function(full_samp, balanced) {
   )
 
   table[16, ] <- c(
-    "Cost of Goods Sold", "COGS", round(mean(balanced$cogs, na.rm = TRUE), 2),
-    round(median(balanced$cogs, na.rm = TRUE), 2),
+    "Cost of Goods Sold", "COGS", round(mean(balanced$cogs, na.rm = TRUE), 0),
+    round(median(balanced$cogs, na.rm = TRUE), 0),
     sum(!is.na(balanced$cogs))
   )
 
   table[17, ] <- c(
-    "SG\\&A", "XSGA", round(mean(balanced$xsga, na.rm = TRUE), 2),
-    round(median(balanced$xsga, na.rm = TRUE), 2),
+    "SG\\&A", "XSGA", round(mean(balanced$xsga, na.rm = TRUE), 0),
+    round(median(balanced$xsga, na.rm = TRUE), 0),
     sum(!is.na(balanced$xsga))
   )
 
@@ -231,14 +240,14 @@ sum_stat_table <- function(full_samp, balanced) {
   )
 
   table[19, ] <- c(
-    "Advertising", "XAD", round(mean(balanced$xad, na.rm = TRUE), 2),
-    round(median(balanced$xad, na.rm = TRUE), 2),
+    "Advertising", "XAD", round(mean(balanced$xad, na.rm = TRUE), 0),
+    round(median(balanced$xad, na.rm = TRUE), 0),
     sum(!is.na(balanced$xad))
   )
 
   table[20, ] <- c(
-    "Revenue", "SALE", round(mean(balanced$sale, na.rm = TRUE), 2),
-    round(median(balanced$sale, na.rm = TRUE), 2),
+    "Revenue", "SALE", round(mean(balanced$sale, na.rm = TRUE), 0),
+    round(median(balanced$sale, na.rm = TRUE), 0),
     sum(!is.na(balanced$sale))
   )
 
@@ -258,6 +267,62 @@ sum_stat_table <- function(full_samp, balanced) {
 
   names(table) <- NULL
 
+  # Format the table
+  table[3:9, 3:4] <- data.frame(
+    sapply(
+      table[3:9, 3:4],
+      function(x) {
+        formatC(
+          as.numeric(x),
+          format = "f",
+          big.mark = ",",
+          digits = 0
+        )
+      }
+    )
+  )
+
+  table[14:20, 3:4] <- data.frame(
+    sapply(
+      table[14:20, 3:4],
+      function(x) {
+        formatC(
+          as.numeric(x),
+          format = "f",
+          big.mark = ",",
+          digits = 0
+        )
+      }
+    )
+  )
+
+  table[3:11, 5] <- data.frame(
+    sapply(
+      table[3:11, 5],
+      function(x) {
+        formatC(
+          as.numeric(x),
+          format = "f",
+          big.mark = ",",
+          digits = 0
+        )
+      }
+    )
+  )
+
+  table[14:22, 5] <- data.frame(
+    sapply(
+      table[14:22, 5],
+      function(x) {
+        formatC(
+          as.numeric(x),
+          format = "f",
+          big.mark = ",",
+          digits = 0
+        )
+      }
+    )
+  )
 
   lign <- c("l", "l", "c", "c", "c", "c")
 
@@ -271,6 +336,7 @@ sum_stat_table <- function(full_samp, balanced) {
                          include.rownames = FALSE,
                          sanitize.text.function = identity))
 
+  #add horizontal lines and merge cells o sub titles
   latex_string <- gsub(" &  &  & Full Sample &  \\\\\\\\",
    "& \\\\multicolumn{1}{l}{} & \\\\multicolumn{3}{c} {Full Sample} \\\\\\\\ \\\\cline{3-5} " #nolint
    , latex_string)
