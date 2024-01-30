@@ -268,9 +268,9 @@ sum_stat_table <- function(full_samp, balanced) {
   names(table) <- NULL
 
   # Format the table
-  table[3:9, 3:4] <- data.frame(
+  table[5:9, 3:4] <- data.frame(
     sapply(
-      table[3:9, 3:4],
+      table[5:9, 3:4],
       function(x) {
         formatC(
           as.numeric(x),
@@ -282,9 +282,9 @@ sum_stat_table <- function(full_samp, balanced) {
     )
   )
 
-  table[14:20, 3:4] <- data.frame(
+  table[16:20, 3:4] <- data.frame(
     sapply(
-      table[14:20, 3:4],
+      table[16:20, 3:4],
       function(x) {
         formatC(
           as.numeric(x),
