@@ -1,8 +1,5 @@
 To do:
 
-    1) Correcting markups stuff
-        - Try with main specification
+    1) Deflate values to cpi
 
-    2) set up directory to do automatically
-
-    4) Quantifying error stuff  time trend in sector
+    2) lord knows

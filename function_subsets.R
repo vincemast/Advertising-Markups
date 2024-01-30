@@ -21,8 +21,8 @@ VariableGen <- function(data, Ucost) { #nolint
     mutate(
       entry = min(fyear), #nolint
       exit = max(fyear),
-      age = ifelse(entry == min_year, NA, fyear - entry),
-      life = ifelse(exit == max_year, NA, exit - fyear)
+      age = ifelse(entry == min_year, NA, fyear - entry), #nolint
+      life = ifelse(exit == max_year, NA, exit - fyear) #nolint
     )
   ############################################################
   ###2: Merge and generate
