@@ -1,5 +1,6 @@
 
 require(dplyr)
+require(xtable)
 ############################################################
 ############################################################
 ##############   1: clean data  ############################
@@ -10,13 +11,19 @@ VariableGen <- function(data, Ucost) { #nolint
 
   ############################################################
   ###1: Convert table to panel data format. create entry/exit years, age
+  #set na for values that can be verified
+  #(if last year is last year data or first is first in data)
+  min_year <- min(data$fyear, na.rm = TRUE)
+  max_year <- max(data$fyear, na.rm = TRUE)
+
   tempdata <- data %>%
     group_by(GVKEY) %>% #nolint
-    mutate(entry = min(fyear), #nolint
-           exit = max(fyear),
-           age = fyear - min(fyear),
-           life = max(fyear) - fyear)
-
+    mutate(
+      entry = min(fyear), #nolint
+      exit = max(fyear),
+      age = ifelse(entry == min_year, NA, fyear - entry),
+      life = ifelse(exit == max_year, NA, exit - fyear)
+    )
   ############################################################
   ###2: Merge and generate
 
@@ -109,5 +116,170 @@ industry_n_dig <- function(Clean_data, naics, n) { #nolint
   temp_data$industry <- na_if(temp_data$industry, "NA ")
 
   temp_data
+
+}
+
+
+############################################################
+############################################################
+##########   2: Summary Stats Table  #######################
+############################################################
+############################################################
+
+full_samp <- Dset
+balanced <- Data
+
+sum_stat_table <- function(full_samp, balanced) {
+
+  table <- data.frame(
+    "", "", "", "Full Sample", ""
+  )
+
+  table[2, ] <- c(
+    "", "Accounting Variable", "Mean", "Median", "No. of Obs"
+  )
+
+  table[3, ] <- c(
+    "Years Since IPO", "", round(mean(full_samp$age, na.rm = TRUE), 2),
+    round(median(full_samp$age, na.rm = TRUE), 2),
+    sum(!is.na(full_samp$age))
+  )
+
+  table[4, ] <- c(
+    "Years to Exit", "", round(mean(full_samp$life, na.rm = TRUE), 2),
+    round(median(full_samp$life, na.rm = TRUE), 2),
+    sum(!is.na(full_samp$life))
+  )
+
+  table[5, ] <- c(
+    "Cost of Goods Sold", "COGS", round(mean(full_samp$cogs, na.rm = TRUE), 2),
+    round(median(full_samp$cogs, na.rm = TRUE), 2), sum(!is.na(full_samp$cogs))
+  )
+
+  table[6, ] <- c(
+    "SG\\&A", "XSGA", round(mean(full_samp$xsga, na.rm = TRUE), 2),
+    round(median(full_samp$xsga, na.rm = TRUE), 2), sum(!is.na(full_samp$xsga))
+  )
+
+  table[7, ] <- c(
+    "Capital", "PPEGT", round(mean(full_samp$ppegt, na.rm = TRUE), 2),
+    round(median(full_samp$ppegt, na.rm = TRUE), 2),
+    sum(!is.na(full_samp$ppegt))
+  )
+
+  table[8, ] <- c(
+    "Advertising", "XAD", round(mean(full_samp$xad, na.rm = TRUE), 2),
+    round(median(full_samp$xad, na.rm = TRUE), 2),
+    sum(!is.na(full_samp$xad))
+  )
+
+  table[9, ] <- c(
+    "Revenue", "SALE", round(mean(full_samp$sale, na.rm = TRUE), 2),
+    round(median(full_samp$sale, na.rm = TRUE), 2), sum(!is.na(full_samp$sale))
+  )
+
+
+  table[10, ] <- c(
+    "Advertising Share", "$xad$",
+    round(mean(full_samp$Adr[is.finite(full_samp$Adr)], na.rm = TRUE), 2),
+    round(median(full_samp$Adr, na.rm = TRUE), 2),
+    sum(!is.na(full_samp$Adr))
+  )
+
+  table[11, ] <- c(
+    "Cost Accounting Markup", "$\\tilde{\\mu}-1$",
+    round(mean(full_samp$MU_1[is.finite(full_samp$MU_1)], na.rm = TRUE), 2),
+    round(median(full_samp$MU_1, na.rm = TRUE), 2), sum(!is.na(full_samp$MU_1))
+  )
+
+  table[12, ] <- data.frame(
+    "", "", "", "Advertising Balanced Sample", ""
+  )
+
+  table[13, ] <- c(
+    "", "Accounting Variable", "Mean", "Median", "No. of Obs"
+  )
+
+  table[14, ] <- c(
+    "Years Since IPO", "", round(mean(balanced$age, na.rm = TRUE), 2),
+    round(median(balanced$age, na.rm = TRUE), 2),
+    sum(!is.na(balanced$age))
+  )
+
+  table[15, ] <- c(
+    "Years to Exit", "", round(mean(balanced$life, na.rm = TRUE), 2),
+    round(median(balanced$life, na.rm = TRUE), 2),
+    sum(!is.na(balanced$life))
+  )
+
+  table[16, ] <- c(
+    "Cost of Goods Sold", "COGS", round(mean(balanced$cogs, na.rm = TRUE), 2),
+    round(median(balanced$cogs, na.rm = TRUE), 2),
+    sum(!is.na(balanced$cogs))
+  )
+
+  table[17, ] <- c(
+    "SG\\&A", "XSGA", round(mean(balanced$xsga, na.rm = TRUE), 2),
+    round(median(balanced$xsga, na.rm = TRUE), 2),
+    sum(!is.na(balanced$xsga))
+  )
+
+  table[18, ] <- c(
+    "Capital", "PPEGT", round(mean(balanced$ppegt, na.rm = TRUE), 2),
+    round(median(balanced$ppegt, na.rm = TRUE), 2),
+    sum(!is.na(balanced$ppegt))
+  )
+
+  table[19, ] <- c(
+    "Advertising", "XAD", round(mean(balanced$xad, na.rm = TRUE), 2),
+    round(median(balanced$xad, na.rm = TRUE), 2),
+    sum(!is.na(balanced$xad))
+  )
+
+  table[20, ] <- c(
+    "Revenue", "SALE", round(mean(balanced$sale, na.rm = TRUE), 2),
+    round(median(balanced$sale, na.rm = TRUE), 2),
+    sum(!is.na(balanced$sale))
+  )
+
+  table[21, ] <- c(
+    "Advertising Share", "$xad$",
+    round(mean(balanced$Adr[is.finite(balanced$Adr)], na.rm = TRUE), 2),
+    round(median(balanced$Adr, na.rm = TRUE), 2),
+    sum(!is.na(balanced$Adr))
+  )
+
+  table[22, ] <- c(
+    "Cost Accounting Markup", "$\\tilde{\\mu}-1$",
+    round(mean(balanced$MU_1[is.finite(balanced$MU_1)], na.rm = TRUE), 2),
+    round(median(balanced$MU_1, na.rm = TRUE), 2),
+    sum(!is.na(balanced$MU_1))
+  )
+
+  names(table) <- NULL
+
+
+  lign <- c("l", "l", "c", "c", "c", "c")
+
+  # Convert the table to a LaTeX table using xtable
+  latex_table <- xtable(table, align = lign)
+
+  # Save the output of print(xtable(...)) as a string
+  latex_string <-
+    capture.output(print(latex_table,
+                         hline.after = c(0, 2, 11, 13, nrow(table)),
+                         include.rownames = FALSE,
+                         sanitize.text.function = identity))
+
+  latex_string <- gsub(" &  &  & Full Sample &  \\\\\\\\",
+   "& \\\\multicolumn{1}{l}{} & \\\\multicolumn{3}{c} {Full Sample} \\\\\\\\ \\\\cline{3-5} " #nolint
+   , latex_string)
+
+  latex_string <- gsub(" &  &  & Advertising Balanced Sample &  \\\\\\\\",
+   "& \\\\multicolumn{1}{l}{} & \\\\multicolumn{3}{c} {Advertising Balanced Sample} \\\\\\\\ \\\\cline{3-5} " #nolint
+   , latex_string)
+
+  # Print the edited version
+  cat(latex_string, sep = "\n")
 
 }

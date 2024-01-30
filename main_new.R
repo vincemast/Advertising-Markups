@@ -87,6 +87,9 @@ Dset<-invisible(VariableGen(Dset, Ucost)) # nolint
 Data<- invisible(Cleanadv(Dset)) # nolint
 #clean and combine data
 
+#print summary statstable
+sum_stat_table(Dset, Data)
+
 ############################################################x
 ############################################################x
 # 2: Density plots
