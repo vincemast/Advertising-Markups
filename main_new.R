@@ -23,7 +23,7 @@ save_files <- FALSE
 
 #directories
 dircs <- c(f_folder, d_folder, p_folder)
-keep_varws <- c("dircs", "save_files")
+keep_vars <- c("dircs", "save_files")
 
 ############################################################
 ############################################################
@@ -125,6 +125,10 @@ save_f(agg_mu_plot, "agg_mu_plot.pdf", dircs, 10, 9, save_files)
 #4: Scatter plots
 ############################################################
 ############################################################
+
+allhold <- invisible(industry_n_dig(Dset, naics, 2))
+
+unique(allhold$industry)
 
 two_d_data <- invisible(industry_n_dig(Data, naics, 2))
 #add naics industries
