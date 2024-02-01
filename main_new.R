@@ -86,24 +86,24 @@ colnames(naics) <- c("change", "naics_n", "industry")
 setwd(dircs[1])
 
 #clean and combine data
-Dset<-invisible(VariableGen(Dset, Ucost)) # nolint
+dset<-invisible(VariableGen(Dset, Ucost)) # nolint
 
 # Remove rows with NA values in the GVKEY, fyear, cogs, sale and ppegt variables #nolint
-Dset <-
-  Dset[!is.na(Dset$GVKEY) & !is.na(Dset$fyear) & !is.na(Dset$ppegt) &
-  !is.na(Dset$sale) & !is.na(Dset$cogs), ] #nolint
+dset <-
+  dset[!is.na(Dset$GVKEY) & !is.na(dset$fyear) & !is.na(dset$ppegt) &
+  !is.na(dset$sale) & !is.na(dset$cogs), ] #nolint
 
 # trim at 1 and 99% of sale/cogs
-Dset <- alpha_trim(Dset, 1)
+dset <- alpha_trim(dset, 2)
 
 # trim to xad reporting firms
-Data<- invisible(Cleanadv(Dset)) # nolint
+Data<- invisible(Cleanadv(dset)) # nolint
 #trim to 1 and 99% of xad/cogs + useercost
-Data <- adv_trim(Data, 1)
+Data <- adv_trim(Data, 2)
 
 
 #print summary statstable
-sum_stat_table(Dset, Data)
+sum_stat_table(dset, Data)
 
 ############################################################x
 ############################################################x
@@ -115,7 +115,7 @@ sum_stat_table(Dset, Data)
 xaddensity <- xad_density(Data)
 
 #markup density
-mudensity <- mu_density(Data, Dset)
+mudensity <- mu_density(Data, dset)
 #zero_subset <- Data %>%
 # filter(is.na(Adr_MC)) # nolint
 #1149/82441= 1.39% report 0 advertising
@@ -130,10 +130,10 @@ save_f(mudensity, "MU_density.pdf", dircs, 10, 9, save_files)
 ############################################################
 ############################################################
 
-agg_muplot <- agg_mu_plot(Dset, Data)
+agg_muplot <- agg_mu_plot(dset, Data)
 
 #save files
-save_f(agg_mu_plot, "agg_mu_plot.pdf", dircs, 10, 9, save_files)
+save_f(agg_muplot, "agg_mu_plot.pdf", dircs, 10, 9, save_files)
 
 ############################################################
 ############################################################
@@ -514,5 +514,3 @@ save_f(agg_mu_c_plot_rolling7,
 #############################################################
 #############################################################
 #############################################################
-
-

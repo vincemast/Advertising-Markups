@@ -17,7 +17,7 @@ xad_density <- function(Data) {# nolint
   xaddensity <- ggplot(Data, aes(x = Adr_MC)) + # nolint
     geom_density() +
     theme(text = element_text(size = 20)) +
-    labs(x = "Advertising/Marginal Cost (Log-scale)", y = "Density") +
+    labs(x = "Advertising Share (Log-scale)", y = "Density") +
     scale_x_continuous(trans = log10_trans(), # nolint
                        limits = c(.00001, 30), labels = comma) #nolint
 
@@ -215,14 +215,15 @@ MU_advert_plot <- function(Sub_Panel_data, sub_panel_name, N){ # nolint
   ###4: plot
 
   plot <- ggplot() +
-    geom_point(aes(samp$MU_1, samp$Adr_MC), shape = 1) +
+    geom_point(aes(samp$MU_1, samp$Adr_MC),
+               shape = 1, size = 1.5, stroke = .005) +
     geom_line(aes(tempData$MU_1, predict(model_2),
                   color = "OLS line (with intercept)"), size = 1.5) +
     geom_line(aes(tempData$MU_1, predict(model),
                   color = "OLS line (No intercept)") ,
               linetype = "dashed", size = 1.5) +
-    ylim(quantile(tempData$Adr_MC, probs = .00001), .6) +
-    xlim(quantile(tempData$MU_1, probs = .003), 5.5) +
+    ylim(0, .25) +
+    xlim(-.2, 2.5) +
     ylab("Advertising share") +
     xlab("Markup") +
     #labs(title = title_temp, caption = caption_temp,color="legend")+

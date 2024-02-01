@@ -40,39 +40,42 @@ regression_output_n <- function(data, naics, n) {
   ## Model 1 - no industry, no intercept
   model_1 <- feols(
     Adr_MC ~ 0 + MU_1,
-    cluster = "industry",
+    cluster = "GVKEY",
     data = temp_data
   )
 
   ## Model 2 - no industry,  intercept
   model_2 <- feols(
     Adr_MC ~ MU_1,
-    cluster = "industry",
+    cluster = "GVKEY",
     data = temp_data
   )
 
   ## Model 3 - industry, no intercept
   model_3 <- feols(
     Adr_MC ~ 0 + i(industry, MU_1) - MU_1,
-    cluster = "industry",
+    cluster = "GVKEY",
     data = temp_data
   )
 
   ## Model 4 - industry, industry intercepts
   model_4 <- feols(
     Adr_MC ~ i(industry, MU_1) - MU_1 | industry,
+    cluster = "GVKEY",
     data = temp_data
   )
 
   ## Model 5 - industry, industry intercept, time trend (not interacted)
   model_5 <- feols(
     Adr_MC ~ 0 + i(industry, MU_1) + time - MU_1 | industry,
+    cluster = "GVKEY",
     data = temp_data
   )
 
   ## Model 6 - industry, industry intercept, time trend ( interacted)
   model_6 <- feols(
     Adr_MC ~ i(industry, MU_1) + MU_1 * time + time - MU_1 | industry,
+    cluster = "GVKEY",
     data = temp_data
   )
 
@@ -80,6 +83,7 @@ regression_output_n <- function(data, naics, n) {
   #(neither interacted)
   model_7 <- feols(
     Adr_MC ~ i(industry, MU_1) + time + time2 - MU_1 | industry,
+    cluster = "GVKEY",
     data = temp_data
   )
 
@@ -87,13 +91,17 @@ regression_output_n <- function(data, naics, n) {
   #(both interacted)
   model_8 <- feols(
     Adr_MC ~ i(industry, MU_1) + MU_1 * time + MU_1 * time2
-    + time + time2 - MU_1 | industry, data = temp_data
+    + time + time2 - MU_1 | industry,
+    cluster = "GVKEY",
+    data = temp_data
   )
 
   ## Model 9 - industry, industry intercept, time dummy (+ interacted)
   model_9 <- feols(
     Adr_MC ~ i(industry, MU_1) + i(fyear, MU_1, ref = 2022) - MU_1
-    | industry + fyear, data = temp_data
+    | industry + fyear,
+    cluster = "GVKEY",
+    data = temp_data
   )
 
   #grab all models
@@ -183,7 +191,7 @@ regression_output_n <- function(data, naics, n) {
 
   rownames(year_cos) <- NULL
   names(year_cos) <- c("fit", "year")
-  year_cos$se <-  summary(model_9, cluster = "industry")$
+  year_cos$se <-  summary(model_9, cluster = "GVKEY")$
     se[(numberofcategories_temp + 1):length(model_9$coefficients)]
 
   #grab sector coefficents
