@@ -73,7 +73,6 @@ VariableGen <- function(data, Ucost) { #nolint
 }
 
 
-
 Cleanadv <- function(data) {  #nolint
 
   ############################################################
@@ -93,7 +92,43 @@ Cleanadv <- function(data) {  #nolint
   tempdata
 }
 
+#generate alpha = cogs/sales and trim at 1% and 99% by year
+alpha_trim <- function(data,p){ #nolint
 
+  tempdata <- data %>%  #nolint
+    mutate(alpha = cogs / sale) #nolint
+
+  #get p% and 100-p% quantiles
+  tempdata <- tempdata %>%
+    group_by(fyear) %>% #nolint
+    mutate(
+      q1 = quantile(alpha, 0 +  p / 100, na.rm = TRUE), #nolint
+      q99 = quantile(alpha, 1 - p / 100, na.rm = TRUE)
+    ) %>%
+    ungroup() %>%
+    filter(alpha >= q1 & alpha <= q99) #nolint
+
+  tempdata
+
+}
+
+
+#Trim xad/cogs+usercost at 1% and 99% by year
+adv_trim <- function(data,p){ #nolint
+
+  #get p% and 100-p% quantiles
+  tempdata <- data %>%
+    group_by(fyear) %>% #nolint
+    mutate(
+      aq1 = quantile(Adr, 0 +  p / 100, na.rm = TRUE), #nolint
+      aq99 = quantile(Adr, 1 - p / 100, na.rm = TRUE)
+    ) %>%
+    ungroup() %>%
+    filter(Adr >= aq1 & Adr <= aq99) #nolint
+
+  tempdata
+
+}
 
 ############################################################
 ############################################################
@@ -101,7 +136,9 @@ Cleanadv <- function(data) {  #nolint
 ############################################################
 ############################################################
 
-
+############################################################
+################## 2.a digit give names ####################
+############################################################
 
 industry_n_dig <- function(Clean_data, naics, n) { #nolint
 
@@ -128,6 +165,25 @@ industry_n_dig <- function(Clean_data, naics, n) { #nolint
   temp_data$industry <- na_if(temp_data$industry, "NA ")
 
   temp_data
+
+}
+
+
+############################################################
+######### 2.b generate 2,3,4 digit market shares ###########
+############################################################
+
+market_share <- function(data) { #nolint
+
+  #get market share
+  data <- data %>%
+    group_by(industry, fyear) %>% #nolint
+    mutate(
+      industry_share = sale / sum(sale, n.rm=TRUE) #nolint
+    ) %>% #nolint
+    ungroup()
+
+  data
 
 }
 
@@ -176,13 +232,13 @@ sum_stat_table <- function(full_samp, balanced) {
     sum(!is.na(full_samp$ppegt))
   )
 
-  table[8, ] <- c(
+  table[9, ] <- c(
     "Advertising", "XAD", round(mean(full_samp$xad, na.rm = TRUE), 0),
     round(median(full_samp$xad, na.rm = TRUE), 0),
     sum(!is.na(full_samp$xad))
   )
 
-  table[9, ] <- c(
+  table[8, ] <- c(
     "Revenue", "SALE", round(mean(full_samp$sale, na.rm = TRUE), 0),
     round(median(full_samp$sale, na.rm = TRUE), 0), sum(!is.na(full_samp$sale))
   )
@@ -239,13 +295,13 @@ sum_stat_table <- function(full_samp, balanced) {
     sum(!is.na(balanced$ppegt))
   )
 
-  table[19, ] <- c(
+  table[20, ] <- c(
     "Advertising", "XAD", round(mean(balanced$xad, na.rm = TRUE), 0),
     round(median(balanced$xad, na.rm = TRUE), 0),
     sum(!is.na(balanced$xad))
   )
 
-  table[20, ] <- c(
+  table[19, ] <- c(
     "Revenue", "SALE", round(mean(balanced$sale, na.rm = TRUE), 0),
     round(median(balanced$sale, na.rm = TRUE), 0),
     sum(!is.na(balanced$sale))

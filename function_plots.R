@@ -54,12 +54,12 @@ mu_density <- function(Data,Dset) {# nolint
 ##############   2.a create data  ############################
 ############################################################
 #aggregate markups
-agg_mu <- function(MU_data, reweight_data) { # nolint
+agg_mu <- function(MU_data) { # nolint
   tempdata <- MU_data %>%
     filter(!is.na(usercost)) %>% # nolint
     filter(MU >= 0) %>% # nolint
     filter(MU < 100000)
-    #drop crazy values
+  #drop crazy values
 
   tempdata_2 <- tempdata %>%
     group_by(fyear) %>% # nolint
@@ -269,9 +269,11 @@ test_table <- function(data, naics, n) {
 
   #no int regression
   tempmodel_1 <- feols(Adr_MC ~ MU_1 - 1,
+                       cluster = "GVKEY",
                        data = temp_data)
   #w/ int regression
   tempmodel_2 <- feols(Adr_MC ~ MU_1,
+                       cluster = "GVKEY",
                        data = temp_data)
 
 

@@ -19,7 +19,7 @@ p_folder <-
   "C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex"
 
 #switch to save files or not
-save_files <- FALSE
+save_files <- TRUE
 
 #directories
 dircs <- c(f_folder, d_folder, p_folder)
@@ -70,7 +70,10 @@ source("function_usefull.R")
 setwd(dircs[2])
 
 #compustat
-Dset <- read.csv("COMPUSTAT_simp.csv") # nolint
+Dset <- read.csv("COMPUSTAT.csv") # nolint
+#rename gvkey to GVKEY
+colnames(Dset)[colnames(Dset) == "gvkey"] <- "GVKEY"
+
 #usercost
 Ucost <- read.csv("usercost.csv") # nolint
 # naisc codes
@@ -82,10 +85,22 @@ colnames(naics) <- c("change", "naics_n", "industry")
 #back to functions (incase you want to rerun functions following edit)
 setwd(dircs[1])
 
+#clean and combine data
 Dset<-invisible(VariableGen(Dset, Ucost)) # nolint
 
+# Remove rows with NA values in the GVKEY, fyear, cogs, sale and ppegt variables #nolint
+Dset <-
+  Dset[!is.na(Dset$GVKEY) & !is.na(Dset$fyear) & !is.na(Dset$ppegt) &
+  !is.na(Dset$sale) & !is.na(Dset$cogs), ] #nolint
+
+# trim at 1 and 99% of sale/cogs
+Dset <- alpha_trim(Dset, 1)
+
+# trim to xad reporting firms
 Data<- invisible(Cleanadv(Dset)) # nolint
-#clean and combine data
+#trim to 1 and 99% of xad/cogs + useercost
+Data <- adv_trim(Data, 1)
+
 
 #print summary statstable
 sum_stat_table(Dset, Data)
@@ -465,7 +480,7 @@ save_f(agg_mu_c_plot_st_r, "agg_mu_c_plot_st_r.pdf", dircs, 9, 7, save_files)
 ############ 10.e Time rolling sample ######################
 ############################################################
 
-#5 digit 
+#5 digit
 rolling_results <- rolling_window(Data, naics, 2, 5)
 mu_c_density_rolling <- mu_c_plot(rolling_results$corrections)
 agg_mu_c_plot_rolling <- agg_mu_c(rolling_results$corrections)

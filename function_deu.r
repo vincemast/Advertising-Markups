@@ -9,6 +9,7 @@ require(dplyr)
 
 #adapted from:
 #https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/5GH8XO #nolint
+#adds market share in first stage as DEU 2020
 
 first_stage <- function(panel) {
 
@@ -19,9 +20,9 @@ first_stage <- function(panel) {
   # Create the polynomial terms
   panel$poly_cogs <- poly(panel$c, degree = 3, raw = TRUE)
   panel$poly_ppegt <- poly(panel$k, degree = 3, raw = TRUE)
-
+  panel$m_share <- poly(log(panel$industry_share), degree = 3, raw = TRUE)
   # Run the regression
-  model <- lm(log(sale) ~ panel$poly_cogs * panel$poly_ppegt, data = panel)
+  model <- lm(log(sale) ~ poly_cogs * poly_ppegt, data = panel)
 
   # Get the residuals and predicted
   residuals_df <- data.frame(err = residuals(model))
