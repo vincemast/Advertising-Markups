@@ -56,15 +56,20 @@ VariableGen <- function(data, Ucost) { #nolint
   tempdata <- tempdata %>%
     mutate(time3 = time * time * time)
 
-  #deflate with CPI and convert from millions to thousands
-  #CPI is 100 in 2015, so to convert to millions multiply by 100000
+  #deflate with GDP deflator
+  #get deflator for 2015
+  norm <- Ucost$GDP_def[Ucost$fyear == 2018]
+
+  #convert from millions to thousands
+  norm <- norm * 1000
+
   tempdata <- tempdata %>%
     mutate(
-      sale = sale * 1000 * 100 / CPI, #nolint
-      cogs = cogs * 1000 * 100 / CPI, #nolint
-      xsga = xsga * 1000 * 100 / CPI, #nolint
-      xad = xad * 1000 * 100 / CPI,   #nolint
-      ppegt = ppegt * 1000 * 100 / CPI #nolint
+      sale = sale * norm / GDP_def, #nolint
+      cogs = cogs * norm / GDP_def, #nolint
+      xsga = xsga * norm / GDP_def, #nolint
+      xad = xad * norm / GDP_def,   #nolint
+      ppegt = ppegt * norm / GDP_def #nolint
     ) #nolint
 
 
@@ -112,6 +117,34 @@ alpha_trim <- function(data,p){ #nolint
 
 }
 
+#generate alpha = cogs/sales and trim at 1% and 99% by year
+alpha_xsag_trim <- function(data,p,q){ #nolint
+
+  tempdata <- data %>%  #nolint
+    mutate(alpha = cogs / sale) %>%  #nolint
+    mutate(alphax = xsga / sale) #nolint
+
+  #get p% and 100-p% quantiles
+  tempdata <- tempdata %>%
+    group_by(fyear) %>% #nolint
+    mutate(
+      q1 = quantile(1/alpha[is.finite(alpha)], 0 +  p / 100, #nolint
+        na.rm = TRUE), #nolint
+      q99 = quantile(1/alpha[is.finite(alpha)], 1 - p / 100,
+        na.rm = TRUE), #nolint
+      q1x = quantile(1/alphax[is.finite(alpha)], 0 +  q / 100, #nolint
+        na.rm = TRUE), #nolint
+      q99x = quantile(1/alphax[is.finite(alpha)], 1 - q / 100,
+        na.rm = TRUE) #nolint
+    ) %>%
+    ungroup() %>%
+    filter(1/ alpha > q1 & 1/alpha < q99) %>% #nolint
+    filter(1/ alphax > q1x & 1/alphax < q99x) #nolint
+
+  tempdata
+
+}
+
 
 #Trim xad/cogs+usercost at 1% and 99% by year
 adv_trim <- function(data,p){ #nolint
@@ -125,6 +158,34 @@ adv_trim <- function(data,p){ #nolint
     ) %>%
     ungroup() %>%
     filter(Adr >= aq1 & Adr <= aq99) #nolint
+
+  tempdata
+
+}
+
+
+#GDP deflate
+
+GDPdef <- function(data, Ucost) { #nolint
+  #deflate with GDP deflator
+  #get deflator for 2010
+  norm <- Ucost$GDP_def[Ucost$fyear == 2010]
+
+  #convert from millions to thousands
+  norm <- norm * 1000
+
+  #merge
+  tempdata <- merge(data, Ucost, by = "fyear", all = TRUE)
+
+  tempdata <- tempdata %>%
+    mutate(
+      sale = sale * norm / GDP_def, #nolint
+      cogs = cogs * norm / GDP_def, #nolint
+      xsga = xsga * norm / GDP_def, #nolint
+      xad = xad * norm / GDP_def,   #nolint
+      ppegt = ppegt * norm / GDP_def #nolint
+    ) #nolint
+
 
   tempdata
 
@@ -169,19 +230,46 @@ industry_n_dig <- function(Clean_data, naics, n) { #nolint
 }
 
 
+industry_n_dig_2 <- function(Clean_data, n) { #nolint
+
+  #organize sector by n digit code level from data
+  temp_data <- Clean_data %>%
+    mutate(industry = ifelse(nchar(naics) >= n, substr(naics, 1, n), NA))
+
+  temp_data
+
+}
+
 ############################################################
 ######### 2.b generate 2,3,4 digit market shares ###########
 ############################################################
 
 market_share <- function(data) { #nolint
 
-  #get market share
+  #get market share (by 2 digit industry)
   data <- data %>%
     group_by(industry, fyear) %>% #nolint
     mutate(
-      industry_share = sale / sum(sale, n.rm=TRUE) #nolint
+      industry_share = sale / sum(sale[sale >= 0], na.rm=TRUE) #nolint
     ) %>% #nolint
     ungroup()
+
+  data <- data %>%
+    mutate(naics_3digit = substr(naics, 1, 3)) %>% #nolint
+    group_by(naics_3digit, fyear) %>% #nolint
+    mutate(
+      industry_share_3 = sale / sum(sale[sale > 0], na.rm=TRUE) #nolint
+    ) %>%
+    ungroup()
+
+  data <- data %>%
+    mutate(naics_4digit = substr(naics, 1, 4)) %>% #nolint
+    group_by(naics_4digit, fyear) %>% #nolint
+    mutate(
+      industry_share_4 = sale / sum(sale[sale > 0], na.rm=TRUE) #nolint
+    ) %>%
+    ungroup()
+
 
   data
 

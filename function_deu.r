@@ -17,12 +17,21 @@ first_stage <- function(panel) {
   panel <- panel %>% #nolint
     mutate(c = log(cogs), k = log(ppegt)) #nolint
 
-  # Create the polynomial terms
-  panel$poly_cogs <- poly(panel$c, degree = 3, raw = TRUE)
-  panel$poly_ppegt <- poly(panel$k, degree = 3, raw = TRUE)
-  panel$m_share <- poly(log(panel$industry_share), degree = 3, raw = TRUE)
-  # Run the regression
-  model <- lm(log(sale) ~ poly_cogs * poly_ppegt, data = panel)
+  # list of variables for polynominal
+  vars <- c("c", "k", "industry_share", "industry_share_3", "industry_share_4")
+
+  # Add the polynomial variables to a matrix
+  matrix_vars <- data.matrix(panel[vars])
+
+  # Generate 3rd degree polynomial including interactions
+  poly_vars <- poly(matrix_vars, degree = 3, raw = TRUE)
+
+  #merge back
+  poly_var_names <- colnames(poly_vars)
+  panel <- cbind(panel, poly_vars)
+
+  # estimate nonlinear regression
+  model <- lm(log(sale) ~ ., data = panel[, c("sale", poly_var_names)])
 
   # Get the residuals and predicted
   residuals_df <- data.frame(err = residuals(model))
@@ -89,13 +98,20 @@ second_stage <- function(panel) {
                                           "k_l",
                                           "sale")]), ]
   #ols for initial values
-  ols <- lm(phi ~ c + k, data = panel)
+  ols <- lm(log(sale) ~ c + k, data = panel)
   theta_init <-   ols$coefficients
+  #make sure not crazy values for start
+  theta_init[2] <- max(.8, theta_init[2])
+  theta_init[3] <- max(.1, theta_init[3])
+  theta_init[2] <- min(1, theta_init[2])
+  theta_init[3] <- min(1, theta_init[3])
 
   # Solve the GMM problem using moment condition defined above
+  #step size of .1 as in DWL replication docs
   result <- optim(theta_init, dwl_momment,
-                  method = "Nelder-Mead", panel = panel)
+                  method = "Nelder-Mead", panel = panel,
+                  control = list(reltol = 1))
 
-  result$par
+  result
 
 }

@@ -17,7 +17,7 @@ xad_density <- function(Data) {# nolint
   xaddensity <- ggplot(Data, aes(x = Adr_MC)) + # nolint
     geom_density() +
     theme(text = element_text(size = 20)) +
-    labs(x = "Advertising Share (Log-scale)", y = "Density") +
+    labs(x = "xad (Advertising Share) \n (Log-scale)", y = "Density") +
     scale_x_continuous(trans = log10_trans(), # nolint
                        limits = c(.00001, 30), labels = comma) #nolint
 
@@ -33,7 +33,7 @@ mu_density <- function(Data,Dset) {# nolint
     geom_density(data = Dset, aes(x = MU, color = "Full Sample")) + # nolint
     geom_density(data = Data, aes(x = MU, color = "XAD Reported")) +
     theme(text = element_text(size = 20)) +
-    labs(x = "Markup (Log-scale)", y = "Density") +
+    labs(x = "Markup \n (Log-scale)", y = "Density") +
     scale_x_continuous(trans = pseudo_log_trans(), # nolint
                        limits = c(-.1, 6),
                        breaks = c(0, 1, 6, 11),

@@ -19,7 +19,7 @@ p_folder <-
   "C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex"
 
 #switch to save files or not
-save_files <- TRUE
+save_files <- FALSE
 
 #directories
 dircs <- c(f_folder, d_folder, p_folder)
@@ -98,8 +98,8 @@ dset <- alpha_trim(dset, 2)
 
 # trim to xad reporting firms
 Data<- invisible(Cleanadv(dset)) # nolint
-#trim to 1 and 99% of xad/cogs + useercost
-Data <- adv_trim(Data, 2)
+#not trimming on adv at the moment
+Data <- adv_trim(Data, 0)
 
 
 #print summary statstable
@@ -331,7 +331,7 @@ exad_ot_interesting2 <-
   exad_ot_plot(fsector_time_coefs_inter_2, 16, "")
 
 #save plots
-save_f(exad_ot_plot, "exad_ot_plot.pdf", dircs, 9, 7, save_files)
+save_f(exad_ot_plot_, "exad_ot_plot.pdf", dircs, 9, 7, save_files)
 save_f(exad_ot_interesting, "exad_ot_interesting.pdf", dircs, 9, 7, save_files)
 save_f(exad_ot_interesting2,
        "exad_ot_interesting2.pdf", dircs, 9, 7, save_files)
