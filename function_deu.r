@@ -60,6 +60,12 @@ first_stage <- function(panel) {
 
 }
 
+############################################################
+############################################################
+#################   2: Second Stage    #####################
+############################################################
+############################################################
+
 # Define the moment conditions for the GMM estimation
 dwl_momment <- function(theta, panel) {
   phi <- panel$phi
@@ -87,6 +93,7 @@ dwl_momment <- function(theta, panel) {
   t(m) %*% m
 }
 
+#second stage estimation
 second_stage <- function(panel) {
 
   #drop nas
@@ -114,4 +121,98 @@ second_stage <- function(panel) {
 
   result
 
+}
+
+############################################################
+############################################################
+#################   3: Estimation    #####################
+############################################################
+############################################################
+
+acf_rolling_window <- function(pdata, r) {
+
+  #initiate empty theta
+  thetas <- NULL
+
+  #get sector names
+  sectors <- unique(pdata$industry)
+
+  #loop over sectors
+  thetas <- data.frame()
+  for (i in 1:length(sectors)) { #nolint
+
+    # Initialize a flag for errors
+    error_flag <- FALSE
+
+    # Subset the data to the rolling windows
+    pdata_sector <- pdata %>% filter(industry == sectors[i]) #nolint
+
+    #loop over years
+    for (current_year in  unique(pdata_sector$year)) {
+
+      # Initialize a flag for errors
+      error_flag <- FALSE
+
+      # Subset the data to the rolling windows
+      pdata_window <- pdata_sector %>% filter(year >= current_year - (r - 1) / 2, #nolint
+                                              year <= current_year + (r - 1) / 2) #nolint
+
+      # Run the first stage and handle errors
+      panelf <- tryCatch({
+        first_stage(pdata_window)
+      }, error = function(e) {
+        error_flag <<- TRUE
+        NA
+      })
+
+      # Initialize result
+      result <- list(par = c(NA, NA, NA), convergence = NA)
+
+      # Run the second stage and handle errors
+      result <<- tryCatch({
+        result <<- second_stage(panelf)
+        result
+      }, error = function(e) {
+        error_flag <<- TRUE
+        result$par <<- c(NA, NA, NA)
+        result$convergence <<- NA
+        result
+      })
+
+      #temp save the things we want
+      theta_est <- result$par[2]
+      theta_kest <- result$par[3]
+      convergence <- result$convergence
+
+      #to be added to output of loop
+      theta_temp <- c(
+        sector = sectors[i],
+        year = current_year,
+        theta = theta_est,
+        convergence = convergence,
+        n = nrow(pdata_window),
+        theta_k = theta_kest
+      )
+
+      thetas <- rbind(thetas, theta_temp)
+
+    }
+    if (error_flag) {
+      print(paste(sectors[i], "estimation complete WITH ERRORS."))
+    } else {
+      print(paste(sectors[i], "estimation complete without errors."))
+    }
+  }
+  #clean output and names
+  thetas <- data.frame(thetas)
+  rownames(thetas) <- NULL
+  names(thetas) <-
+    c("industry", "fyear", "theta", "convergence", "n.obs", "theta_k")
+
+  thetas$theta <- as.numeric(as.character(thetas$theta))
+  thetas$fyear <- as.numeric(as.character(thetas$fyear))
+  thetas$convergence <- as.numeric(as.character(thetas$convergence))
+  thetas$n.obs <- as.numeric(as.character(thetas$n.obs))
+  thetas$theta_k <- as.numeric(as.character(thetas$theta_k))
+  thetas
 }

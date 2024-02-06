@@ -97,6 +97,29 @@ Cleanadv <- function(data) {  #nolint
   tempdata
 }
 
+
+clean_deu <- function(data) { #nolint
+
+  #trim at 1%
+  data <- alpha_xsag_trim(data, 1, 1)
+
+  # Drop duplicates based on GVKEY and fyear
+  data <- data[!duplicated(data[, c("GVKEY", "fyear")]), ]
+
+  # Remove rows with NA values in the GVKEY, fyear, and accounting variables #nolint
+  data <-
+    data[!is.na(data$GVKEY) & !is.na(data$fyear) & !is.na(data$naics)
+         & !is.na(data$industry)
+     & !is.na(data$ppegt) &!is.na(data$xsga) &!is.na(data$sale) & !is.na(data$cogs), ] #nolint
+
+  # Ensure that accounting variables are positive
+  data <- data[data$sale > 0 & data$cogs > 0
+               & data$ppegt > 0  & data$xsga > 0, ]
+
+  data
+
+}
+
 #generate alpha = cogs/sales and trim at 1% and 99% by year
 alpha_trim <- function(data,p){ #nolint
 
@@ -128,13 +151,13 @@ alpha_xsag_trim <- function(data,p,q){ #nolint
   tempdata <- tempdata %>%
     group_by(fyear) %>% #nolint
     mutate(
-      q1 = quantile(1/alpha[is.finite(alpha)], 0 +  p / 100, #nolint
+      q1 = quantile(1 / alpha[is.finite(alpha)], 0 +  p / 100, #nolint
         na.rm = TRUE), #nolint
-      q99 = quantile(1/alpha[is.finite(alpha)], 1 - p / 100,
+      q99 = quantile(1 / alpha[is.finite(alpha)], 1 - p / 100,
         na.rm = TRUE), #nolint
-      q1x = quantile(1/alphax[is.finite(alpha)], 0 +  q / 100, #nolint
+      q1x = quantile(1 / alphax[is.finite(alpha)], 0 +  q / 100, #nolint
         na.rm = TRUE), #nolint
-      q99x = quantile(1/alphax[is.finite(alpha)], 1 - q / 100,
+      q99x = quantile(1 / alphax[is.finite(alpha)], 1 - q / 100,
         na.rm = TRUE) #nolint
     ) %>%
     ungroup() %>%
@@ -234,7 +257,7 @@ industry_n_dig_2 <- function(Clean_data, n) { #nolint
 
   #organize sector by n digit code level from data
   temp_data <- Clean_data %>%
-    mutate(industry = ifelse(nchar(naics) >= n, substr(naics, 1, n), NA))
+    mutate(industry = ifelse(nchar(naics) >= n, substr(naics, 1, n), NA)) #nolint
 
   temp_data
 

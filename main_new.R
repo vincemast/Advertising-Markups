@@ -72,7 +72,7 @@ setwd(dircs[2])
 #compustat
 Dset <- read.csv("COMPUSTAT.csv") # nolint
 #rename gvkey to GVKEY
-colnames(Dset)[colnames(Dset) == "gvkey"] <- "GVKEY"
+colnames(Dset)[colnames(Dset) == "gvkey"] <- "GVKEY" #nolint
 
 #usercost
 Ucost <- read.csv("usercost.csv") # nolint
@@ -141,7 +141,7 @@ save_f(agg_muplot, "agg_mu_plot.pdf", dircs, 10, 9, save_files)
 ############################################################
 ############################################################
 
-allhold <- invisible(industry_n_dig(Dset, naics, 2))
+allhold <- invisible(industry_n_dig(dset, naics, 2))
 
 unique(allhold$industry)
 
@@ -210,7 +210,7 @@ table_1_latex <- Results_2Digit[6]
 
 #collect needed data
 #within sector aggregate mu and adr
-agg_2_digit <- Sector_MU_Adr(Dset, naics, 2)
+agg_2_digit <- Sector_MU_Adr(dset, naics, 2)
 #merge with efficency coefficients
 hold <- merge(agg_2_digit, sector_coef_2d)
 
@@ -480,13 +480,13 @@ save_f(agg_mu_c_plot_st_r, "agg_mu_c_plot_st_r.pdf", dircs, 9, 7, save_files)
 ############ 10.e Time rolling sample ######################
 ############################################################
 
-#5 digit
+#5 year
 rolling_results <- rolling_window(Data, naics, 2, 5)
 mu_c_density_rolling <- mu_c_plot(rolling_results$corrections)
 agg_mu_c_plot_rolling <- agg_mu_c(rolling_results$corrections)
 
-#7 digit
-rolling_results7 <- rolling_window(Data, naics, 2, 7)
+#9 year
+rolling_results7 <- rolling_window(Data, naics, 2, 9)
 mu_c_density_rolling7 <- mu_c_plot(rolling_results7$corrections)
 agg_mu_c_plot_rolling7 <- agg_mu_c(rolling_results7$corrections)
 
