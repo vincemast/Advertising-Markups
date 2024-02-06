@@ -74,4 +74,4 @@ data <- data %>%
 #save data
 setwd(d_folder)
 
-write.csv(data, "usercost_2.csv")
+write.csv(data, "usercost.csv")

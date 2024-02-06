@@ -18,6 +18,7 @@ d_folder <-
 p_folder <-
   "C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex"
 
+
 #switch to save files or not
 save_files <- FALSE
 
@@ -71,24 +72,19 @@ setwd(dircs[2])
 
 #compustat
 dset <- read.csv("COMPUSTAT.csv") # nolint
-
 # naisc codes
 naics <- read.csv("2022_NAICS_Structure.csv")
 colnames(naics) <- c("change", "naics_n", "industry")
+#FRED DATA
+usercost <- read.csv("usercost.csv") #nolint
+
 #rename gvkey to GVKEY
 colnames(dset)[colnames(dset) == "gvkey"] <- "GVKEY"
 
-
-#FRED DATA
-usercost <- read.csv("usercost_2.csv") #nolint
+################## 1.b Set up year stuff  ##########################
 
 #apply GDP deflator
 dset <- GDPdef(dset, usercost)
-
-summary(dset$sale)
-
-
-################## 1.b Set up year stuff  ##########################
 
 #make numeric indicator of year
 #with fyear as index it operates weird when called, new var more convenient
@@ -96,21 +92,12 @@ dset <- dset %>%
   mutate(year = as.numeric(fyear)) %>% #nolint
   filter(!is.na(fyear))
 
-#trim to 1950+
-data <- dset[dset$year > 1950, ]
-# Get the range of years
-years <- range(data$year)
+################## 1.c Set up industry stuff  ##########################
 
-# Create a sequence of n-year windows
-all_years <- seq(from = years[1], to = years[2])
-
-
-################## 1.b Set up industry stuff  ##########################
-
-#add industry names
-data <- invisible(industry_n_dig(data, naics, 2))
-data <- data[!is.na(data$naics), ]
-data <- data[!is.na(data$industry), ]
+#add industry names following deu and literally using 2 digit naics
+data <- invisible(industry_n_dig_2(dset, 2))
+#commented code maps to industry name
+#data <- invisible(industry_n_dig(data, naics, 2)) #nolint
 
 #get unique sectors
 sectors <- unique(data$industry)
@@ -118,38 +105,15 @@ sectors <- unique(data$industry)
 #add market shares
 data <- invisible(market_share(data))
 
-################## 1.b Set up panel  ##########################
+################## 1.d Set up panel  ##########################
 #back to functions (incase you want to rerun functions following edit)
 setwd(dircs[1])
 
-#trim at 1%
-data <- alpha_xsag_trim(data, 1, 1)
-
-# Remove rows with NA values in the sale or cogs for trim
-data <-
-  data[!is.na(data$sale) & !is.na(data$cogs), ] #nolint
+#clean and trim following DEU 2020
+pdata <- clean_deu(data)
 
 # Create the panel data
-pdata <- pdata.frame(data, index = c("GVKEY", "fyear"))
-
-# Drop duplicates based on GVKEY and fyear
-pdata <- pdata[!duplicated(pdata[, c("GVKEY", "fyear")]), ]
-
-# Remove rows with NA values in the GVKEY, fyear, and ppegt variables #nolint
-pdata <-
-  pdata[!is.na(pdata$GVKEY) & !is.na(pdata$fyear) & !is.na(pdata$ppegt) & !is.na(pdata$naics), ] #nolint
-
-# Ensure that sale, cogs, and ppegt are positive
-pdata <- pdata[pdata$sale > 0 & pdata$cogs > 0 & pdata$ppegt > 0, ]
-
-# Ensure that xsag are positive and not na
-pdata <-
-  pdata[!is.na(pdata$xsga), ] #nolint
-pdata <- pdatab[pdatab$xsga > 0, ]
-
-#trim at 1%
-#pdata <- alpha_xsag_trim(pdata, 1, 1)
-
+pdata <- pdata.frame(pdata, index = c("GVKEY", "fyear"))
 
 #keep only relevant columns
 pdata <- pdata %>% select(sale, cogs,
@@ -164,7 +128,7 @@ summary(pdata_deu$fyear)
 summary(pdata_deu)
 #seems a little off
 #cogs is quite a bit higher than DEU, others quite close, also i have extra obs
- #      Mean          Median     No.obs
+ #      Mean          Median     No.obs             #nolint
  # Sales 1,922,074    147,806    247,644
  # COGS  1,016,550    55,384
  # PPEGT 1,454,210    57,532
@@ -179,85 +143,22 @@ summary(pdata_deu)
 ############################################################
 ############################################################
 
+#rolling window
 #set length of rolling window
 r <- 5
-
-#empty thetas
-thetas <- NULL
-
-#loop over sectors
-for (i in 1 : length(sectors)) { #nolint
-  # Subset the data to the sector
-  pdata_sector <- pdata %>% filter(industry == sectors[i]) #nolint
-
-  #loop over years
-  for (current_year in  all_years) {
-
-    # Initialize a flag for errors
-    error_flag <- FALSE
-
-    # Subset the data to the rolling windows
-    pdata_window <- pdata_sector %>% filter(year >= current_year - (r - 1) / 2, #nolint
-                                            year <= current_year + (r - 1) / 2) #nolint
-
-
-    # Run the first stage and handle errors
-    panelf <- tryCatch({
-      first_stage(pdata_window)
-    }, error = function(e) {
-      error_flag <<- TRUE
-      NA
-    })
-
-    # Run the second stage and handle errors
-    result <<- tryCatch({
-      result <<- second_stage(panelf)
-      result
-    }, error = function(e) {
-      error_flag <<- TRUE
-      result$par <<- c(NA, NA, NA)
-      result$convergence <<- NA
-      result
-    })
-
-    #temp save the things we want
-    theta_est <- result$par[2]
-    theta_kest <- result$par[3]
-    convergence <- result$convergence
-
-
-    #to be added to output of loop
-    theta_temp <- c(
-      sector = sectors[i],
-      year = current_year,
-      theta = theta_est,
-      convergence = convergence,
-      n = nrow(pdata_window),
-      theta_k = theta_kest
-    )
-
-    thetas <- rbind(thetas, theta_temp)
-
-  }
-  if (error_flag) {
-    print(paste(sectors[i], "estimation complete WITH ERRORS."))
-  } else {
-    print(paste(sectors[i], "estimation complete without errors."))
-  }
-}
-
-thetas <- data.frame(thetas)
-rownames(thetas) <- NULL
-names(thetas) <-
-  c("industry", "fyear", "theta", "convergence", "n.obs", "theta_k")
-
-thetas$theta <- as.numeric(thetas$theta)
-
-summary(thetas$theta)
-
+thetas <- acf_rolling_window(pdata, r)
+view(thetas)
 plot(density(thetas$theta, na.rm = TRUE),
      main = "Density of theta estimates", xlab = "theta", ylab = "Density")
 
+#by sector
+thetas_s_deu <- acf_bysector(pdata_deu)
+thetas_s <- thetas_s_deu[, 1:2]
+names(thetas_s) <- c("industry", "theta_s")
+view(thetas_s_deu)
+
+#constant
+theta_c <- .85
 
 ############################################################
 ############################################################
@@ -270,11 +171,16 @@ datafinal <-
   merge(pdata, thetas, by.x = c("industry", "year"),
         by.y = c("industry", "fyear"), all.x = TRUE)
 
-#when uncommented looks like DEU, problem is with estimation of theta
-#datafinal$theta <- .85 #nolint
+datafinal <-
+  merge(datafinal, thetas_s, by.x = c("industry", "year"),
+        by.y = c("industry", "fyear"), all.x = TRUE)
+
+datafinal$theta <- .85 #nolint
 
 #generate mu_deu = theta/alpha
 datafinal$mu_deu <- datafinal$theta / datafinal$alpha
+datafinal$mu_deus <- datafinal$theta_s / datafinal$alpha
+datafinal$mu_deuc <- datafinal$theta_c / datafinal$alpha
 
 plot(density(datafinal$mu_deu, na.rm = TRUE))
 
@@ -296,10 +202,17 @@ agg_data <- datafinal %>%
 
 names(agg_data) <- c("year", "Ag_MU")
 
+agg_data$year <- as.numeric(as.character(agg_data$year))
+
+# Filter the data
+agg_data_filtered <- agg_data %>% filter(year > 1955)
+
+agg_data_filtered <- agg_data_filtered %>% filter(year < 2017)
+
 #plot
 agg_mu_plot <-  ggplot() +
-  geom_line(data = agg_data,
-              aes(y = Ag_MU - 1, x = as.numeric(as.character(year)), color = "DWL/DEU")) + # nolint
+  geom_line(data = agg_data_filtered,
+              aes(y = Ag_MU - 1, x = year, color = "DWL/DEU")) + # nolint
   theme(text = element_text(size = 20)) +
   labs(x = "Year", y = "Sales Weighted Markup") +
   theme(legend.position = "bottom")
@@ -317,16 +230,22 @@ hold <- thetas %>%
 View(hold)
 
 hold2 <- thetas %>%
-  filter(industry == "Retail Trade")
+  filter(industry == "42")
 
-View(hold2)
+summary(hold2)
+view(hold2)
+#low values at 1993 and 2016
 
 
-plot(y=hold2$theta, x=hold2$fyear)
+ggplot(hold2, aes(x = fyear, y = theta)) +
+  geom_line() +
+  ylim(0.2, 1)
 
 #merge thetas with data
 datafinal <-
-merge(pdata, thetas, by.x = c("industry", "year"), by.y = c("industry", "fyear"), all.x = TRUE)
+  merge(pdata, thetas,
+        by.x = c("industry", "year"),
+        by.y = c("industry", "fyear"), all.x = TRUE)
 
 #generate mu_deu = theta/alpha
 datafinal$mu_deu <- datafinal$theta / datafinal$alpha
