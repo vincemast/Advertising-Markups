@@ -58,6 +58,14 @@ data$usercost <- (data$FEDFUNDS - data$Ifl + 12) * .01
 #set user cost to NA if fed funds or inflation is missing
 data$usercost[is.na(data$FEDFUNDS) | is.na(data$Ifl)] <- NA
 
+# for years that i dont have fed funds or inflation, use DEU's #nolint
+data <- data %>%
+  mutate(usercost = ifelse(fyear == 1955, .1208544, usercost)) %>%
+  mutate(usercost = ifelse(fyear == 1956, .1130887, usercost)) %>%
+  mutate(usercost = ifelse(fyear == 1957, .1177995, usercost)) %>%
+  mutate(usercost = ifelse(fyear == 1958, .1131686, usercost)) %>%
+  mutate(usercost = ifelse(fyear == 1959, .1391089, usercost))
+
 #trim data to 1950
 data <- data %>%
   filter(fyear > 1950)

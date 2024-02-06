@@ -118,7 +118,7 @@ pdata <- pdata.frame(pdata, index = c("GVKEY", "fyear"))
 #keep only relevant columns
 pdata <- pdata %>% select(sale, cogs,
   ppegt, xsga, naics, industry, industry_share, alpha, conm, #nolint
-  year, GVKEY, fyear, industry_share_3, industry_share_4) #nolint
+  year, GVKEY, fyear, industry_share_3, industry_share_4, xad) #nolint
 
 ################## 1.c Check DEU subset  ##########################
 
@@ -139,7 +139,7 @@ summary(pdata_deu)
 
 ############################################################
 ############################################################
-##################     1: ACF   ####################
+##################     2: ACF   ####################
 ############################################################
 ############################################################
 
@@ -150,11 +150,12 @@ thetas <- acf_rolling_window(pdata, r)
 view(thetas)
 plot(density(thetas$theta, na.rm = TRUE),
      main = "Density of theta estimates", xlab = "theta", ylab = "Density")
+thetas_s_yr <- thetas[, 1:3]
 
 #by sector
 thetas_s_deu <- acf_bysector(pdata_deu)
 thetas_s <- thetas_s_deu[, 1:2]
-names(thetas_s) <- c("industry", "theta_s")
+names(thetas_s) <- c("industry", "theta")
 view(thetas_s_deu)
 
 #constant
@@ -167,20 +168,47 @@ theta_c <- .85
 ############################################################
 
 #merge thetas with data
-datafinal <-
-  merge(pdata, thetas, by.x = c("industry", "year"),
+data_s_yr <-
+  merge(pdata, thetas_s_yr, by.x = c("industry", "fyear"),
         by.y = c("industry", "fyear"), all.x = TRUE)
 
-datafinal <-
-  merge(datafinal, thetas_s, by.x = c("industry", "year"),
-        by.y = c("industry", "fyear"), all.x = TRUE)
+data_s <-
+  merge(pdata, thetas_s, by.x = c("industry"),
+        by.y = c("industry"), all.x = TRUE)
 
-datafinal$theta <- .85 #nolint
+pdata_deu <- pdata
+pdata_deu$theta <- .85 #nolint
 
 #generate mu_deu = theta/alpha
-datafinal$mu_deu <- datafinal$theta / datafinal$alpha
-datafinal$mu_deus <- datafinal$theta_s / datafinal$alpha
-datafinal$mu_deuc <- datafinal$theta_c / datafinal$alpha
+data_s_yr$MU_deu <- data_s_yr$theta / data_s_yr$alpha
+data_s$MU_deu <- data_s$theta / data_s$alpha
+pdata_deu$MU_deu <- pdata_deu$theta / pdata_deu$alpha
+
+############################################################
+############################################################
+#################     4: Save Data   #######################
+############################################################
+############################################################
+
+#navigate to data folder
+setwd(dircs[2])
+
+write.csv(data_s_yr, "DEU_s_yr.csv")
+write.csv(data_s, "DEU_s.csv")
+write.csv(pdata_deu, "DEU_c.csv")
+
+
+
+
+
+
+
+
+############################################################
+############################################################
+############     5: explore Markups   ##################
+############################################################
+############################################################
 
 plot(density(datafinal$mu_deu, na.rm = TRUE))
 

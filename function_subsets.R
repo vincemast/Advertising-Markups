@@ -7,6 +7,7 @@ require(xtable)
 ############################################################
 ############################################################
 
+#old variable gen
 VariableGen <- function(data, Ucost) { #nolint
 
   ############################################################
@@ -75,6 +76,54 @@ VariableGen <- function(data, Ucost) { #nolint
 
   tempdata
 
+}
+
+#new variable gen
+vargen <- function(data, Ucost) { #nolint
+
+  ############################################################
+  ###1: Convert table to panel data format. create entry/exit years, age
+  #set na for values that can be verified
+  #(if last year is last year data or first is first in data)
+  min_year <- min(data$fyear, na.rm = TRUE)
+  max_year <- max(data$fyear, na.rm = TRUE)
+
+  tempdata <- data %>%
+    group_by(GVKEY) %>% #nolint
+    mutate(
+      entry = min(fyear), #nolint
+      exit = max(fyear),
+      age = ifelse(entry == min_year, NA, fyear - entry), #nolint
+      life = ifelse(exit == max_year, NA, exit - fyear) #nolint
+    )
+  ############################################################
+  ###2: Merge and generate
+
+  tempdata <- merge(tempdata, Ucost, by = "fyear", all = TRUE)
+
+  #MU
+  tempdata <- tempdata %>%
+    mutate(MU = sale / (cogs + ppegt * usercost)) #nolint
+
+  #MU -1
+  tempdata <- tempdata %>%
+    mutate(MU_1 = MU - 1) #nolint
+
+  #Adr MC
+  tempdata <- tempdata %>%
+    mutate(Adr_MC = xad / (cogs + ppegt * usercost)) #nolint
+
+  #time untill 2022 (or newest year)
+  #grab newest year
+  maxyear <- max(tempdata$fyear, na.rm = TRUE)
+  tempdata <- tempdata %>%
+    mutate(time = fyear - maxyear) #nolint
+  #make quadratic and cubic
+  tempdata <- tempdata %>%
+    mutate(time2 = -time * time)
+  tempdata <- tempdata %>%
+    mutate(time3 = time * time * time)
+  tempdata
 }
 
 
