@@ -4,25 +4,95 @@ require(dplyr)
 
 ############################################################
 ############################################################
-##################   0: useful    #####################
+###########   0: Set up Data for estimation    #############
 ############################################################
 ############################################################
 
-#generate polynominals, defining seperate saves a few lines later
+#generates all necessary lags
+# and gives names for objects used in first and second stage
+#uses functions defined in useful
 
-#generates polys that still need to be merged back
-poly_gen <- function(panel, var_names){
+#takes inputs:
+#yvar - output
+# xvars - inputs
+# zvars - controls in first and second stage
+#orthogx - orthogonal momments of x data
+# actual moment also combines poly of second stage
 
-  # Add the polynomial variables to a matrix
-  matrix_vars <- data.matrix(panel[var_names])
+# panel - panel data
 
-  # Generate 3rd degree polynomial including interactions
-  poly_vars <- poly(matrix_vars, degree = 3, raw = TRUE)
+#returns:
+#output$data - panel data with all lags and polys
+#output$xvar - hands back input names
+#output$y - hands back output name
+#output$fs_rhs - first stage right hand side variables (includes polys)
+# used in second stage
+#output$xvar_l - names of lags of xvars
+#output$ss_controls - names of controls in second stage
+#output$ss_controls_l - names of lags of controls in second stage
+#output$orthogs - names of orthogonal moments (adds in controls)
+#     name any xvar lags as "name"_l, will be generated
 
-  poly_vars
+set_up <- function(yvar, xvars, zvars, orthogx, panel) {
+
+  temp <- panel
+
+  ################# 1. gen all lags before polys (saves time) #####
+
+  #generate xlags
+  temp <- gen_lags(temp, xvars)
+  xvar_l <- lag_names(xvars)
+
+  #generate zlags and xz lags
+  #first get xz
+  temp <- gen_xz(xvars, zvars, temp)
+  xz <- xz_names(xvars, zvars)
+  #generate lags of xz and z
+  temp <- gen_lags(temp, c(xz, zvars))
+
+  xzz_l <- lag_names(c(xz, zvars))
+
+  ################# 2. gen first stage rhs ##################
+
+  #generate first stage polynominals
+  temp <- poly_gen(temp, c(xvars, zvars))
+  fs_rhs <- poly_gen_names(c(xvars, zvars))
+
+  ################# 3. gen second stage controls ##################
+
+  #check if zvars are given
+  #default to NULL
+  if (!is.null(zvars)) {
+    #generate second stage control polynominals
+    temp <- poly_gen(temp, c(xz, zvars))
+    ss_controls <<- poly_gen_names(c(xz, zvars))
+    #generate lags of second stage controls poly lags
+    temp <- poly_gen(temp, xzz_l)
+    ss_controls_l <<- poly_gen_names(xzz_l)
+  } else {
+    ss_controls <- NULL
+    ss_controls_l <- NULL
+  }
+
+  ################# 3. intruments ##################
+  orthogs <- c(orthogx, ss_controls, ss_controls_l)
+
+
+  #return list
+  return <- list()
+  return$data <- temp
+  return$y <- yvar
+  return$xvars <- xvars
+  return$y <- yvar
+  return$xvar_l <- xvar_l
+  return$fs_rhs <- fs_rhs
+  return$ss_controls <- ss_controls
+  return$ss_controls_l <- ss_controls_l
+  return$orthogs <- orthogs
+  #return
+  return
 
 }
-
 
 ############################################################
 ############################################################
@@ -33,193 +103,28 @@ poly_gen <- function(panel, var_names){
 #adapted from:
 #https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/5GH8XO #nolint
 
-first_stage_nomshare <- function(panel) {
+#runs regression using rhs (should be polys)
+first_stage_exp <- function(yvar, rhs, panel) {
 
-  #loggd vars
-  panel <- panel %>% #nolint
-    mutate(c = log(cogs), k = log(ppegt)) #nolint
-
-  # list of variables for polynominal
-  vars <- c("c", "k")
-
-  # Add the polynomial variables to a matrix
-  matrix_vars <- data.matrix(panel[vars])
-
-  # Generate 3rd degree polynomial including interactions
-  poly_vars <- poly(matrix_vars, degree = 3, raw = TRUE)
-
-  #merge back
-  poly_var_names <- colnames(poly_vars)
-  panel <- cbind(panel, poly_vars)
-
-  # estimate nonlinear regression
-  model <- lm(log(sale) ~ ., data = panel[, c("sale", poly_var_names)])
+  # estimate nonparametric regression
+  # Create the formula
+  formula <- as.formula(paste(yvar, "~ ."))
+  model <- lm(formula, data = panel[, c(yvar, rhs)])
 
   # Get the residuals and predicted
   residuals_df <- data.frame(err = residuals(model))
   predicted_df <- data.frame(phi = fitted.values(model))
 
-  # Add the residuals back to the original panel data
+  # Add the residuals and pred back to the original panel data
   panel$err <- residuals_df$err
   panel$phi <- predicted_df$phi
 
-  # Create the lagged variables
+  # Create the lagged phi
   panel <- panel %>%
     group_by(GVKEY) %>% #nolint
     mutate(
-      phi_l = lag(phi),  #nolint
-      c_l = lag(c),
-      k_l = lag(k),  #nolint
-      err_l = lag(err)) %>% #nolint
+      phi_l = lag(phi)) %>% #nolint
     ungroup()
-
-  #log corrected sales
-  panel <- panel %>% #nolint
-      mutate(sale_l = log(lag(sale)) -err) #nolint
-  panel$sale_c <- exp(panel$sale_l) #nolint
-
-  panel
-
-}
-
-
-#adds market share in first stage as DEU 2020
-first_stage <- function(panel) {
-
-  #loggd vars
-  panel <- panel %>% #nolint
-    mutate(c = log(cogs), k = log(ppegt)) #nolint
-
-#give shorter names to market shares
-  panel <- panel %>% #nolint
-    mutate(m = industry_share, #nolint
-           m3 = industry_share_3, #nolint
-           m4 = industry_share_4) #nolint
-
-  # list of variables for polynominal
-  vars <- c("c", "k", "m", "m3", "m4")
-
-  # Add the polynomial variables to a matrix
-  matrix_vars <- data.matrix(panel[vars])
-
-  # Generate 3rd degree polynomial including interactions
-  poly_vars <- poly(matrix_vars, degree = 3, raw = TRUE)
-
-  #merge back
-  poly_var_names <- colnames(poly_vars)
-  panel <- cbind(panel, poly_vars)
-
-  # estimate nonlinear regression
-  model <- lm(log(sale) ~ ., data = panel[, c("sale", poly_var_names)])
-
-  # Get the residuals and predicted
-  residuals_df <- data.frame(err = residuals(model))
-  predicted_df <- data.frame(phi = fitted.values(model))
-
-  # Add the residuals back to the original panel data
-  panel$err <- residuals_df$err
-  panel$phi <- predicted_df$phi
-
-  # Create the lagged variables
-  panel <- panel %>%
-    group_by(GVKEY) %>% #nolint
-    mutate(
-      phi_l = lag(phi),  #nolint
-      c_l = lag(c),
-      k_l = lag(k),  #nolint
-      m_l = lag(m), #nolint
-      m3_l = lag(m3), #nolint
-      m4_l = lag(m4), #nolint
-      err_l = lag(err)) %>% #nolint
-    ungroup()
-
-  #log corrected sales
-  panel <- panel %>% #nolint
-      mutate(sale_l = log(lag(sale)) -err) #nolint
-  panel$sale_c <- exp(panel$sale_l) #nolint
-
-  panel
-
-}
-
-first_stage_deu <- function(panel) {
-
-  #loggd vars
-  panel <- panel %>% #nolint
-    mutate(c = log(cogs), k = log(ppegt)) #nolint
-
-  #give shorter names to market shares
-  panel <- panel %>% #nolint
-    mutate(m = industry_share, #nolint
-           m3 = industry_share_3, #nolint
-           m4 = industry_share_4) #nolint
-
-  # list of variables for polynominal
-  vars <- c("c", "k", "m", "m3", "m4")
-
-  # Add the polynomial variables to a matrix
-  matrix_vars <- data.matrix(panel[vars])
-
-  # Generate 3rd degree polynomial including interactions
-  poly_vars <- poly(matrix_vars, degree = 3, raw = TRUE)
-
-  #merge back
-  poly_var_names <- colnames(poly_vars)
-  panel <- cbind(panel, poly_vars)
-
-  # estimate nonlinear regression
-  model <- lm(log(sale) ~ ., data = panel[, c("sale", poly_var_names)])
-
-  # Get the residuals and predicted
-  residuals_df <- data.frame(err = residuals(model))
-  predicted_df <- data.frame(phi = fitted.values(model))
-
-  # Add the residuals back to the original panel data
-  panel$err <- residuals_df$err
-  panel$phi <- predicted_df$phi
-
-  # Create the lagged variables
-  panel <- panel %>%
-    group_by(GVKEY) %>% #nolint
-    mutate(
-      phi_l = lag(phi),  #nolint
-      c_l = lag(c),
-      k_l = lag(k),  #nolint
-      m_l = lag(m), #nolint
-      m3_l = lag(m3), #nolint
-      m4_l = lag(m4), #nolint
-      err_l = lag(err)) %>% #nolint
-    ungroup()
-
-  #generate market shares interacted with inputs
-  #following Prices, Markups and Trade Reform (2015)
-  panel <- panel %>%
-  group_by(GVKEY) %>% #nolint
-  mutate(
-    mc = m * c,  #nolint
-    mk = m * k, #nolint
-    mc3 = m3 * c, #nolint
-    mk3 = m3 * k,
-    mc4 = m4 * c, #nolint
-    mk4 = m4 * k) %>% #nolint
-    ungroup()
-
-  #lag those as well
-  panel <- panel %>%
-  group_by(GVKEY) %>% #nolint
-  mutate(
-    mc_l = lag(mc),  #nolint
-    mk_l = lag(mk), #nolint
-    mc3_l = lag(mc3), #nolint
-    mk3_l = lag(mk3), #nolint
-    mc4_l = lag(mc4), #nolint
-    mk4_l = lag(mk4)) %>% #nolint
-    ungroup()
-
-  #log corrected sales
-  panel <- panel %>% #nolint
-      mutate(sale_l = log(lag(sale)) -err) #nolint
-  panel$sale_c <- exp(panel$sale_l) #nolint
 
   panel
 
@@ -232,18 +137,19 @@ first_stage_deu <- function(panel) {
 ############################################################
 
 # Define the moment conditions for the GMM estimation
-dwl_momment <- function(theta, panel) {
-  #grab the vars we need
-  phi <- panel$phi
-  phi_l <- panel$phi_l
-  c <- panel$c
-  k <- panel$k
-  c_l <- panel$c_l
-  k_l <- panel$k_l
-  sale <- panel$sale #nolint
+momment_exp <- function(theta, input) {
 
-  X <- cbind(1, c, k) #nolint
-  X_l <- cbind(1, c_l, k_l) #nolint
+  #grab the vars we need
+  phi <- input$phi
+  phi_l <- input$phi_l
+  controls <- data.matrix(input$controls)
+  controls_l <- data.matrix(input$controls_l)
+  x <- data.matrix(input$x)
+  x_l <- data.matrix(input$xl)
+  orthog <- data.matrix(input$orthog)
+
+  X <- cbind(1, x, controls) #nolint
+  X_l <- cbind(1, x_l, controls_l) #nolint
 
   omega <- phi - X %*% theta
   omega_l <- phi_l - X_l %*% theta
@@ -252,52 +158,19 @@ dwl_momment <- function(theta, panel) {
   g_b <- solve(t(omega_l_pol) %*% omega_l_pol) %*% t(omega_l_pol) %*% omega
   xi <- omega - omega_l_pol %*% g_b
 
-  Z <- cbind(1, c_l, k) #nolint
+  Z <- cbind(1, orthog) #nolint
 
   m <- t(Z) %*% xi #nolint
 
   t(m) %*% m
 }
 
-# Define the moment conditions for the GMM estimation
-deu_momment <- function(theta, input) {
-  #grab panel
-  panel <- input$panel
-
-  #grab the vars we need
-  phi <- panel$phi
-  phi_l <- panel$phi_l
-  c <- panel$c
-  k <- panel$k
-  c_l <- panel$c_l
-  k_l <- panel$k_l
-  sale <- panel$sale #nolint
-
-  ms <- input$ms
-  ms_l <- input$ms_l
-
-  X <- cbind(1, c, k, ms) #nolint
-  X_l <- cbind(1, c_l, k_l, ms_l) #nolint
-
-  omega <- phi - X %*% theta
-  omega_l <- phi_l - X_l %*% theta
-  omega_l_pol <- cbind(1, omega_l)
-
-  g_b <- solve(t(omega_l_pol) %*% omega_l_pol) %*% t(omega_l_pol) %*% omega
-  xi <- omega - omega_l_pol %*% g_b
-
-  Z <- cbind(1, c_l, k, ms, ms_l) #nolint
-
-  m <- t(Z) %*% xi #nolint
-
-  t(m) %*% m
-}
 
 #throw up big number if issues arise
-deu_momment_checked <- function(params, ...) {
+momment_exp_checked <- function(params, ...) {
   # Try to compute the objective function
   tryCatch({
-    value <- deu_momment(params, ...)
+    value <- momment_exp(params, ...)
     if (is.finite(value)) {
       return(value)
     } else {
@@ -310,130 +183,37 @@ deu_momment_checked <- function(params, ...) {
   })
 }
 
+#second stage e}stimation
+second_stage_exp <-
+  function(panel, yvar, xvars, xvar_l,
+           ss_controls, ss_controls_l, orthogs, theta_init) {
 
-#second stage estimation
-second_stage <- function(panel) {
+    #drop nas (this should be a sufficent check)
+    panel <- panel[complete.cases(panel[, c("phi",
+                                            "phi_l")]), ]
 
-  #drop nas
-  panel <- panel[complete.cases(panel[, c("phi",
-                                          "phi_l",
-                                          "c",
-                                          "k",
-                                          "c_l",
-                                          "k_l",
-                                          "sale")]), ]
-  #ols for initial values
-  ols <- lm(log(sale) ~ c + k, data = panel)
-  theta_init <-   ols$coefficients
-  #make sure not crazy values for start
-  theta_init[2] <- max(.8, theta_init[2])
-  theta_init[3] <- max(.1, theta_init[3])
-  theta_init[2] <- min(1, theta_init[2])
-  theta_init[3] <- min(1, theta_init[3])
+    #get data for gmm
+    input <- list()
+    input$phi <- panel$phi
+    input$phi_l <- panel$phi_l
+    input$x <- panel[, xvars]
+    input$xl <- panel[, xvar_l]
+    input$controls <- panel[, ss_controls]
+    input$controls_l <- panel[, ss_controls_l]
+    input$orthog <- panel[, orthogs]
 
-  # Solve the GMM problem using moment condition defined above
-  #step size of .1 as in DWL replication docs
-  result <- optim(theta_init, dwl_momment, #nolint
-                  method = "Nelder-Mead", panel = panel)
+    # Solve the GMM problem using moment condition defined above
+    #step size of .1 as in DWL replication docs
+    result <- optim(theta_init, momment_exp_checked, #nolint
+                    method = "Nelder-Mead", input = input,
+                    control = list(trace = FALSE, maxit = 50000,
+                                   abstol = 1e-10, reltol = 1e-10, #nolint
+                                   stepmax = 0.1, maxfeval = 20000)) #nolint
 
-  result
+    result
 
-}
+  }
 
-#second stage estimation (just 2 digit market shares)
-second_stage_deu <- function(panel) {
-
-  need <-
-    c("phi", "phi_l", "c", "k", "c_l", "k_l", "sale",
-    "m", "mc", "mk", #nolint
-    "m_l", "mc_l",
-    "mk_l")
-
-  #drop nas
-  panel <-
-    panel[complete.cases(panel[, need]), ]
-
-  #generate polynominal of market shares
-  ms_vars <- c("m", "mc", "mk")
-  ms_l_vars <-
-    c("m_l", "mc_l", "mk_l")
-
-  #create list with panel and market share polys
-  input <- list()
-  input$panel <- panel
-  input$ms_l <- poly_gen(panel, ms_l_vars)
-  input$ms <- poly_gen(panel, ms_vars)
-
-  main <- c("sale", "c", "k")
-  hold <- cbind(panel[, main], input$ms)
-
-  #ols for initial values
-  main <- c("sale", "c", "k")
-  ols <- lm(log(sale) ~ ., data = hold)
-  theta_init <-   ols$coefficients
-  # Replace NA values with 0
-  theta_init[is.na(theta_init)] <- 0
-
-  # Solve the GMM problem using moment condition defined above
-  #step size of .1 as in DWL replication docs
-  result <- optim(theta_init, deu_momment_checked,
-                  method = "CG", input = input,
-                  control = list(trace = FALSE, maxit = 5000))
-
-  result
-
-}
-
-#second stage estimation (uses market shares at 3 levels)
-second_stage_deu_all <- function(panel) {
-
-  need <-
-    c("phi", "phi_l", "c", "k", "c_l", "k_l", "sale",
-    "m", "m3", "m4", "mc", "mk", "mc3", "mk3", #nolint
-    "mc4", "mk4",
-    "m_l", "m3_l", "m4_l", "mc_l",
-    "mk_l", "mc3_l", "mk3_l", "mc4_l", "mk4_l")
-
-  #drop nas
-  panel <-
-    panel[complete.cases(panel[, need]), ]
-
-  #generate polynominal of market shares
-  ms_vars <- c("m", "m3", "m4", "mc", "mk", "mc3", "mk3", "mc4", "mk4")
-  ms_l_vars <-
-    c("m_l", "m3_l", "m4_l", "mc_l", "mk_l", "mc3_l", "mk3_l", "mc4_l", "mk4_l")
-
-  #create list with panel and market share polys
-  input <- list()
-  input$panel <- panel
-  input$ms_l <- poly_gen(panel, ms_l_vars)
-  input$ms <- poly_gen(panel, ms_vars)
-
-  main <- c("sale", "c", "k")
-  hold <- cbind(panel[, main], input$ms)
-
-  #ols for initial values
-  main <- c("sale", "c", "k")
-  ols <- lm(log(sale) ~ ., data = hold)
-  theta_init <-   ols$coefficients
-  #make sure elasticities not crazy values for start
-  theta_init[2] <- max(.8, theta_init[2])
-  theta_init[3] <- max(.1, theta_init[3])
-  theta_init[2] <- min(1, theta_init[2])
-  theta_init[3] <- min(1, theta_init[3])
-  # Replace NA values with 0
-  theta_init[is.na(theta_init)] <- 0
-
-  # Solve the GMM problem using moment condition defined above
-  #step size of .1 as in DWL replication docs
-  result <- optim(theta_init, deu_momment_checked,
-                  method = "Nelder-Mead", input = input,
-                  control = list(trace = FALSE, maxit = 5000,
-                                 reltol = .00001))
-
-  result
-
-}
 
 ############################################################
 ############################################################
@@ -441,47 +221,52 @@ second_stage_deu_all <- function(panel) {
 ############################################################
 ############################################################
 
-acf_rolling_window <- function(tempdata, r) {
+acf_bysector_exp <-
+  function(temp, yvar, xvars, xvar_l, fs_rhs,
+    ss_controls, ss_controls_l, orthogs) { #nolint
 
-  #sort so it prints nice
-  tempdata <- tempdata %>% arrange(year, industry) #nolint
+    ##################### 0 prep inputs for 2 stages ##########################
 
-  #initiate empty theta
-  thetas <- data.frame()
+    #sort so it prints nice
+    temp <- temp %>% arrange(industry) #nolint
 
-  #get sector names and years
-  sectors <- unique(tempdata$industry)
-  # Get the range of years
-  years <- range(tempdata$year)
-  all_years <- seq(from = years[1], to = years[2])
+    #initiate empty theta
+    thetas <- NULL
 
-  #loop over sectors
-  for (i in 1:length(sectors)) { #nolint
+    #get sector names
+    sectors <- unique(temp$industry)
 
-    # Subset the data to the rolling windows
-    pdata_sector <- tempdata %>% filter(industry == sectors[i]) #nolint
-
-    #loop over years
-    for (current_year in  all_years) {
+    #loop over sectors
+    thetas <- data.frame()
+    for (i in 1:length(sectors)) { #nolint
 
       # Initialize a flag for errors
       error_flag <- FALSE
 
       # Subset the data to the rolling windows
-      pdata_window <- pdata_sector %>% filter(year >= current_year - (r - 1) / 2, #nolint
-                                              year <= current_year + (r - 1) / 2) #nolint
+      pdata_sector <- temp %>% filter(industry == sectors[i]) #nolint
 
       # Run the first stage and handle errors
       panelf <- tryCatch({
-        first_stage(pdata_window)
+        first_stage_exp(yvar, fs_rhs, pdata_sector) #nolint
       }, error = function(e) {
         error_flag <<- TRUE
         NA
       })
 
+      #get inital value for second stage from ols
+      # Create the formula
+      formula <- as.formula(paste(yvar, "~ ."))
+      ols <- lm(formula, data = panelf[, c(yvar, xvars, ss_controls)])
+      theta_init <-   ols$coefficients
+
       # Run the second stage and handle errors
       result <- tryCatch({
-        result <- second_stage(panelf)
+        result <-
+          second_stage_exp(
+                           panelf, yvar, xvars, xvar_l,
+                           ss_controls, ss_controls_l, orthogs,
+                           theta_init)
         result
       }, error = function(e) {
         error_flag <- TRUE #nolint
@@ -498,149 +283,89 @@ acf_rolling_window <- function(tempdata, r) {
       #to be added to output of loop
       theta_temp <- c(
         sector = sectors[i],
-        year = current_year,
         theta = theta_est,
         convergence = convergence,
-        n = nrow(pdata_window),
+        n = nrow(pdata_sector),
         theta_k = theta_kest
       )
-
       thetas <- rbind(thetas, theta_temp)
 
+      #check convergence
+      if (is.na(convergence)) {
+        convergence <- 99
+      }
+      if (convergence != 0) {
+        error_flag <- TRUE
+      }
+
+
+      if (error_flag) {
+        print(
+              paste("!!Sector", sectors[i],
+                    "estimation complete WITH ERRORS!!"))
+      } else {
+        print(
+              paste("Sector", sectors[i],
+                    "estimation complete without errors."))
+      }
+      print(paste("CC:", convergence, "theta_c:", theta_est))
     }
-    if (error_flag) {
-      print(paste("!!Sector", sectors[i],
-                  "estimation complete WITH ERRORS!!"))
-    } else {
-      print(paste("Sector", sectors[i], "estimation complete without errors."))
-    }
+    #clean output and names
+    thetas <- data.frame(thetas)
+    rownames(thetas) <- NULL
+    names(thetas) <-
+      c("industry", "theta", "convergence", "n.obs", "theta_k")
+
+    thetas$theta <- as.numeric(as.character(thetas$theta))
+    thetas$convergence <- as.numeric(as.character(thetas$convergence))
+    thetas$n.obs <- as.numeric(as.character(thetas$n.obs))
+    thetas$theta_k <- as.numeric(as.character(thetas$theta_k))
+    thetas
   }
-  #clean output and names
-  thetas <- data.frame(thetas)
-  rownames(thetas) <- NULL
-  names(thetas) <-
-    c("industry", "fyear", "theta", "convergence", "n.obs", "theta_k")
-
-  thetas$theta <- as.numeric(as.character(thetas$theta))
-  thetas$fyear <- as.numeric(as.character(thetas$fyear))
-  thetas$convergence <- as.numeric(as.character(thetas$convergence))
-  thetas$n.obs <- as.numeric(as.character(thetas$n.obs))
-  thetas$theta_k <- as.numeric(as.character(thetas$theta_k))
-  thetas
-}
 
 
-acf_bysector <- function(tempdata) {
 
-  #sort so it prints nice
-  tempdata <- tempdata %>% arrange(industry) #nolint
+acf_rolling_window_exp <-
+  function(temp, yvar, xvars, xvar_l, fs_rhs,
+    ss_controls, ss_controls_l, orthogs, r, block) { #nolint
 
-  #initiate empty theta
-  thetas <- NULL
 
-  #get sector names
-  sectors <- unique(tempdata$industry)
+    ##################### 0 prep inputs for 2 stages ##########################
+    #sort so it prints nice
+    tempdata <- temp %>% arrange(year, industry) #nolint
+    #initiate empty theta
+    thetas <- data.frame()
 
-  #loop over sectors
-  thetas <- data.frame()
-  for (i in 1:length(sectors)) { #nolint
+
+    #fallback starting value
+    formula <- as.formula(paste(yvar, "~ ."))
+    ols <- lm(formula, data = tempdata[, c(yvar, xvars, ss_controls)])
+    theta_init <- ols$coefficients
+
+    #get sector names and years
+    sectors <- unique(tempdata$industry)
+    # Get the range of years
+    years <- range(tempdata$year)
+    all_years <- seq(from = years[1] + block, to = years[2])
 
     # Initialize a flag for errors
     error_flag <- FALSE
 
-    # Subset the data to the rolling windows
-    pdata_sector <- tempdata %>% filter(industry == sectors[i]) #nolint
-
-    # Run the first stage and handle errors
-    panelf <- tryCatch({
-      first_stage(pdata_sector) #nolint
-    }, error = function(e) {
-      error_flag <<- TRUE
-      NA
-    })
-
-    # Run the second stage and handle errors
-    result <- tryCatch({
-      result <- second_stage(panelf)
-      result
-    }, error = function(e) {
-      error_flag <- TRUE #nolint
-      result$par <- c(NA, NA, NA)
-      result$convergence <<- NA
-      result
-    })
-
-    #temp save the things we want
-    theta_est <- result$par[2]
-    theta_kest <- result$par[3]
-    convergence <- result$convergence
-
-    #to be added to output of loop
-    theta_temp <- c(
-      sector = sectors[i],
-      theta = theta_est,
-      convergence = convergence,
-      n = nrow(pdata_sector),
-      theta_k = theta_kest
-    )
-    thetas <- rbind(thetas, theta_temp)
-
-    if (error_flag) {
-      print(paste("!!Sector", sectors[i], "estimation complete WITH ERRORS!!"))
-    } else {
-      print(paste("Sector", sectors[i], "estimation complete without errors."))
-    }
-  }
-  #clean output and names
-  thetas <- data.frame(thetas)
-  rownames(thetas) <- NULL
-  names(thetas) <-
-    c("industry", "theta", "convergence", "n.obs", "theta_k")
-
-  thetas$theta <- as.numeric(as.character(thetas$theta))
-  thetas$convergence <- as.numeric(as.character(thetas$convergence))
-  thetas$n.obs <- as.numeric(as.character(thetas$n.obs))
-  thetas$theta_k <- as.numeric(as.character(thetas$theta_k))
-  thetas
-}
-
-
-acf_rolling_window_deu <- function(tempdata, r) {
-
-  #sort so it prints nice
-  tempdata <- tempdata %>% arrange(year, industry) #nolint
-
-  #initiate empty theta
-  thetas <- data.frame()
-
-  #get sector names and years
-  sectors <- unique(tempdata$industry)
-  # Get the range of years
-  years <- range(tempdata$year)
-  all_years <- seq(from = years[1], to = years[2])
-
-  # Initialize a flag for errors
-  error_flag <- FALSE
-
-  #loop over sectors
-  for (i in 1:length(sectors)) { #nolint
-
-    # Subset the data to the rolling windows
-    pdata_sector <- tempdata %>% filter(industry == sectors[i]) #nolint
-
-    #loop over years
-    for (current_year in  all_years) {
-
-      # Initialize a flag for errors
-      error_flag <- FALSE
+    ##################### 1 loop over sectors ##########################
+    for (i in 1:length(sectors)) { #nolint
 
       # Subset the data to the rolling windows
-      pdata_window <- pdata_sector %>% filter(year >= current_year - (r - 1) / 2, #nolint
-                                              year <= current_year + (r - 1) / 2) #nolint
+      pdata_sector <- tempdata %>% filter(industry == sectors[i]) #nolint
+
+      ##############################################################
+      ##################### 1 block window ##########################
+      ##############################################################
+      pdata_window <- pdata_sector %>% filter(year >= years[1], #nolint
+                                              year <= years[1] + block) #nolint
 
       # Run the first stage and handle errors
       panelf <- tryCatch({
-        first_stage_deu(pdata_window)
+        first_stage_exp(yvar, fs_rhs, pdata_window)
       }, error = function(e) {
         error_flag <<- TRUE
         NA
@@ -648,135 +373,245 @@ acf_rolling_window_deu <- function(tempdata, r) {
 
       # Run the second stage and handle errors
       result <- tryCatch({
-        result <- second_stage_deu(panelf)
+        result <-
+          second_stage_exp(
+                           panelf, yvar, xvars, xvar_l,
+                           ss_controls, ss_controls_l, orthogs,
+                           theta_init)
         result
       }, error = function(e) {
-        error_flag <- TRUE #nolint
-        result$par <- c(NA, NA, NA)
-        result$convergence <<- NA
-        result
-      })
+          error_flag <- TRUE #nolint
+          result$par <- c(NA, NA, NA)
+          result$convergence <<- NA
+          result
+        })
 
       #temp save the things we want
       theta_est <- result$par[2]
       theta_kest <- result$par[3]
       convergence <- result$convergence
 
-      #to be added to output of loop
-      theta_temp <- c(
-        sector = sectors[i],
-        year = current_year,
-        theta = theta_est,
-        convergence = convergence,
-        n = nrow(pdata_window),
-        theta_k = theta_kest
-      )
+      #fill in for all of block
+      for (j in 1:block) {
+        # Add the year to theta_temp
+        theta_temp <- c(
+          sector = sectors[i],
+          year = years[1] + j - 1,
+          theta = theta_est,
+          convergence = convergence,
+          n = nrow(pdata_window),
+          theta_k = theta_kest
+        )
 
-      thetas <- rbind(thetas, theta_temp)
+        thetas <- rbind(thetas, theta_temp)
+      }
 
-      print(paste ("I:", sectors[i], "Y:", current_year, "cc:", convergence))
+      #update starting value
+      if (!is.na(result$par[1])) {
+        theta_init <- result$par
+      }
+
+      print(paste("BLOCK YEAR", "I:", sectors[i], "cc:", convergence))
+
+      ##############################################################
+      ##################### 1 rolling window ##########################
+      ##############################################################
+      #loop over years
+      for (current_year in  all_years) {
+
+        # Initialize a flag for errors
+        error_flag <- FALSE
+
+        # Subset the data to the rolling windows
+        pdata_window <- pdata_sector %>% filter(year >= current_year - (r - 1) / 2, #nolint
+                                                year <= current_year + (r - 1) / 2) #nolint
+
+        # Run the first stage and handle errors
+        panelf <- tryCatch({
+          first_stage_exp(yvar, fs_rhs, pdata_window)
+        }, error = function(e) {
+          error_flag <<- TRUE
+          NA
+        })
+
+        # Run the second stage and handle errors
+        result <- tryCatch({
+          result <-
+            second_stage_exp(
+                             panelf, yvar, xvars, xvar_l,
+                             ss_controls, ss_controls_l, orthogs,
+                             theta_init)
+          result
+        }, error = function(e) {
+          error_flag <- TRUE #nolint
+          result$par <- c(NA, NA, NA)
+          result$convergence <<- NA
+          result
+        })
+
+        #temp save the things we want
+        theta_est <- result$par[2]
+        theta_kest <- result$par[3]
+        convergence <- result$convergence
+
+        #to be added to output of loop
+        theta_temp <- c(
+          sector = sectors[i],
+          year = current_year,
+          theta = theta_est,
+          convergence = convergence,
+          n = nrow(pdata_window),
+          theta_k = theta_kest
+        )
+
+        thetas <- rbind(thetas, theta_temp)
+
+        print(paste("I:", sectors[i], "Y:", current_year, "cc:", convergence))
+      }
+      if (error_flag) {
+        print(paste("\n \n !!Sector", sectors[i],
+                    "estimation complete WITH ERRORS!! \n \n"))
+      } else {
+        print(
+              paste("\n \n Sector",
+                    sectors[i], "estimation complete without errors. \n \n"))
+      }
     }
-    if (error_flag) {
-      print(paste("\n \n !!Sector", sectors[i],
-                  "estimation complete WITH ERRORS!! \n \n"))
-    } else {
-      print(paste("\n \n Sector", sectors[i], "estimation complete without errors. \n \n"))
-    }
+    #clean output and names
+    thetas <- data.frame(thetas)
+    rownames(thetas) <- NULL
+    names(thetas) <-
+      c("industry", "fyear", "theta", "convergence", "n.obs", "theta_k")
+
+    thetas$theta <- as.numeric(as.character(thetas$theta))
+    thetas$fyear <- as.numeric(as.character(thetas$fyear))
+    thetas$convergence <- as.numeric(as.character(thetas$convergence))
+    thetas$n.obs <- as.numeric(as.character(thetas$n.obs))
+    thetas$theta_k <- as.numeric(as.character(thetas$theta_k))
+    thetas
   }
-  #clean output and names
-  thetas <- data.frame(thetas)
-  rownames(thetas) <- NULL
-  names(thetas) <-
-    c("industry", "fyear", "theta", "convergence", "n.obs", "theta_k")
 
-  thetas$theta <- as.numeric(as.character(thetas$theta))
-  thetas$fyear <- as.numeric(as.character(thetas$fyear))
-  thetas$convergence <- as.numeric(as.character(thetas$convergence))
-  thetas$n.obs <- as.numeric(as.character(thetas$n.obs))
-  thetas$theta_k <- as.numeric(as.character(thetas$theta_k))
-  thetas
+
+
+############################################################
+############################################################
+##################   3: useful    #####################
+############################################################
+############################################################
+
+#generate polynominals, defining seperate saves a few lines later
+
+#generates polys
+poly_gen <- function(df, vars, degree = 3) {
+  # Convert the selected variables to a matrix
+  matrix_vars <- data.matrix(df[vars])
+
+  # Generate the polynomial terms
+  poly_vars <- poly(matrix_vars, degree, raw = TRUE)
+
+  # Get the original names generated by poly function
+  orig_names <- colnames(poly_vars)
+
+  # Function to create new names
+  create_new_name <- function(orig_name, vars) {
+    # Split the original name into powers
+    powers <- strsplit(orig_name, "\\.")[[1]]
+
+    # Create a new name by combining the variable names with their powers
+    new_name <- paste0(mapply(function(var, power) {
+      paste0(var, "^", power)
+    }, vars, powers), collapse = "")
+
+    return(new_name)
+  }
+
+  # Create new names for all variables
+  new_names <- sapply(orig_names, create_new_name, vars = vars)
+
+  # Assign the new names to the columns of poly_vars
+  colnames(poly_vars) <- new_names
+
+  # Add the new variables to the data frame
+  df <- cbind(df, poly_vars)
+
+  return(df)
+}
+
+#names created by poly_gen
+poly_gen_names <- function(vars, degree = 3) {
+  # Generate a matrix of dummy data to get the variable names
+  dummy_data <- matrix(0, nrow = 2, ncol = length(vars))
+  poly_vars <- poly(dummy_data, degree, raw = TRUE)
+
+  # Get the original names generated by poly function
+  orig_names <- colnames(poly_vars)
+
+  # Function to create new names
+  create_new_name <- function(orig_name, vars) {
+    # Split the original name into powers
+    powers <- strsplit(orig_name, "\\.")[[1]]
+
+    # Create a new name by combining the variable names with their powers
+    new_name <- paste0(mapply(function(var, power) {
+      paste0(var, "^", power)
+    }, vars, powers), collapse = "")
+
+    return(new_name)
+  }
+
+  # Create new names for all variables
+  new_names <- sapply(orig_names, create_new_name, vars = vars)
+
+  names(new_names) <- NULL
+
+  return(new_names)
+}
+
+#generate lags
+gen_lags <- function(panel, vars) {
+
+  # Create the lagged variables
+  panel <- panel %>% #nolint
+    group_by(GVKEY) %>% #nolint
+    mutate_at(vars, list(l = ~ lag(.))) %>% #nolint
+    ungroup()
+
+  panel
+
+}
+
+#generate names of lags following generate lags
+lag_names <- function(vars) {
+
+  lagged <- c()
+  for (i in vars) {
+    new_var_name <- paste0(i, "_l")
+    lagged <- c(lagged, new_var_name)
+  }
+  return(lagged)
 }
 
 
+#generate x time z
+gen_xz <- function(x, z, panel) {
 
-acf_bysector_deu <- function(tempdata) {
-
-  #sort so it prints nice
-  tempdata <- tempdata %>% arrange(industry) #nolint
-
-  #initiate empty theta
-  thetas <- NULL
-
-  #get sector names
-  sectors <- unique(tempdata$industry)
-
-  #loop over sectors
-  thetas <- data.frame()
-  for (i in 1:length(sectors)) { #nolint
-
-    # Initialize a flag for errors
-    error_flag <- FALSE
-
-    # Subset the data to the rolling windows
-    pdata_sector <- tempdata %>% filter(industry == sectors[i]) #nolint
-
-    # Run the first stage and handle errors
-    panelf <- tryCatch({
-      first_stage_deu(pdata_sector) #nolint
-    }, error = function(e) {
-      error_flag <<- TRUE
-      NA
-    })
-
-    # Run the second stage and handle errors
-    result <- tryCatch({
-      result <- second_stage_deu(panelf)
-      result
-    }, error = function(e) {
-      error_flag <- TRUE #nolint
-      result$par <- c(NA, NA, NA)
-      result$convergence <<- NA
-      result
-    })
-
-    #temp save the things we want
-    theta_est <- result$par[2]
-    theta_kest <- result$par[3]
-    convergence <- result$convergence
-
-    if (is.na(convergence)) {
-      convergence <- 99
+  for (i in x) {
+    for (j in z) {
+      new_var_name <- paste0(i, j)
+      panel[[new_var_name]] <- panel[[i]] * panel[[j]]
     }
-    if (convergence != 0) {
-      error_flag <- TRUE
-    }
-
-    #to be added to output of loop
-    theta_temp <- c(
-      sector = sectors[i],
-      theta = theta_est,
-      convergence = convergence,
-      n = nrow(pdata_sector),
-      theta_k = theta_kest
-    )
-    thetas <- rbind(thetas, theta_temp)
-
-    if (error_flag) {
-      print(paste("!!Sector", sectors[i], "estimation complete WITH ERRORS!!"))
-    } else {
-      print(paste("Sector", sectors[i], "estimation complete without errors."))
-    }
-    print(paste("Convergence Code:", convergence))
   }
-  #clean output and names
-  thetas <- data.frame(thetas)
-  rownames(thetas) <- NULL
-  names(thetas) <-
-    c("industry", "theta", "convergence", "n.obs", "theta_k")
+  return(panel)
+}
 
-  thetas$theta <- as.numeric(as.character(thetas$theta))
-  thetas$convergence <- as.numeric(as.character(thetas$convergence))
-  thetas$n.obs <- as.numeric(as.character(thetas$n.obs))
-  thetas$theta_k <- as.numeric(as.character(thetas$theta_k))
-  thetas
+#generate x time z names
+xz_names <- function(x, z) {
+  xz <- c()
+  for (i in x) {
+    for (j in z) {
+      new_var_name <- paste0(i, j)
+      xz <- c(xz, new_var_name)
+    }
+  }
+  return(xz)
 }

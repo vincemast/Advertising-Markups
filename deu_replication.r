@@ -4,8 +4,8 @@
 ############################################################
 ############################################################
 
+############################################################
 #edit directories to match your computer
-
 #edit to include location of fuctions:
 f_folder <-
   "C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Advertising-Markups" #nolint
@@ -17,20 +17,33 @@ d_folder <-
 #edit to include location of where to save tables and plots:
 p_folder <-
   "C:/Users/Vince/Documents/OneDrive - UCB-O365/advertising_markups/Latex"
+############################################################
 
-
+############################################################
 #switch to save files or not
 save_files <- FALSE
+############################################################
 
-#directories
-dircs <- c(f_folder, d_folder, p_folder)
-keep_vars <- c("dircs", "save_files")
+############################################################
+#select which market shares to include in the analysis
+############################################################
+none <- c()
+m_share_2_digit <- c("m")
+m_share_2_3_digit <- c("m", "m3")
+m_share_2_3_4_digit <- c("m", "m3", "m4")
+
+#pick here
+mvars <- m_share_2_digit
 
 ############################################################
 ############################################################
+### DONT EDIT BELOW THIS LINE
 #1: clear all and load functions
 ############################################################
 ############################################################
+#directories
+dircs <- c(f_folder, d_folder, p_folder)
+keep_vars <- c("dircs", "save_files", "mvars")
 cat("\014")
 rm(list = setdiff(ls(), keep_vars))
 
@@ -66,7 +79,9 @@ source("function_plots.R")
 ############################################################
 ############################################################
 
-############# 1.a load data ##############
+############################################################
+################### 1.a load data #########################
+############################################################
 #navigate to with data
 setwd(dircs[2])
 
@@ -81,7 +96,12 @@ usercost <- read.csv("usercost.csv") #nolint
 #rename gvkey to GVKEY
 colnames(dset)[colnames(dset) == "gvkey"] <- "GVKEY"
 
-################## 1.b Set up year stuff  ##########################
+#back to functions (incase you want to rerun functions following edit)
+setwd(dircs[1])
+
+############################################################
+################## 1.b Set up year stuff  ##################
+############################################################
 
 #apply GDP deflator
 dset <- GDPdef(dset, usercost)
@@ -92,38 +112,34 @@ dset <- dset %>%
   mutate(year = as.numeric(fyear)) %>% #nolint
   filter(!is.na(fyear))
 
-################## 1.c Set up industry stuff  ##########################
+############################################################
+################## 1.c Set up industry stuff  ##############
+############################################################
 
 #add industry names following deu and literally using 2 digit naics
 data <- invisible(industry_n_dig_2(dset, 2))
-#commented code maps to industry name
-#data <- invisible(industry_n_dig(data, naics, 2)) #nolint
-
-#get unique sectors
-sectors <- unique(data$industry)
 
 #add market shares
 data <- invisible(market_share(data))
 
-################## 1.d Set up panel  ##########################
-#back to functions (incase you want to rerun functions following edit)
-setwd(dircs[1])
+############################################################
+################## 1.d Clean  ##########################
+############################################################
 
 #clean and trim following DEU 2020
-pdata <- clean_deu(data)
-
-# Create the panel data
-pdata <- pdata.frame(pdata, index = c("GVKEY", "fyear"))
+data <- clean_deu(data)
 
 #keep only relevant columns
-pdata <- pdata %>% select(sale, cogs,
-  ppegt, xsga, naics, industry, industry_share, alpha, conm, #nolint
-  year, GVKEY, fyear, industry_share_3, industry_share_4, xad) #nolint
+data <- data %>% select(sale, cogs,
+  ppegt, xsga, naics, industry, alpha, conm, #nolint
+  year, GVKEY, fyear, m, m3, m4, xad) #nolint
 
-################## 1.c Check DEU subset  ##########################
+############################################################
+################## 1.e Check DEU subset  ###################
+############################################################
 
 #check if properly getting deu obs
-pdata_deu <- pdata[pdata[["year"]] < 2017 & pdata[["year"]] > 1954, ]
+pdata_deu <- data[pdata[["year"]] < 2017 & pdata[["year"]] > 1954, ]
 summary(pdata_deu$fyear)
 summary(pdata_deu)
 #seems a little off
@@ -134,29 +150,86 @@ summary(pdata_deu)
  # PPEGT 1,454,210    57,532
  # XSG&A 342,805      29,682
 #maybe trim cogs different, but median also different... weird
-
 #getting alot of NA for industry share. double check na rm
 
 ############################################################
+################## 1.f Set up panel  #######################
 ############################################################
-##################     2: ACF   ####################
+
+# Create the panel data
+pdata <- pdata.frame(data, index = c("GVKEY", "fyear"))
+
+#gen logs
+pdata <- pdata %>% #nolint
+  mutate(c = log(cogs), k = log(ppegt), y = log(sale), x = log(xsga) ) #nolint
+
+#keep only relevant columns
+pdata <- pdata %>% select(y, c, k, x, naics, industry, #nolint
+  year, GVKEY, fyear, m, m3, m4) #nolint
+
+
+############################################################
+############################################################
+#     2: estimate
 ############################################################
 ############################################################
 
-#rolling window
-#set length of rolling window
+############################################################
+###########         2.a set up data       #############
+############################################################
+
+xvars <- c("c", "k")
+#zvars <- NULL #nolint for test
+zvars <- c(all_of(mvars))
+yvar <- "y"
+orthogx <- c("c_l", "k")
+
+setup <- set_up(yvar, xvars, zvars, orthogx, pdata)
+
+setup$orthogs
+
+temp <- setup$data
+yvar <- setup$y
+xvars <- setup$xvars
+xvar_l <- setup$xvar_l
+fs_rhs <- setup$fs_rhs
+ss_con <- setup$ss_controls
+ss_con_l <- setup$ss_controls_l
+orthogs <- setup$orthogs
+
+############################################################
+###########         2.b by sector estimate       #############
+############################################################
+
+theta_s <-
+  acf_bysector_exp(
+                   temp, yvar, xvars, xvar_l,
+                   fs_rhs, ss_con, ss_con_l, orthogs)
+
+view(theta_s)
+
+plot(density(theta_s$theta, na.rm = TRUE))
+
+############################################################
+###########         2.b rolling window       #############
+############################################################
+
+#set rolling window length and initial block
 r <- 5
-thetas <- acf_rolling_window(pdata, r)
-view(thetas)
-plot(density(thetas$theta, na.rm = TRUE),
-     main = "Density of theta estimates", xlab = "theta", ylab = "Density")
-thetas_s_yr <- thetas[, 1:3]
+block <- 20
 
-#by sector
-thetas_s_deu <- acf_bysector(pdata_deu)
-thetas_s <- thetas_s_deu[, 1:2]
-names(thetas_s) <- c("industry", "theta")
-view(thetas_s_deu)
+
+theta_st <-
+  acf_rolling_window_exp(temp, yvar, xvars, xvar_l, fs_rhs,
+                         ss_con, ss_con_l, orthogs, r, block)
+
+view(theta_st)
+
+plot(density(theta_st$theta, na.rm = TRUE))
+
+############################################################
+###########         2.c constant .85       #############
+############################################################
 
 #constant
 theta_c <- .85
@@ -168,21 +241,21 @@ theta_c <- .85
 ############################################################
 
 #merge thetas with data
-data_s_yr <-
-  merge(pdata, thetas_s_yr, by.x = c("industry", "fyear"),
+data_st <-
+  merge(data, theta_st, by.x = c("industry", "fyear"),
         by.y = c("industry", "fyear"), all.x = TRUE)
 
 data_s <-
-  merge(pdata, thetas_s, by.x = c("industry"),
+  merge(data, thetas_s, by.x = c("industry"),
         by.y = c("industry"), all.x = TRUE)
 
-pdata_deu <- pdata
-pdata_deu$theta <- .85 #nolint
+data_c <- data
+data_c$theta <- .85 #nolint
 
 #generate mu_deu = theta/alpha
-data_s_yr$MU_deu <- data_s_yr$theta / data_s_yr$alpha
+data_st$MU_deu <- data_st$theta / data_st$alpha
 data_s$MU_deu <- data_s$theta / data_s$alpha
-pdata_deu$MU_deu <- pdata_deu$theta / pdata_deu$alpha
+data_c$MU_deu <- data_c$theta / data_c$alpha
 
 ############################################################
 ############################################################
@@ -193,10 +266,12 @@ pdata_deu$MU_deu <- pdata_deu$theta / pdata_deu$alpha
 #navigate to data folder
 setwd(dircs[2])
 
-write.csv(data_s_yr, "DEU_s_yr.csv")
+write.csv(data_s_yr, "DEU_st.csv")
 write.csv(data_s, "DEU_s.csv")
 write.csv(pdata_deu, "DEU_c.csv")
 
+write.csv(theta_st, "theta_st.csv")
+write.csv(thetas_s, "thetas_s.csv")
 
 
 
@@ -206,27 +281,27 @@ write.csv(pdata_deu, "DEU_c.csv")
 
 ############################################################
 ############################################################
-############     5: explore Markups   ##################
+############     5: explore Markups /sandbox  ##################
 ############################################################
 ############################################################
 
-plot(density(datafinal$mu_deu, na.rm = TRUE))
+plot(density(data_s$MU_deu, na.rm = TRUE))
 
 # Calculate the 1st and 99th percentiles
-q1 <- quantile(datafinal$mu_deu, 0.01, na.rm = TRUE)
-q99 <- quantile(datafinal$mu_deu, 0.99, na.rm = TRUE)
+q1 <- quantile(data_s$MU_deu, 0.05, na.rm = TRUE)
+q99 <- quantile(data_s$MU_deu, 0.95, na.rm = TRUE)
 
 # Create the density plot
-ggplot(datafinal, aes(x = mu_deu)) +
+ggplot(data_s, aes(x = MU_deu)) +
   geom_density() +
   scale_x_continuous(trans = 'log10', limits = c(q1, q99)) + #nolint
   theme_minimal()
 
 # Create the agg plot
 #create data
-agg_data <- datafinal %>%
+agg_data <- data_st %>%
   group_by(fyear) %>% # nolint
-  summarise(weighted_mean = weighted.mean(mu_deu, sale, na.rm = TRUE)) # nolint
+  summarise(weighted_mean = weighted.mean(MU_deu, sale, na.rm = TRUE)) # nolint
 
 names(agg_data) <- c("year", "Ag_MU")
 
@@ -247,11 +322,7 @@ agg_mu_plot <-  ggplot() +
 
 agg_mu_plot
 
-############################################################
-############################################################
-############     999:sandbox   ##################
-############################################################
-############################################################
+
 hold <- thetas %>%
   filter(theta < 0)
 
@@ -267,7 +338,7 @@ view(hold2)
 
 ggplot(hold2, aes(x = fyear, y = theta)) +
   geom_line() +
-  ylim(0.2, 1)
+  ylim(0.2, 1.1)
 
 #merge thetas with data
 datafinal <-
