@@ -322,7 +322,7 @@ market_share <- function(data) { #nolint
   data <- data %>%
     group_by(industry, fyear) %>% #nolint
     mutate(
-      industry_share = sale / sum(sale[sale >= 0], na.rm=TRUE) #nolint
+      m = sale / sum(sale[sale >= 0], na.rm=TRUE) #nolint
     ) %>% #nolint
     ungroup()
 
@@ -330,7 +330,7 @@ market_share <- function(data) { #nolint
     mutate(naics_3digit = substr(naics, 1, 3)) %>% #nolint
     group_by(naics_3digit, fyear) %>% #nolint
     mutate(
-      industry_share_3 = sale / sum(sale[sale > 0], na.rm=TRUE) #nolint
+      m3 = sale / sum(sale[sale > 0], na.rm=TRUE) #nolint
     ) %>%
     ungroup()
 
@@ -338,7 +338,7 @@ market_share <- function(data) { #nolint
     mutate(naics_4digit = substr(naics, 1, 4)) %>% #nolint
     group_by(naics_4digit, fyear) %>% #nolint
     mutate(
-      industry_share_4 = sale / sum(sale[sale > 0], na.rm=TRUE) #nolint
+      m4 = sale / sum(sale[sale > 0], na.rm=TRUE) #nolint
     ) %>%
     ungroup()
 

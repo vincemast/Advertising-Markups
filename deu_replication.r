@@ -118,6 +118,8 @@ dset <- dset %>%
 
 #add industry names following deu and literally using 2 digit naics
 data <- invisible(industry_n_dig_2(dset, 2))
+#remove sector 92
+data <- data[data$industry != "92",]
 
 #add market shares
 data <- invisible(market_share(data))
@@ -139,7 +141,7 @@ data <- data %>% select(sale, cogs,
 ############################################################
 
 #check if properly getting deu obs
-pdata_deu <- data[pdata[["year"]] < 2017 & pdata[["year"]] > 1954, ]
+pdata_deu <- data[data[["year"]] < 2017 & data[["year"]] > 1954, ]
 summary(pdata_deu$fyear)
 summary(pdata_deu)
 #seems a little off
@@ -184,9 +186,8 @@ zvars <- c(all_of(mvars))
 yvar <- "y"
 orthogx <- c("c_l", "k")
 
-setup <- set_up(yvar, xvars, zvars, orthogx, pdata)
-
-setup$orthogs
+#note item 3 is first stage controls, item 4 is second stage controls
+setup <- set_up(yvar, xvars, zvars, zvars, orthogx, pdata)
 
 temp <- setup$data
 yvar <- setup$y
@@ -200,6 +201,8 @@ orthogs <- setup$orthogs
 ############################################################
 ###########         2.b by sector estimate       #############
 ############################################################
+
+temp2 <- temp %>% filter(industry == "11")
 
 theta_s <-
   acf_bysector_exp(
@@ -217,7 +220,6 @@ plot(density(theta_s$theta, na.rm = TRUE))
 #set rolling window length and initial block
 r <- 5
 block <- 20
-
 
 theta_st <-
   acf_rolling_window_exp(temp, yvar, xvars, xvar_l, fs_rhs,
