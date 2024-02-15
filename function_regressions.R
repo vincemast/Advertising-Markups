@@ -201,7 +201,7 @@ regression_output_n <- function(data, naics, n) {
   names(sector_cos) <- c("fit", "industry")
 
   sector_cos$se <-
-    summary(model_9, cluster = "industry")$se[1:numberofcategories_temp]
+    summary(model_9, cluster = "GVKEY")$se[1:numberofcategories_temp]
 
   #make into list
   output <- list(

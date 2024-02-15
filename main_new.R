@@ -65,42 +65,67 @@ source("function_usefull.R")
 ############################################################
 ############################################################
 
-############# 1.a load data ##############
+################### 1.a load data #########################
+############################################################
+
 #navigate to with data
 setwd(dircs[2])
 
 #compustat
-Dset <- read.csv("COMPUSTAT.csv") # nolint
-#rename gvkey to GVKEY
-colnames(Dset)[colnames(Dset) == "gvkey"] <- "GVKEY" #nolint
-
-#usercost
-Ucost <- read.csv("usercost.csv") # nolint
+dset <- read.csv("COMPUSTAT.csv") # nolint
 # naisc codes
 naics <- read.csv("2022_NAICS_Structure.csv")
-
 colnames(naics) <- c("change", "naics_n", "industry")
+#FRED DATA
+usercost <- read.csv("usercost.csv") #nolint
 
-################## 1.b Clean data ##########################
+#rename gvkey to GVKEY
+colnames(dset)[colnames(dset) == "gvkey"] <- "GVKEY"
+
 #back to functions (incase you want to rerun functions following edit)
 setwd(dircs[1])
 
-#clean and combine data
-dset<-invisible(VariableGen(Dset, Ucost)) # nolint
+############################################################
+################## 1.b Set up year stuff  ##################
+############################################################
 
-# Remove rows with NA values in the GVKEY, fyear, cogs, sale and ppegt variables #nolint
-dset <-
-  dset[!is.na(Dset$GVKEY) & !is.na(dset$fyear) & !is.na(dset$ppegt) &
-  !is.na(dset$sale) & !is.na(dset$cogs), ] #nolint
+#apply GDP deflator and generate xad measures
+dset <- VariableGen(dset, usercost)
 
-# trim at 1 and 99% of sale/cogs
-dset <- alpha_trim(dset, 2)
+#make numeric indicator of year
+#with fyear as index it operates weird when called, new var more convenient
+dset <- dset %>%
+  mutate(year = as.numeric(fyear)) %>% #nolint
+  filter(!is.na(fyear))
 
-# trim to xad reporting firms
-Data<- invisible(Cleanadv(dset)) # nolint
-#not trimming on adv at the moment
-Data <- adv_trim(Data, 0)
+############################################################
+################## 1.c Set up industry stuff  ##############
+############################################################
 
+#add industry names following deu and literally using 2 digit naics
+dset <- invisible(industry_n_dig_2(dset, 2))
+#remove sector 92
+dset <- dset[dset$industry != "92", ]
+
+#add market shares
+dset <- invisible(market_share(data))
+#add naics codes
+
+############################################################
+################## 1.d Clean  ##########################
+############################################################
+
+#clean and trim following DEU 2020
+dset <- clean_deu(dset)
+
+#keep only relevant columns
+dset <- dset %>% dplyr::select(sale, cogs,
+  ppegt, xsga, naics, conm, #nolint
+  year, GVKEY, fyear, MU_1, MU, Adr, Adr_MC, xad,
+  age, life, usercost, time, time2, time3) #nolint
+
+#limit to sample reporting XAD and trim XAD/Sale at 1% (by year)
+Data <- adv_trim(dset, 1)
 
 #print summary statstable
 sum_stat_table(dset, Data)
@@ -121,7 +146,7 @@ mudensity <- mu_density(Data, dset)
 #1149/82441= 1.39% report 0 advertising
 
 #save files
-save_f(xaddensity, "xaddensity.pdf", dircs, 10, 9, save_files)
+save_f(xaddensity, "xad_density.pdf", dircs, 10, 9, save_files)
 save_f(mudensity, "MU_density.pdf", dircs, 10, 9, save_files)
 
 ############################################################
@@ -140,10 +165,6 @@ save_f(agg_muplot, "agg_mu_plot.pdf", dircs, 10, 9, save_files)
 #4: Scatter plots
 ############################################################
 ############################################################
-
-allhold <- invisible(industry_n_dig(dset, naics, 2))
-
-unique(allhold$industry)
 
 two_d_data <- invisible(industry_n_dig(Data, naics, 2))
 #add naics industries
@@ -205,12 +226,13 @@ sector_coef_2d <- data.frame(data.frame(Results_2Digit[3]))
 year_coef_2d <- data.frame(data.frame(Results_2Digit[4]))
 
 table_1_latex <- Results_2Digit[6]
+table_1_latex
 
 #################### 6.a sector efficency plot ###########################
 
 #collect needed data
 #within sector aggregate mu and adr
-agg_2_digit <- Sector_MU_Adr(dset, naics, 2)
+agg_2_digit <- Sector_MU_Adr(Data, naics, 2)
 #merge with efficency coefficients
 hold <- merge(agg_2_digit, sector_coef_2d)
 

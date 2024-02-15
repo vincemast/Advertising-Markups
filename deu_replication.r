@@ -103,8 +103,8 @@ setwd(dircs[1])
 ################## 1.b Set up year stuff  ##################
 ############################################################
 
-#apply GDP deflator
-dset <- GDPdef(dset, usercost)
+#apply GDP deflator and generate K = ppegt*usercost
+dset <- VariableGen(dset, usercost)
 
 #make numeric indicator of year
 #with fyear as index it operates weird when called, new var more convenient
@@ -132,9 +132,9 @@ data <- invisible(market_share(data))
 data <- clean_deu(data)
 
 #keep only relevant columns
-data <- data %>% select(sale, cogs,
-  ppegt, xsga, naics, industry, alpha, conm, #nolint
-  year, GVKEY, fyear, m, m3, m4, xad) #nolint
+data <- data %>% dplyr::select(sale, cogs,
+  ppegt, xsga, naics, industry, conm, #nolint
+  year, GVKEY, fyear, m, m3, m4, xad, K) #nolint
 
 ############################################################
 ################## 1.e Check DEU subset  ###################
@@ -142,8 +142,7 @@ data <- data %>% select(sale, cogs,
 
 #check if properly getting deu obs
 pdata_deu <- data[data[["year"]] < 2017 & data[["year"]] > 1954, ]
-summary(pdata_deu$fyear)
-summary(pdata_deu)
+summary(pdata_deu[, c("sale", "cogs", "ppegt", "xsga")])
 #seems a little off
 #cogs is quite a bit higher than DEU, others quite close, also i have extra obs
  #      Mean          Median     No.obs             #nolint
@@ -166,7 +165,7 @@ pdata <- pdata %>% #nolint
   mutate(c = log(cogs), k = log(ppegt), y = log(sale), x = log(xsga) ) #nolint
 
 #keep only relevant columns
-pdata <- pdata %>% select(y, c, k, x, naics, industry, #nolint
+pdata <- pdata %>% dplyr::select(y, c, k, x, naics, industry, #nolint
   year, GVKEY, fyear, m, m3, m4) #nolint
 
 
@@ -202,8 +201,7 @@ orthogs <- setup$orthogs
 ###########         2.b by sector estimate       #############
 ############################################################
 
-temp2 <- temp %>% filter(industry == "11")
-
+source("function_deu.R")
 theta_s <-
   acf_bysector_exp(
                    temp, yvar, xvars, xvar_l,
@@ -213,14 +211,26 @@ view(theta_s)
 
 plot(density(theta_s$theta, na.rm = TRUE))
 
+data_s <-
+  merge(data, theta_s, by.x = c("industry"),
+        by.y = c("industry"), all.x = TRUE)
+
+#generate mu_deu = theta/alpha
+data_s$MU_deu <- data_s$theta / data_s$alpha
+
+#navigate to data folder
+setwd(dircs[2])
+write.csv(data_s, "DEU_s.csv")
+write.csv(theta_s, "thetas_s.csv")
+
 ############################################################
 ###########         2.b rolling window       #############
 ############################################################
 
 #set rolling window length and initial block
 r <- 5
-block <- 20
-
+block <- 19
+source("function_deu.R")
 theta_st <-
   acf_rolling_window_exp(temp, yvar, xvars, xvar_l, fs_rhs,
                          ss_con, ss_con_l, orthogs, r, block)
@@ -247,16 +257,12 @@ data_st <-
   merge(data, theta_st, by.x = c("industry", "fyear"),
         by.y = c("industry", "fyear"), all.x = TRUE)
 
-data_s <-
-  merge(data, thetas_s, by.x = c("industry"),
-        by.y = c("industry"), all.x = TRUE)
 
 data_c <- data
 data_c$theta <- .85 #nolint
 
 #generate mu_deu = theta/alpha
 data_st$MU_deu <- data_st$theta / data_st$alpha
-data_s$MU_deu <- data_s$theta / data_s$alpha
 data_c$MU_deu <- data_c$theta / data_c$alpha
 
 ############################################################
@@ -287,14 +293,14 @@ write.csv(thetas_s, "thetas_s.csv")
 ############################################################
 ############################################################
 
-plot(density(data_s$MU_deu, na.rm = TRUE))
+plot(density(data_st$MU_deu, na.rm = TRUE))
 
 # Calculate the 1st and 99th percentiles
-q1 <- quantile(data_s$MU_deu, 0.05, na.rm = TRUE)
-q99 <- quantile(data_s$MU_deu, 0.95, na.rm = TRUE)
+q1 <- quantile(data_st$MU_deu, 0.05, na.rm = TRUE)
+q99 <- quantile(data_st$MU_deu, 0.95, na.rm = TRUE)
 
 # Create the density plot
-ggplot(data_s, aes(x = MU_deu)) +
+ggplot(data_st, aes(x = MU_deu)) +
   geom_density() +
   scale_x_continuous(trans = 'log10', limits = c(q1, q99)) + #nolint
   theme_minimal()
@@ -316,7 +322,7 @@ agg_data_filtered <- agg_data_filtered %>% filter(year < 2017)
 
 #plot
 agg_mu_plot <-  ggplot() +
-  geom_line(data = agg_data_filtered,
+  geom_line(data = agg_data,
               aes(y = Ag_MU - 1, x = year, color = "DWL/DEU")) + # nolint
   theme(text = element_text(size = 20)) +
   labs(x = "Year", y = "Sales Weighted Markup") +

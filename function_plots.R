@@ -454,7 +454,7 @@ Sector_MU_Adr <- function(Dset, naics, N) { # nolint
 
 Efficency_plot_stacked <- function(hold,labs) { # nolint
 
-  hold2 <- hold %>% select(-se)
+  hold2 <- hold %>% dplyr::select(-se)
 
   names(hold2) <- c("industry", "C_MU", "B_Adr", "A_Exad")
 

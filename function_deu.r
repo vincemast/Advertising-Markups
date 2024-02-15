@@ -1,7 +1,7 @@
 require(plm)
 require(gmm)
 require(dplyr)
-
+library(MASS)
 ############################################################
 ############################################################
 ###########   0: Set up Data for estimation    #############
@@ -156,7 +156,11 @@ momment_exp <- function(theta, input) {
   omega_l <- phi_l - X_l %*% theta
   omega_l_pol <- cbind(1, omega_l)
 
-  g_b <- solve(t(omega_l_pol) %*% omega_l_pol) %*% t(omega_l_pol) %*% omega
+  #get rho of ar1 from projecting omega on lagged omega
+  #using ginv from MASS to protect against non-invertible matrix
+  g_b <- ginv(t(omega_l_pol) %*% omega_l_pol) %*%
+    t(omega_l_pol) %*% omega
+
   xi <- omega - omega_l_pol %*% g_b
 
   Z <- cbind(1, orthog) #nolint
@@ -203,13 +207,24 @@ second_stage_exp <-
     input$controls_l <- panel[, ss_controls_l]
     input$orthog <- panel[, orthogs]
 
+    #constraints (only used if method set to L-BFGS-B)
+    lower <- rep(-Inf, length(theta_init))
+    upper <- rep(Inf, length(theta_init))
+    lower[c(2)] <- .5
+    upper[c(2)] <- 1
+    lower[c(3)] <- 0
+    upper[c(3)] <- .6
+
+
     # Solve the GMM problem using moment condition defined above
     #step size of .1 as in DWL replication docs
-    result <- optim(theta_init, momment_exp_checked, #nolint
-                    method = "CG", input = input,
+    result <- optim(theta_init, momment_exp, #nolint
+                    method = "BFGS", #lower = lower, upper = upper,
+                    input = input,
                     control = list(
-                                   trace = FALSE, maxit = 500000,
-                                   reltol = 1e-12)) #nolint
+                      trace = FALSE, maxit = 1e9, reltol = 1e-6
+                                   #,factr = 1e8 #nolint
+                                   )) #nolint
 
     result
 
@@ -227,6 +242,11 @@ acf_bysector_exp <-
     ss_controls, ss_controls_l, orthogs) { #nolint
 
     ##################### 0 prep inputs for 2 stages ##########################
+    #get length of xvars and ss_controls
+    l <- length(xvars) + 1
+    lt <- l + length(ss_controls)
+    #start thetat at 0 (will update from ols in loop)
+    theta_init <- rep(0, lt) #nolint
 
     #sort so it prints nice
     temp <- temp %>% arrange(industry) #nolint
@@ -258,8 +278,8 @@ acf_bysector_exp <-
       #get inital value for second stage from ols
       # Create the formula
       formula <- as.formula(paste(yvar, "~ ."))
-      ols <- lm(formula, data = panelf[, c(yvar, xvars, ss_controls)])
-      theta_init <-   ols$coefficients
+      ols <- lm(formula, data = panelf[, c(yvar, xvars)])
+      theta_init[1:l] <-   ols$coefficients
 
       # Run the second stage and handle errors
       result <- tryCatch({
@@ -334,7 +354,7 @@ acf_rolling_window_exp <-
     ##################### 0 prep inputs for 2 stages ##########################
     #get length of xvars and ss_controls
     l <- length(xvars) + 1
-    lt <- length(orthogs) + 1
+    lt <- l + length(ss_controls)
     theta_init <- rep(0, lt) #nolint
 
     #sort so it prints nice
@@ -357,6 +377,11 @@ acf_rolling_window_exp <-
       # Subset the data to the rolling windows
       pdata_sector <- tempdata %>% filter(industry == sectors[i]) #nolint
 
+      #ols for starting value (using full sample)
+      formula <- as.formula(paste(yvar, "~ ."))
+      ols <- lm(formula, data = pdata_sector[, c(yvar, xvars)])
+      theta_init[1:l]<- ols$coefficients #nolint
+
       ##############################################################
       ##################### 1 block window ##########################
       ##############################################################
@@ -370,22 +395,6 @@ acf_rolling_window_exp <-
         error_flag <<- TRUE
         NA
       })
-
-      #ols for starting value
-      formula <- as.formula(paste(yvar, "~ ."))
-      ols <- lm(formula, data = pdata_window[, c(yvar, xvars)])
-      theta_init[1:l] <- ols$coefficients #nolint
-      if (l != lt) {
-        theta_init[l:lt] <- .0001
-      }
-
-      #makre sure initial value isnt crazy
-      theta_init[2] <- max(theta_init[2], .7)
-      theta_init[2] <- min(theta_init[2], .95)
-      theta_init[3] <- max(theta_init[3], .1)
-      theta_init[3] <- min(theta_init[3], .5)
-      theta_init[is.na(theta_init)] <- 0
-
 
       # Run the second stage and handle errors
       result <- tryCatch({
@@ -424,7 +433,7 @@ acf_rolling_window_exp <-
 
       print(paste(
                   "BLOCK YEAR", "I:", sectors[i], "theta_c:",
-                  round(theta_est, 3), "cc:", convergence))
+                  round(theta_est, 5), "cc:", convergence))
 
       ##############################################################
       ##################### 1 rolling window ##########################
@@ -447,21 +456,11 @@ acf_rolling_window_exp <-
           NA
         })
 
-        #update starting value
-        if (!is.na(result$par[1])) {
-          theta_init <- result$par
-        }
-
-        if (l != lt) {
-          theta_init[l:lt] <- .0001
-        }
-
-        #makre sure initial value isnt crazy
-        theta_init[2] <- max(theta_init[2], .7)
-        theta_init[2] <- min(theta_init[2], .95)
-        theta_init[3] <- max(theta_init[3], .1)
-        theta_init[3] <- min(theta_init[3], .5)
-        theta_init[is.na(theta_init)] <- 1
+        #update starting value to last value 
+        #(not doing, use ols on full sample for all starting values)
+        #if (!is.na(result$par[1])) {
+        #  theta_init <- result$par
+        #}
 
         # Run the second stage and handle errors
         result <- tryCatch({
@@ -497,7 +496,7 @@ acf_rolling_window_exp <-
 
         print(paste(
                     "Y:", current_year, "I:", sectors[i], "theta_c:",
-                    round(theta_est, 3), "cc:", convergence))
+                    round(theta_est, 5), "cc:", convergence))
 
       }
       if (error_flag) {

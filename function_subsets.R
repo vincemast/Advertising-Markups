@@ -30,6 +30,11 @@ VariableGen <- function(data, Ucost) { #nolint
 
   tempdata <- merge(tempdata, Ucost, by = "fyear", all = TRUE)
 
+  #K
+  tempdata <- tempdata %>%
+    mutate(K = ppegt * usercost) #nolint
+
+
   #MU
   tempdata <- tempdata %>%
     mutate(MU = sale / (cogs + ppegt * usercost)) #nolint
@@ -59,7 +64,7 @@ VariableGen <- function(data, Ucost) { #nolint
 
   #deflate with GDP deflator
   #get deflator for 2015
-  norm <- Ucost$GDP_def[Ucost$fyear == 2018]
+  norm <- Ucost$GDP_def[Ucost$fyear == 2010]
 
   #convert from millions to thousands
   norm <- norm * 1000
@@ -152,8 +157,9 @@ clean_deu <- function(data) { #nolint
   #trim at 1%
   data <- alpha_xsag_trim(data, 1, 1)
 
-  # Drop duplicates based on GVKEY and fyear
-  data <- data[!duplicated(data[, c("GVKEY", "fyear")]), ]
+  # Drop observations when duplicates exist
+  data <- data[!(duplicated(data[, c("GVKEY", "fyear")]) |
+                   duplicated(data[, c("GVKEY", "fyear")], fromLast = TRUE)), ]
 
   # Remove rows with NA values in the GVKEY, fyear, and accounting variables #nolint
   data <-
@@ -189,7 +195,8 @@ alpha_trim <- function(data,p){ #nolint
 
 }
 
-#generate alpha = cogs/sales and trim at 1% and 99% by year
+#generate alpha = cogs/sales and alphax = xsga/sales
+# and trim at 1% and 99% by year
 alpha_xsag_trim <- function(data,p,q){ #nolint
 
   tempdata <- data %>%  #nolint
@@ -200,29 +207,75 @@ alpha_xsag_trim <- function(data,p,q){ #nolint
   tempdata <- tempdata %>%
     group_by(fyear) %>% #nolint
     mutate(
-      q1 = quantile(1 / alpha[is.finite(alpha)], 0 +  p / 100, #nolint
+      q1 = quantile(alpha[is.finite(alpha)], 0 +  p / 100, #nolint
         na.rm = TRUE), #nolint
-      q99 = quantile(1 / alpha[is.finite(alpha)], 1 - p / 100,
+      q99 = quantile(alpha[is.finite(alpha)], 1 - p / 100,
         na.rm = TRUE), #nolint
-      q1x = quantile(1 / alphax[is.finite(alpha)], 0 +  q / 100, #nolint
+      q1x = quantile(alphax[is.finite(alphax)], 0 +  q / 100, #nolint
         na.rm = TRUE), #nolint
-      q99x = quantile(1 / alphax[is.finite(alpha)], 1 - q / 100,
+      q99x = quantile(alphax[is.finite(alphax)], 1 - q / 100,
         na.rm = TRUE) #nolint
     ) %>%
     ungroup() %>%
-    filter(1/ alpha > q1 & 1/alpha < q99) %>% #nolint
-    filter(1/ alphax > q1x & 1/alphax < q99x) #nolint
+    filter(alpha > q1 & alpha < q99) %>% #nolint
+    filter(alphax > q1x & alphax < q99x) #nolint
 
   tempdata
 
 }
 
 
+#Trim following DEU replication
+DEU_trim <- function(data,p,q){ #nolint
+
+  tempdata <- data %>%  #nolint
+    mutate(alpha = cogs / (cogs + K + xsga) )  #nolint
+
+  #get p% and 100-p% quantiles of alpha
+  tempdata <- tempdata %>%
+    group_by(fyear) %>% #nolint
+    mutate(
+      q1 = quantile(alpha[is.finite(alpha)], 0 +  p / 100, #nolint
+        na.rm = TRUE), #nolint
+      q99 = quantile(alpha[is.finite(alpha)], 1 - p / 100,
+        na.rm = TRUE), #nolint
+    ) %>%
+    ungroup() %>%
+    filter(alpha > q1 & alpha < q99) #nolint
+
+  #get p% and 100-p% quantiles of MU
+  tempdata <- tempdata %>%
+    group_by(fyear) %>% #nolint
+    mutate(
+      q1 = quantile( MU[is.finite(MU)], 0 +  q / 100, #nolint
+        na.rm = TRUE), #nolint
+      q99 = quantile( MU[is.finite(MU)], 1 - q / 100,
+        na.rm = TRUE), #nolint
+    ) %>%
+    ungroup() %>%
+    filter( MU > q1 & MU < q99) #nolint
+
+  tempdata
+
+}
+
+
+
 #Trim xad/cogs+usercost at 1% and 99% by year
 adv_trim <- function(data,p){ #nolint
 
-  #get p% and 100-p% quantiles
   tempdata <- data %>%
+    filter(MU >= 0 & !is.na(MU)) %>% #nolint
+    filter(Adr >= 0 & !is.na(Adr)) %>% #nolint
+    filter(Adr_MC >= 0 & !is.na(Adr_MC)) %>% #nolint
+    filter(sale > 0 & !is.na(sale)) %>% #nolint
+    filter(cogs >= 0 & !is.na(cogs)) %>% #nolint
+    filter(ppegt >= 0 & !is.na(ppegt)) %>% #nolint
+    filter(usercost >= 0 & !is.na(usercost)) %>% #nolint
+    filter(cogs + ppegt * usercost > 0)  #nolint
+
+  #get p% and 100-p% quantiles
+  tempdata <- tempdata %>%
     group_by(fyear) %>% #nolint
     mutate(
       aq1 = quantile(Adr, 0 +  p / 100, na.rm = TRUE), #nolint
@@ -343,7 +396,7 @@ market_share <- function(data) { #nolint
     ungroup()
 
 
-  data
+  data.frame(data)
 
 }
 
