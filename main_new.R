@@ -107,10 +107,6 @@ dset <- invisible(industry_n_dig_2(dset, 2))
 #remove sector 92
 dset <- dset[dset$industry != "92", ]
 
-#add market shares
-dset <- invisible(market_share(data))
-#add naics codes
-
 ############################################################
 ################## 1.d Clean  ##########################
 ############################################################
@@ -183,10 +179,6 @@ scatter_manuf <- MU_advert_plot(manuf, "Manufacturing", 1000)
 fininc <- two_d_data %>% # nolint
   filter(industry == "Finance and Insurance")
 scatter_finance <- MU_advert_plot(fininc, "Finance and Insurance", 1000)
-
-info <- two_d_data %>% # nolint
-  filter(industry == "Information")
-scatter_info <- MU_advert_plot(info, "Information", 1000)
 
 #save images
 save_f(plot_all, "scatter_all.pdf", dircs, 9, 9, save_files)
@@ -270,7 +262,7 @@ time_co_plot_3d <- time_plot(year_coef_3d,
 
 #sector plot (choose minimal number of obs needed to be included)
 industry_co_plot_3d_limit <-
-  Efficency_plot(sector_coef_3d, indcount3, 100)
+  Efficency_plot(sector_coef_3d, indcount3, 20)
 
 #save plots
 save_f(time_co_plot_3d, "time_co_plot_3d.pdf", dircs, 4.5, 4, save_files)
@@ -338,25 +330,19 @@ exad_ot_plot_ <- exad_ot_plot(sector_time_coefs, 10, "")
 #fliter to interesting
 fsector_time_coefs_interesting <- sector_time_coefs %>%
   filter(industry %in%
-           c("Information", "Retail Trade", "Manufacturing", "Wholesale Trade",
-             "Finance and Insurance", "Health Care and Social Assistance"))
+           c("Accommodation and Food Services",
+             "Agriculture, Forestry, Fishing and Hunting",
+             "Finance and Insurance", "Health Care and Social Assistance",
+             "Information", "Manufacturing"))
 
-fsector_time_coefs_inter_2 <- sector_time_coefs %>%
-  filter(industry %in%
-           c("Information", "Retail Trade", "Manufacturing", "Wholesale Trade",
-             "Finance and Insurance", "Accommodation and Food Services"))
 
 exad_ot_interesting <-
   exad_ot_plot(fsector_time_coefs_interesting, 16, "")
 
-exad_ot_interesting2 <-
-  exad_ot_plot(fsector_time_coefs_inter_2, 16, "")
 
 #save plots
 save_f(exad_ot_plot_, "exad_ot_plot.pdf", dircs, 9, 7, save_files)
 save_f(exad_ot_interesting, "exad_ot_interesting.pdf", dircs, 9, 7, save_files)
-save_f(exad_ot_interesting2,
-       "exad_ot_interesting2.pdf", dircs, 9, 7, save_files)
 
 ############################################################
 ############# 8.b regress against time ##################

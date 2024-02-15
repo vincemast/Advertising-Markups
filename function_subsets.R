@@ -264,7 +264,17 @@ DEU_trim <- function(data,p,q){ #nolint
 #Trim xad/cogs+usercost at 1% and 99% by year
 adv_trim <- function(data,p){ #nolint
 
+  #get p% and 100-p% quantiles
   tempdata <- data %>%
+    group_by(fyear) %>% #nolint
+    mutate(
+      aq1 = quantile(Adr, 0 +  p / 100, na.rm = TRUE), #nolint
+      aq99 = quantile(Adr, 1 - p / 100, na.rm = TRUE)
+    ) %>%
+    ungroup() %>%
+    filter(Adr >= aq1 & Adr <= aq99) #nolint
+
+  tempdata <- tempdata %>%
     filter(MU >= 0 & !is.na(MU)) %>% #nolint
     filter(Adr >= 0 & !is.na(Adr)) %>% #nolint
     filter(Adr_MC >= 0 & !is.na(Adr_MC)) %>% #nolint
@@ -274,15 +284,6 @@ adv_trim <- function(data,p){ #nolint
     filter(usercost >= 0 & !is.na(usercost)) %>% #nolint
     filter(cogs + ppegt * usercost > 0)  #nolint
 
-  #get p% and 100-p% quantiles
-  tempdata <- tempdata %>%
-    group_by(fyear) %>% #nolint
-    mutate(
-      aq1 = quantile(Adr, 0 +  p / 100, na.rm = TRUE), #nolint
-      aq99 = quantile(Adr, 1 - p / 100, na.rm = TRUE)
-    ) %>%
-    ungroup() %>%
-    filter(Adr >= aq1 & Adr <= aq99) #nolint
 
   tempdata
 

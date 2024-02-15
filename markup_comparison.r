@@ -23,9 +23,9 @@ p_folder <-
 #switch to save files or not
 save_files <- FALSE
 
-deu_marks <- c("DEU_s_yr.csv", "DEU_s.csv", "DEU_c.csv")
+deu_marks <- c("DEU_st.csv", "DEU_s.csv", "DEU_c.csv")
 #select which version of DEU markups to use
-use <- deu_marks[3]
+use <- deu_marks[2]
 
 #directories
 dircs <- c(f_folder, d_folder, p_folder)
@@ -65,6 +65,7 @@ setwd(dircs[1])
 source("function_subsets.R")
 source("function_deu.R")
 source("function_plots.R")
+source("function_usefull.R")
 
 ############################################################
 ############################################################
@@ -86,7 +87,8 @@ Ucost <- read.csv("usercost.csv") # nolint
 data <- vargen(dset, Ucost)
 
 #keep only relevant columns (dont drop full might use later)
-data_mu <- data %>% select(MU, MU_deu, GVKEY, fyear, naics, industry, sale)
+data_mu <-
+  data %>% dplyr::select(MU, MU_deu, GVKEY, fyear, naics, industry, sale)
 
 ############################################################
 ############################################################
@@ -96,6 +98,7 @@ data_mu <- data %>% select(MU, MU_deu, GVKEY, fyear, naics, industry, sale)
 
 cor(data_mu$MU, data_mu$MU_deu, use = "complete.obs")
 #0.8100058 (constant elasticity)
+# 0.7960846 (by year)
 
 #navigate to folder with functions (incase want to reload)
 setwd(dircs[1])
@@ -104,26 +107,27 @@ setwd(dircs[1])
 ############################################################
 
 #set limits for plots
-xlimits_d <- c(0.09, 11)
+xlimits_d <- c(0.4, 7)
 
 #compare densities of MU to MU_deu
-density_comp <- ggplot(data = data_mu, aes(x = MU)) +
-  geom_density(aes(colour = "Cost Accounting Markup"), alpha = 0.5) +
-  geom_density(aes(x = MU_deu, colour = "Production Function Markup"), 
+density_comp <- ggplot(data_mu) +
+  geom_density(aes(x = MU, colour = "Cost Accounting Markup"), alpha = 0.5) +
+  geom_density(aes(x = MU_deu, colour = "Production Function Markup"),
                alpha = 0.5) +
-  scale_fill_manual(values = c("Cost Accounting Markup" = "blue",
-                               "MU_deu" = "red")) +
+  scale_color_manual(values = c("Cost Accounting Markup" = "blue",
+                                "Production Function Markup" = "red")) +
   scale_x_continuous(
-                     trans = "log", breaks = c(0.1, 1, 10),
+                     trans = "log", breaks = c(0.5, 1, 5),
                      limits = xlimits_d) +
   guides(colour = guide_legend(title = NULL)) +
   labs(x = "Markup",
        y = "Density") +
-  coord_fixed(ratio = 2) +
-  theme_minimal()
-
+  theme(text = element_text(size = 20), legend.position = "bottom")
+#display plot
 density_comp
 
+#save plot
+save_f(density_comp, "density_comp_s.pdf", dircs, 9, 9, TRUE)
 
 ####2.a.2: Density Comparison for specific years #######
 
@@ -146,13 +150,14 @@ density_comp_years <- ggplot(data_selected_years) +
   guides(colour = guide_legend(title = NULL)) +
   labs(x = "Markup",
        y = "Density") +
-  coord_fixed(ratio = .25) +
-  theme_minimal()
+  theme(text = element_text(size = 20), legend.position = "bottom")
 
 # Display plot
 density_comp_years
 
+#save plot
 
+save_f(density_comp_years, "density_comp_years_s.pdf", dircs, 9, 9, TRUE)
 
 ############################################################
 ################# 2.b: Agg Comparison ######################
@@ -173,12 +178,18 @@ agg_mu_comp <- ggplot(data = agg_markups, aes(x = fyear)) +
                                  "Production Function Markup" = "red")) +
   scale_x_continuous(limits = c(1955, 2022)) +
   labs(x = "Year", y = "Sales Weighted Markup") +
-  theme(legend.position = "bottom")
+  theme(text = element_text(size = 20), legend.position = "bottom")
 
 agg_mu_comp
 
 cor(agg_markups$Agg_MU, agg_markups$Agg_MU_DEU, use = "complete.obs")
-#0.9648306
+#0.9648306 constant
+#0.9653266 by sector
+
+
+#save plot
+save_f(agg_mu_comp, "agg_mu_comp_s.pdf", dircs, 9, 9, TRUE)
+
 
 ############################################################
 ################### 2.c: Scatterplot #######################
@@ -198,16 +209,19 @@ scatter_comp <- ggplot() +
   geom_smooth(data = data_mu,
               aes(x = MU, y = MU_deu, color = "Regression line"),
               method = "lm", se = FALSE) +
-  geom_abline(intercept = 0, slope = 1, color = "blue") +
+  geom_abline(intercept = 0, slope = 1, color = "red") +
   geom_blank(aes(color = "45-degree line")) +
   xlim(x_limits) +
   ylim(y_limits) +
   scale_color_manual("",
-                     values = c("Regression line" = "red",
-                                "45-degree line" = "blue")) +
+                     values = c("Regression line" = "blue",
+                                "45-degree line" = "red")) +
   labs(x = "Cost Accounting Markup",
        y = "Production Function Markup") +
-  coord_fixed(ratio = 1) +
-  theme_minimal()
+  theme(text = element_text(size = 20), legend.position = "bottom")
 
+#disolay plot
 scatter_comp
+
+#save plot
+save_f(scatter_comp, "scatter_comp_s.pdf", dircs, 9, 9, TRUE)
