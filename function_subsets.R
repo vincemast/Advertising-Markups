@@ -83,6 +83,30 @@ VariableGen <- function(data, Ucost) { #nolint
 
 }
 
+
+exit_gen <- function(data) { #nolint
+
+  ############################################################
+  ###1: Convert table to panel data format. create entry/exit years, age
+  #set na for values that can be verified
+  #(if last year is last year data or first is first in data)
+  min_year <- min(data$fyear, na.rm = TRUE)
+  max_year <- max(data$fyear, na.rm = TRUE)
+
+  tempdata <- data %>%
+    group_by(GVKEY) %>% #nolint
+    mutate(
+      entry = min(fyear), #nolint
+      exit = ifelse(any(dlrsn %in% c(2, 3)), max(fyear), NA), #nolint
+      age = ifelse(entry == min_year, NA, fyear - entry), #nolint
+      life = ifelse(any(dlrsn %in% c(2, 3)) & exit != max_year, exit - fyear, NA), #nolint
+      exit_ind = ifelse(dlrsn %in% c(2, 3) & exit == fyear, 1, 0)
+    )
+
+  tempdata
+}
+
+
 #new variable gen
 vargen <- function(data, Ucost) { #nolint
 
@@ -174,6 +198,28 @@ clean_deu <- function(data) { #nolint
   data
 
 }
+
+
+clean <- function(data) { #nolint
+
+  # Drop observations when duplicates exist
+  data <- data[!(duplicated(data[, c("GVKEY", "fyear")]) |
+                   duplicated(data[, c("GVKEY", "fyear")], fromLast = TRUE)), ]
+
+  # Remove rows with NA values in the GVKEY, fyear, and accounting variables #nolint
+  data <-
+    data[!is.na(data$GVKEY) & !is.na(data$fyear) & !is.na(data$naics)
+         & !is.na(data$industry)
+     & !is.na(data$ppegt) &!is.na(data$xsga) &!is.na(data$sale) & !is.na(data$cogs), ] #nolint
+
+  # Ensure that accounting variables are positive
+  data <- data[data$sale > 0 & data$cogs > 0
+               & data$ppegt > 0  & data$xsga > 0, ]
+
+  data
+
+}
+
 
 #generate alpha = cogs/sales and trim at 1% and 99% by year
 alpha_trim <- function(data,p){ #nolint
