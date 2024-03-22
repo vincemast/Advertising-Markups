@@ -89,18 +89,27 @@ exit_gen <- function(data) { #nolint
   ############################################################
   ###1: Convert table to panel data format. create entry/exit years, age
   #set na for values that can be verified
-  #(if last year is last year data or first is first in data)
+  #check entry based on first available year
+  #make sure not first year in data
   min_year <- min(data$fyear, na.rm = TRUE)
-  max_year <- max(data$fyear, na.rm = TRUE)
+
+  #get exit date by varible dldte (gives date of exit)
+  #turn to year
+  #but only want to consider dlrsn = 2,3 (bankruptcy or liquidation)
+  #   no merger or become public
+  data <- data %>%
+    mutate(
+      dldte = as.Date(as.character(dldte), format = "%Y%m%d"), #nolint
+      exit = ifelse(any(dlrsn %in% c(2, 3)), year(dldte), NA) #nolint
+    )
 
   tempdata <- data %>%
     group_by(GVKEY) %>% #nolint
     mutate(
       entry = min(fyear), #nolint
-      exit = ifelse(any(dlrsn %in% c(2, 3)), max(fyear), NA), #nolint
       age = ifelse(entry == min_year, NA, fyear - entry), #nolint
-      life = ifelse(any(dlrsn %in% c(2, 3)) & exit != max_year, exit - fyear, NA), #nolint
-      exit_ind = ifelse(dlrsn %in% c(2, 3) & exit == fyear, 1, 0)
+      life = (exit - fyear), #nolint
+      exit_ind = ifelse(life == 0, 1, 0)#nolint
     )
 
   tempdata
@@ -220,6 +229,19 @@ clean <- function(data) { #nolint
 
 }
 
+
+clean_adv <- function(data) { #nolint
+
+  # Drop observations when duplicates exist
+  data <- data[!(duplicated(data[, c("GVKEY", "fyear")]) |
+                   duplicated(data[, c("GVKEY", "fyear")], fromLast = TRUE)), ]
+
+  # Remove rows with NA values in the GVKEY, fyear, and accounting variables (including Adv) #nolint
+  data <-
+    data[!is.na(data$GVKEY) & !is.na(data$fyear) & !is.na(data$naics)
+         & !is.na(data$industry)
+     & !is.na(data$ppegt) &!is.na(data$xsga) &!is.na(data$sale) & !is.na(data$cogs), ] #nolint
+}
 
 #generate alpha = cogs/sales and trim at 1% and 99% by year
 alpha_trim <- function(data,p){ #nolint

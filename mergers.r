@@ -129,9 +129,13 @@ firms_ma <- merge(firms, ma_l, by.x = "cusip6", by.y = "MASTER_CUSIP")
 
 
 #firms who exited same year as MA event
-#only firms who exited prior to a the merger/ aquisition
+#only firms who exited the same rear as to a the merger/ aquisition
 ma_exit <- firms_ma %>%
   filter(last == exit)
+
+#alternatively firms who exited prior to a the merger/ aquisition
+ma_exit2 <- firms_ma %>%
+  filter(last <= exit)
 
 #histogram
 hist(ma_exit$exit,
@@ -140,7 +144,9 @@ hist(ma_exit$exit,
 
 #list of firms who exited via M/A
 ma_exit_list <- ma_exit %>% select(gvkey, conm, exit)
+ma_exit_list2 <- ma_exit2 %>% select(gvkey, conm, exit)
 
 #navigate to data folder
 setwd(dircs[2])
 write.csv(ma_exit_list, "ma_exit.csv")
+write.csv(ma_exit_list2, "ma_exit2.csv")

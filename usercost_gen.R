@@ -70,9 +70,18 @@ data <- data %>%
 data <- data %>%
   filter(fyear > 1950)
 
+#hold onto fed funds and inflation
+data_inf_fed <- data %>%
+  select(fyear, FEDFUNDS, Ifl)
+
 #drop fed funds and inflation
 data <- data %>%
   select(fyear, GDP_def, usercost)
+
+#trim data to 1960
+data_inf_fed <- data_inf_fed %>%
+  filter(fyear >= 1960) %>%
+  filter(fyear <= 2022)
 
 
 ############################################################
@@ -83,3 +92,5 @@ data <- data %>%
 setwd(d_folder)
 
 write.csv(data, "usercost.csv")
+
+write.csv(data_inf_fed, "real_int_rate.csv")

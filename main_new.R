@@ -428,6 +428,66 @@ save_f(time_int_plot_5d, "time_int_plot_5e.pdf", dircs, 4.5, 4, save_files)
 
 ############################################################
 ############################################################
+############# 11: Quantifying Error #########################
+############################################################
+############################################################
+
+mu_correct_main_r <- mu_correction(Data, naics, 2)
+#MU_C = MU / correction nolint
+ 
+#sales weighting average of correction
+plot(density(mu_correct_main_r$correction))
+
+#sales weighting average of correction
+agg_correction <- mu_correct_main_r %>%
+  group_by(fyear) %>%
+  summarise(correction =
+              weighted.mean(correction, sale, na.rm = TRUE))
+
+#regular average of correction
+agg_correction_2 <- mu_correct_main_r %>%
+  group_by(fyear) %>%
+  summarise(correction =
+              mean(correction, na.rm = TRUE))
+
+
+agg_correction
+
+plot(agg_correction)
+
+plot(agg_correction$correction, agg_correction_2$correction)
+
+summary(mu_correct_main_r$MU_C - 1)
+summary(mu_correct_main_r$MU_1)
+
+
+#trim 2% of MU_C
+mu_cfilt <- mu_correct_main_r %>%
+  group_by(fyear) %>%
+  mutate(
+    aq1 = quantile(MU_C, 0.01, na.rm = TRUE),
+    aq99 = quantile(MU_C, 0.99, na.rm = TRUE)
+  ) %>% ungroup() %>%
+  filter(MU_C >= aq1 & MU_C <= aq99)  #nolint
+
+summary(mu_cfilt$MU_C - 1)
+
+plot(density(mu_cfilt$MU_C - 1))
+
+agg_cfilt <- mu_correct_main_r %>%
+  group_by(fyear) %>%
+  summarise(aggmu_c =
+              weighted.mean(MU_C, sale, na.rm = TRUE))
+
+ggplot(agg_cfilt, aes(x = fyear, y = aggmu_c - 1)) +
+  geom_line() +
+  labs(x = "Year", y = "Markup (Sales Weighted)", title = "Corrected Markup")
+
+
+agg_mu_c_plot <- agg_mu_c(mu_correct_main_r)
+
+############################################################
+############################################################
 ############# 10: Correcting error #########################
 ############################################################
 ############################################################
