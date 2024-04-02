@@ -98,7 +98,7 @@ data_mu <-
 
 cor(data_mu$MU, data_mu$MU_deu, use = "complete.obs")
 #0.8100058 (constant elasticity)
-# 0.7960846 (by year)
+# 0.7960846 (by sector)
 
 #navigate to folder with functions (incase want to reload)
 setwd(dircs[1])
