@@ -1,3 +1,687 @@
+
+In order of Publication:
+
+*1: Berry, Levinsohn, Pakes (1995) 
+https://pages.stern.nyu.edu/~wgreene/Econometrics/BLP.pdf
+    - 1990 cars
+    - table VIII (below: average lerner is 0.239  implies mu = 1 - 1/(1-.239)= 1.314)
+    - 1 obs
+    - according to other paper sales weighted avg is .32 
+    - RCL
+
+
+2: Goldberg 1995
+https://www-jstor-org.colorado.idm.oclc.org/stable/pdf/2171803.pdf?refreqid=fastly-default%3Aaf292ef8927031d7451eaf14c65e9642&ab_segments=&origin=&initiator=&acceptTC=1
+. According to my calculations, markups are on average 38%
+- dont have
+
+
+*3: Nevo (2001)
+published: https://www.jstor.org/stable/2692234
+- RCL
+
+
+4: Benkard (2004)
+https://www.jstor.org/stable/3700737?searchText=A+DYNAMIC+ANALYSIS+OF+THE+MARKET+FOR+WIDE-BODIED+COMMERCIAL+AIRCRAFT&searchUri=%2Faction%2FdoBasicSearch%3FQuery%3DA%2BDYNAMIC%2BANALYSIS%2BOF%2BTHE%2BMARKET%2BFOR%2BWIDE-BODIED%2BCOMMERCIAL%2BAIRCRAFT%26so%3Drel&ab_segments=0%2Fbasic_search_gsv2%2Fcontrol&refreqid=fastly-default%3A7cc01616ab321a0e7a6f91971c74fc18
+- aircraft manufactoring, might not have
+- dont have 
+
+
+5: Chu, Chintagunta, Vilcassim (2007)
+https://journals.sagepub.com/doi/epub/10.1509/jmkr.44.1.029
+# jstor link: https://www.jstor.org/stable/30162452?searchText=Assessing+the+Economic+Value+of+Distribution+Channels+An+Application+to+the+Personal+Computer+Industry&searchUri=%2Faction%2FdoBasicSearch%3FQuery%3DAssessing%2Bthe%2BEconomic%2BValue%2Bof%2BDistribution%2BChannels%253A%2BAn%2BApplication%2Bto%2Bthe%2BPersonal%2BComputer%2BIndustry%26so%3Drel&ab_segments=0%2Fbasic_search_gsv2%2Fcontrol&refreqid=fastly-default%3Acd9cdbb37e703b5a508f7dd0720fb783
+- table 6
+- dont have
+
+**** ??: Kim, Cotterill (2008)
+https://onlinelibrary.wiley.com/doi/epdf/10.1111/j.1467-6451.2008.00331.x
+- table VIII (take median)
+    - violates report markup definition of universe of papers
+- cheese NAISC code: 311513
+- dont have 
+
+
+
+6: Goeree (2008)
+https://www.vwl.uni-mannheim.de/media/Lehrstuehle/vwl/Sovinsky/liapci.pdf
+published: https://onlinelibrary.wiley.com/doi/abs/10.3982/ECTA4158?casa_token=2sXCCxpEzy0AAAAA:UZfTCQnhMWlqx9rhpDFbwLDX29LbE3ExbXkPv3oIRo6GJ0CItGjOX67VsQfqhHNts05jSMkcA5D3B6g
+-pc 
+- dont have
+
+
+7:  Hellerstein(2008)
+https://pdf.sciencedirectassets.com/271695/1-s2.0-S0022199608X00054/1-s2.0-S0022199608000299/main.pdf?X-Amz-Security-Token=IQoJb3JpZ2luX2VjEGwaCXVzLWVhc3QtMSJHMEUCIQDVjl0rWoiNXiNGA%2FWzINsX6En6AlGKR2%2BYdQ%2FzfedczAIgWl%2BHR45awPpEFGg06fHpoJn8L3DWCVzxuKGVQBy8g7EqvAUIlf%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FARAFGgwwNTkwMDM1NDY4NjUiDMWVFPxGim4bAWmUVyqQBbeNYnMlQ3g0DejB6x6EOOeU4Zx444sM8lfOGsf%2BfErfFP%2BMla%2FJ6GXnk8gc3OBYGOaJC6Nb748u0280LADBVXf%2BnjvfeZ7l3OZMET7xqcR4L9NiFaAzpbz%2BD58IVrYfk562sQrh%2F6nej%2FQuetTy74W4EVzbTuxKlU1BjyVHng3rOYF2IoVKBbk7CIsQ2dNTu11088%2FpJqpZIIRwO%2FowMgSlSz5%2BrTF%2BbKgRTfbm%2B0O2k7MEZoMEmg%2BiwMtIRefBix8d%2B%2BoJDODQJd5HGvcGlxpJVJA1S5xBS2v1zEaAvrmd3b3jm9E9yYWesFb1TNBRhptRkek8wCRidXhTM2v9rwFCR67Kj5smbrftQLbebK7KBDQhGVxn4EPR05aEI5%2Bgjbv0ij%2F4HA53AY7SakTlXgNdWIPiBE8SXQxwY22TyK7kDZcGbo8l1xsUHrVUEUZaeLpG0L5xq5c7aTmAVvXndWSyo2HF1l2ZqXiW51EnhuC0LbFI4PiY3W%2FMK3rR55r%2BxbE9tjS1qDUYhMXdOOUcQ33jpJx2%2BxH%2B%2FpKDmQ2iGlf%2BPmoMr4wbsFeso%2FgyM5G2N9NevgTrY6EEUftDly%2BQ6l1bSxM5dofOHggyZ0q%2FdIF12Sy8z%2FQ7EtnS8TMF93dMu98y3EzLaEr8EnSNGKKChz4%2BQOOwjwEboOfFmwPd89iAm1bl2fj0fPCowbQdn1%2FlJwqvT%2B9V9eXIs4NA3Bj0t3YIStwSyqORVHttffaBYGRPHOACGu8Ike5KqFv5aG1TZmLWhG9soEGsi%2FpeRTLv6YglIS%2FxUU2a0kBL0zjFoOeM%2BzlecUhc887O102zqtfDqhN2BDyPCrk7bT4yNY9OeL1A4pcVJQ%2BJvs%2FnmzGprEM5MP37u7AGOrEB25fs0KsdafT7LOcx%2F1V62YyazMyV4khFOYednJy2gM3SW5LHPWCI2UjRS3uiUD9FFiavy9lKVVUrDRNnrR4GlG665MLW9rWXpj3tABcg7M6tvqPeZB5WDzZtJKU8L7pI5FtzCIxoiPv686%2BfPJJJaeash79wG9Gu0FBZzFswXRcALucOOwUzAHahkVzj0%2FSfs2MJNWRGjGyGuGH%2FMWbP4b3c11cc3cn%2BogHt32c%2Fiz9R&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20240404T202745Z&X-Amz-SignedHeaders=host&X-Amz-Expires=300&X-Amz-Credential=ASIAQ3PHCVTYROG6YKY7%2F20240404%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=19c9cd64cf1686c76231b12870955f1dbab88e2b9b4d6c26886d324c91d3921a&hash=e88f5e89e7becd0e0214aa0ec0cf8f0e4d6466a0a34d16673a1f2b65d8ad1fb3&host=68042c943591013ac2b2430a89b270f6af2c76d8dfd086a07176afe7c76c2c61&pii=S0022199608000299&tid=spdf-cbcbdd9d-e229-4df6-9888-af69daa4c8d0&sid=afa357ee520d75401a487ab23f78146ece34gxrqa&type=client&tsoh=d3d3LnNjaWVuY2VkaXJlY3QuY29t&ua=0f115a52095453025151&rr=86f40a76bdd81f32&cc=us
+- under table 4
+- dont have
+
+
+8: Cachon Olivares (2009)
+https://pubsonline.informs.org/doi/epdf/10.1287/mnsc.1090.1095
+https://www.jstor.org/stable/pdf/27784102.pdf
+- page 208
+- dont have
+
+
+9: Berry Jia (2010)
+airline https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3417225
+published: https://www.aeaweb.org/articles?id=10.1257/mic.2.3.1
+    - LERNER: 1999:  0.63 (TABLE 8a)
+    - LERNER 2006: .60
+    : NAISC: 481111  Scheduled Passenger Air Transportation
+    - product level 
+    -" aggregate markup" i guess just use mediab
+- have (might need to reimpliment)
+
+
+10: Nakamura Zerom (2010)
+https://www.jstor.org/stable/40835861?searchText=Accounting+for+Incomplete+Pass-Through&searchUri=%2Faction%2FdoBasicSearch%3FQuery%3DAccounting%2Bfor%2BIncomplete%2BPass-Through%26so%3Drel&ab_segments=0%2Fbasic_search_gsv2%2Fcontrol&refreqid=fastly-default%3A4577d4886cd046b7d913b550d2fa8da7
+- search median markup to find the thing
+- dont currently have 
+
+
+*********: Derdenger (2010)
+https://www.economics.uci.edu/files/docs/micro/f10/derdenger.pdf
+- below figure 5
+- dont have
+- cant use no comparable naisc code
+
+
+********** : Mariuzzo, Walsh, Whelan (2010)
+https://www.sciencedirect.com/science/article/pii/S0167718710000184?casa_token=Z1Xj3B9KvL0AAAAA:uRoT_fgAhVuI-bOrz3NfLEaYrF-vdH2dCoA0xcbXxUHRUTbISy6uxGieLnDJZ57rgGkqxQaRNg
+-should be able to infer median from from table III
+- dont have
+- cant use not in universe since does not report markup
+
+
+************: Borenstein Davis (2012)
+https://www.jstor.org/stable/10.1086/661958?searchText=The+Equity+and+Efficiency+of+Two-Part+Tariffs+in+U.S.+Natural+Gas+Markets&searchUri=%2Faction%2FdoBasicSearch%3FQuery%3DThe%2BEquity%2Band%2BEfficiency%2Bof%2BTwo-Part%2BTariffs%2Bin%2BU.S.%2BNatural%2BGas%2BMarkets%26so%3Drel&ab_segments=0%2Fbasic_search_gsv2%2Fcontrol&refreqid=fastly-default%3Af24f2ac91170b450f9641a49f0fe88de
+-dont have
+- not actually a demand estimate
+
+
+*********: Houde (2012)
+https://jfhoude.econ.wisc.edu/wp-content/uploads/sites/769/2018/08/Houde_AER2012.pdf
+- table 8
+https://www.jstor.org/stable/41724617?searchText=Spatial+Differentiation+and+Vertical+Mergers+in+Retail+Markets+for+Gasoline&searchUri=%2Faction%2FdoBasicSearch%3FQuery%3DSpatial%2BDifferentiation%2Band%2BVertical%2BMergers%2B%2B%2Bin%2BRetail%2BMarkets%2Bfor%2BGasoline%26so%3Drel&ab_segments=0%2Fbasic_search_gsv2%2Fcontrol&refreqid=fastly-default%3Afadfdc617b1ce62c4186aa839ef13ff2
+gas station, naisc code: NAICS Code 447110
+- dont have
+- cant use not US data
+
+
+11:  EIZENBERG (2012)
+https://www-jstor-org.colorado.idm.oclc.org/stable/pdf/43551618.pdf?refreqid=fastly-default%3A3a416a313c567caba10154532e5efefe&ab_segments=&origin=&initiator=&acceptTC=1
+- table 7b
+- dont have
+
+
+12: Lou, Prentice, Yin (2012)
+https://www.sciencedirect.com/science/article/pii/S0167718711000488
+- table 5
+- dont have
+
+
+******: Gaynor (2013)
+https://www.jstor.org/stable/43305470?searchText=A+STRUCTURAL+APPROACH+TO+MARKET+DEFINITION+WITH+AN+APPLICATION+TO+THE+HOSPITAL+INDUSTRY&searchUri=%2Faction%2FdoBasicSearch%3FQuery%3DA%2BSTRUCTURAL%2BAPPROACH%2BTO%2BMARKET%2BDEFINITION%2BWITH%2BAN%2BAPPLICATION%2BTO%2BTHE%2BHOSPITAL%2BINDUSTRY%26so%3Drel&ab_segments=0%2Fbasic_search_gsv2%2Fcontrol&refreqid=fastly-default%3A3fa7f51db930dfdc40134bc22f32dde5
+elasiticity 1:1 qith lerner in this context
+dont have
+- cant use doesnt directly report and not in universe
+
+
+
+13: Dai Yuan (2013)
+https://www.sciencedirect.com/science/article/pii/S0378426613003737?casa_token=kdsg8arNAT8AAAAA:OE4xdwHIzmhDH6wVfXQKdKug-el7CQeQMZO0ScyRvjyx6PNw8Gh2jidA1c1k4vf-RV3OnGgIgg
+- Banks
+- table 3
+- dont have
+
+
+**********: Moraga-Gonzálezl, Sandor, Wildenbeest (2015)
+https://deliverypdf.ssrn.com/delivery.php?ID=489024064102116111093077106096108064027075072041043035077073031004119012104122067072123098043034107058119100125068106092080076059012026078015001090115071117106086032085044067090078115085065120117120003083088019102019099090100001003068111068093003118&EXT=pdf&INDEX=TRUE
+- table 7
+- dont have
+- cant use dutch data
+
+
+14: Hottman (2015)
+https://academiccommons.columbia.edu/doi/10.7916/D8Z60N0N
+- not sure if theres anything usable here
+- dont have
+
+
+15: Song (2015)
+https://onlinelibrary.wiley.com/doi/full/10.1111/iere.12102
+jstor: https://www.jstor.org/stable/pdf/24517895.pdf?refreqid=fastly-default%3A7397e4d40315dc31ee8b3eb3353c2a71&ab_segments=0%2Fbasic_search_gsv2%2Fcontrol&origin=&initiator=&acceptTC=1
+- table 5
+- dont have
+
+
+16: Florez-Acosta (2016)
+https://www.banrep.gov.co/sites/default/files/eventos/archivos/sem_22_cali.pdf
+- table 7
+
+
+17: Miller Weinberg (2017)
+http://www.nathanhmiller.org/mwbeer.pdf
+    - major breweries 
+    - data from 2001-2011
+        -split into pre merger (2008 and before) and post (2009-2011)
+        - median at product level, could take median of those and compare to median in sample
+    -cant get data for replication.
+    - "average" over data: (p-mc)/p=.34
+
+
+**: Crawford, Pavanini, Schivardi (2018)
+https://www-jstor-org.colorado.idm.oclc.org/stable/pdf/26528518.pdf?refreqid=fastly-default%3A8c1c192ec72aa62c817942d77ff6781d&ab_segments=&origin=&initiator=&acceptTC=1
+Table 5 
+- dont have
+- its italian data, cant use
+
+
+
+**: Zhang (2018)
+https://deliverypdf.ssrn.com/delivery.php?ID=233094095078068076079016113080116090096053008001005052086021075024067092121028078064114100125059114059052101027096119113070087056008068003082005125024029087000014118042021022111127122067019110067075082110071079026010107079073073094011123079027124107106&EXT=pdf&INDEX=TRUE
+- median from table 5
+- dont have
+- doesnt report agg measure
+
+
+**: Meilin. Yunjaun (2020)
+https://ageconsearch.umn.edu/record/304350?ln=en&v=pdf
+- dont have
+- not using,doesnt really use a single model as main specification  
+    - ARGUES FOR FHANGE OF CONDUCT
+
+
+18: Murry, Zhou (2020)
+https://pubsonline.informs.org/doi/abs/10.1287/mnsc.2019.3307
+- page 1924
+- dont have
+
+
+19: Golovin (2020)
+https://www.proquest.com/docview/2424987626?pq-origsite=gscholar&fromopenview=true&sourcetype=Dissertations%20&%20Theses
+-figure 3.3 page 71
+- dont have
+
+
+*20: Grieco (2021)
+https://www.nber.org/papers/w29013
+- already have
+
+
+21: Ciliberto, Murry, and Tamer (2021)
+https://www.journals.uchicago.edu/doi/full/10.1086/715848?casa_token=mKsTYh8PRPsAAAAA%3AZD1ICB8CPdBvmnWB3H8uU--M4E8evrRFzYZDEuDBaUGewNkQp4uVJ5C7Jwbru2mGYbQ9zx2jdvw
+- table 4
+- dont have
+
+
+*22: Brand (2021)
+https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3712513
+https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3712513
+- already have
+
+
+23: Li (2021)
+https://www.proquest.com/docview/2556408430/fulltextPDF/E8516FD632C848D5PQ/1?accountid=14503&sourcetype=Dissertations%20&%20Theses
+- dont have
+
+****: Ma Liu (2021)
+https://aae-seminars.s3.us-east-2.amazonaws.com/2021%2FMa%2BLiu_US+beef+markup_202101.pdf
+- table 6
+- dont have
+- not using, also uses weird conduct switch argument
+
+
+24: Monardo (2021)
+https://deliverypdf.ssrn.com/delivery.php?ID=049017110001010018001002067026025127017040064087064044065087024074105067122119013077026023006005053121011073124031087030098012060021056026068024024085001105095025088084051021117127021123114082107081123115003102085124116098113015066082077116127005115095&EXT=pdf&INDEX=TRUE
+- page 33
+- dont have
+
+
+25:  Bontemps, Wei (2021)
+https://sites.socsci.uci.edu/~jkbrueck/course%20readings/Bontemps%20et%20al.pdf
+- table 10 and 11
+
+
+26: Jingwen (2021)
+https://www.proquest.com/docview/2555328036?pq-origsite=gscholar&fromopenview=true&sourcetype=Dissertations%20&%20Theses
+- page 20
+
+
+27: Badruddozal, McCluskey, Carlson (2022)
+https://onlinelibrary.wiley.com/doi/full/10.1002/aepp.13207
+- below figure 4
+- dont have
+
+
+*28: Atalay et al. (2023)
+https://www.nber.org/papers/w31230
+- already have
+
+
+29: Michel, Mino, Weirgraeber (2023)
+https://sweiergr.github.io/publication/conduct_cereal/conduct_cereal.pdf
+- table 3
+- dont have
+
+30: Conlon Rao (2023)
+https://www.nber.org/system/files/working_papers/w30896/w30896.pdf
+- search median markup
+- dont have
+
+
+31: Miravete, Seim, Thurk (2023)
+https://pdf.sciencedirectassets.com/271699/1-s2.0-S0167718723X00058/1-s2.0-S0167718723000668/main.pdf?X-Amz-Security-Token=IQoJb3JpZ2luX2VjEG0aCXVzLWVhc3QtMSJGMEQCIGDPRLs0etf4lPzYuGgiIaePjRKtxqjeV5U%2Fjw0adXFAAiArdvNfL3%2BfvraMBvy9DfugfVFc7gYBdqN%2B5YZV%2FiaHViq8BQiW%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F8BEAUaDDA1OTAwMzU0Njg2NSIMR4mqQtPwDxgAn4lQKpAFDswuCIMkcIEGHhxYfWNvDTii9%2Fw7%2FFaVeC91x2FIQ6qSCsEA4CdqwqcAvjhh3dUQuKur6CflRjQxDKwzUBfR1YCL78ZVyLLDpTbCR5tFI3o70xNZtdM3%2BYi2g3HmbcdWbjyXsZd8nmtz4Voh0SvHIev8dXmJDANU1xuDZfOC5N%2FCypcgzO%2F4F0n4B6ufIzrX6h1aG3rEKpFXHh9RJ81pV8woliaA8Wi%2BizF7%2Bvc3lONExIwIk1Z2G67I8gINNehXSIDvay%2BN3W46xBDWG4VGpMW0StNQnegXp%2FzjGPAFcRwcdjVLyyxnJ3QIzjO8bLCHDW3IYAvdfDaY3UrHPGRq2Zs%2BBELxOtP4CD6QEW8mKO75Oy7z2mBzn%2FmlzQYrkZXgvOAyep2wQxH%2FuKFQWPqlEnui4oJ0xksyrGRzPoWGhObfpsqhej45%2F8qMlWXvACEn7mRICPuyIL%2F45Jv7ACgquMraMeq2RKcgpJ3yK7XDiywnReq8H1aMl6Zfzq6Y5NN7yBs20IIU%2FUB%2Bz3DLD5K0cpVdbhzf%2By96qGbCRv%2FLcUEq5wlhclUXIQ0GxhC5Q88WbeNHD2EBPWneFC230ou%2F1YpsMzJH2nAw7tafTsXi1t8xxh6%2Fkubh22y9Sl7%2BLGS54dqhrjpdLhZ6M3yuVeMO9jDWSNnaszDrR4flyEOizOwvw6NVrS0RPHkHh2OVl29k8tnrJeg%2BXQzCrPINPShVaHuHajhHwLxSsznVMHuKXdc2iSjeVEK4BE2LLan%2BjFJ%2F3UMhjcs15igsGcBkCDj%2BGV7M93R%2FxrCwUys3sgKorBn9GHA%2FRlsIPPGwpmY%2BlxdmvSwfxNuBvvr3Lhy4ZLUV7TAy5mGy9Aa9TPya0%2FU4xw4w5Ke8sAY6sgF4mI9iWfJrpMiQnX%2F1dWXXTYSycVqp63%2F89LQ39nrUP9Qb4AOGPgcYcJYiHYCPBA1L6VYeg7MCNonCLpjKXOOWiqh1EPqlQQ3wJW9nHyWvdQInzYMgsg4YBI88CAoCFO4hw2Cnw5%2FsYL55qOljlpBpSgnKcd00B0NgfRVUJcya9kySyJo8Fn4lN3E9Nf6ba15uQgBadlo3OM9QYbYOZhHz00zUypV2AZT4DHjzif6I5ZXP&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20240404T212355Z&X-Amz-SignedHeaders=host&X-Amz-Expires=300&X-Amz-Credential=ASIAQ3PHCVTYTCWWWK6J%2F20240404%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=2e68cebe87e3de2c68b344abb33b64cf029b7213a29bdfb2a6521bc6ed2ae1df&hash=901df7fa13fd343c483576aa70d194ba0abc840e390dfa38c292b9df9053072e&host=68042c943591013ac2b2430a89b270f6af2c76d8dfd086a07176afe7c76c2c61&pii=S0167718723000668&tid=spdf-dda2b609-2e6b-49c1-8b62-b5369ee08b30&sid=afa357ee520d75401a487ab23f78146ece34gxrqa&type=client&tsoh=d3d3LnNjaWVuY2VkaXJlY3QuY29t&ua=0f115a52095456000404&rr=86f45cbc5d9c7b16&cc=us
+- figure 3
+- dont have
+
+
+32: Miller, Osborne, Sheu, Sileo (2023)
+https://deliverypdf.ssrn.com/delivery.php?ID=400020126087071103119092085071114010096068026065069063076084018102113025127116106127028021100056061044043002103114108117091102049022017012058022015064123071114071030073087060027096078114127029030003114085068070121102007107026113103095081022064088021123&EXT=pdf&INDEX=TRUE
+- table 2
+- dont have
+
+
+33: Yigma (2023)
+https://link.springer.com/article/10.1007/s11067-023-09601-3/tables/2
+- table 2
+- dont have
+
+
+*****: Sakamoto (2023)
+https://aae-jmc.s3.us-east-2.amazonaws.com/rsakamoto/JMP_Sakamoto.pdf
+- from table 5 take median
+- dont have
+- cant use corn seed doesnt have naisc code
+
+*34: Grieco, Murry, Yurukolglu (2024)
+https://web.stanford.edu/~ayurukog/CarMarkupsJuly2023.pdf
+- have
+
+
+*****: Chen (2024)
+https://deliverypdf.ssrn.com/delivery.php?ID=130069006013118014115071119076004031034018053020030049097000096125124102002070088122020018034045018032097092104025112115103073044016056009084003118105008027098125123003034034025031065000069080126073076077091003108111123067118089011082017076064074113000&EXT=pdf&INDEX=TRUE
+- cant use, doesnt actually report markups
+
+
+*45: Ganapati (2024, WP)
+https://www.nber.org/papers/w32036
+- already have
+
+
+*46: Dooper et al (2023, WP)
+ https://www.nber.org/system/files/working_papers/w31230/w31230.pdf
+very similar to brand in terms of sector, but different results
+    - Manufactoring firms in retail goods
+    - present mean (and percentile) in 2006 and 2018
+    -9 sub sectors (more like max 8 since we know yogurt wont work)
+        -cereal definitly does, min 2
+    - max of 18 data points (not sure what sectors we can match)
+already have
+
+
+
+*47: Pfander (2024, WP) 
+https://cadampfander.github.io/papers/Pfander_JMP.pdf
+    - mean transport p/mc: .035 (table 2)
+    - 2017 all US transportation
+    - 1 obs
+
+
+
+
+
+
+
+
+
+######## arhive 
+Universe of firms: NBER working papers since 1/1/1993, 
+    -topics IO, keyword Markups
+    - report some sector aggreagate markup estimates 
+        (in table, plot or text) from demand data in US (nation wide)
+    - comparable nasic code
+
+- will go back later and get published version where availible
+
+
+1: Atalay et al. (2023)
+https://www.nber.org/papers/w31230
+- already have
+
+
+2: Nakamura Zerom (2009)
+https://www.nber.org/system/files/working_papers/w15255/w15255.pdf
+- search median markup to find the thing
+- dont currently have 
+published: Emi Nakamura & Dawit Zerom, 2010. "Accounting for Incomplete Pass-Through," Review of Economic Studies, Wiley Blackwell, vol. 77(3), pages 1192-1230, 07.
+
+3: Ganapati (2024)
+https://www.nber.org/papers/w32036
+- already have
+
+
+4: Davis Muehlegger (2010)
+https://www.nber.org/system/files/working_papers/w15885/w15885.pdf
+- table 3
+-dont have
+puvlished: RAND Journal of Economics, 2010, 41(4), 791-810.
+
+
+5: Grieco (2021)
+https://www.nber.org/papers/w29013
+- already have
+
+6: Nevo
+https://www.nber.org/papers/w6387
+- already have
+- obvi published
+
+7: Borenstein Davis 2010
+https://www.nber.org/system/files/working_papers/w16653/w16653.pdf
+-dont have
+- published: Severin Borenstein & Lucas W. Davis, 2012. "The Equity and Efficiency of Two-Part Tariffs in U.S. Natural Gas Markets," Journal of Law and Economics, University of Chicago Press, vol. 55(1), pages 75 - 128.
+
+ 
+8: Conlon Rao (2023)
+https://www.nber.org/system/files/working_papers/w30896/w30896.pdf
+- search median markup
+- dont have
+
+9: Berry, Jia (2008)
+https://www.nber.org/system/files/working_papers/w14503/w14503.pdf
+- have but dont like, will have to use
+
+10: Benkard (2000)
+https://www.nber.org/system/files/working_papers/w7710/w7710.pdf
+- aircraft manufactoring, might not have
+- dont have 
+- published: A DYNAMIC ANALYSIS OF THE MARKET FOR WIDE-BODIED COMMERCIAL AIRCRAFT
+
+11: Gaynor (2011)
+https://www.nber.org/system/files/working_papers/w16656/w16656.pdf
+elasiticity 1:1 qith lerner in this context
+poublsihed : A STRUCTURAL APPROACH TO MARKET DEFINITION WITH AN APPLICATION TO THE HOSPITAL INDUSTRY
+dont have
+
+
+- Note BLP uses RCL
+
+Google scholar papers that cite BLP & report some sector aggreagate markup estimates 
+        (in table or plot) from demand data in US (nation wide)
+    - comparable nasic code
+    - done on april 4th
+
+Found Nevo again
+
+1: Goldberg 1995
+https://www-jstor-org.colorado.idm.oclc.org/stable/pdf/2171803.pdf?refreqid=fastly-default%3Aaf292ef8927031d7451eaf14c65e9642&ab_segments=&origin=&initiator=&acceptTC=1
+. According to my calculations, markups are on average 38%
+- dont have
+
+2: Miller Weinberg (2017)
+http://www.nathanhmiller.org/mwbeer.pdf
+    - major breweries 
+    - data from 2001-2011
+        -split into pre merger (2008 and before) and post (2009-2011)
+        - median at product level, could take median of those and compare to median in sample
+    -cant get data for replication.
+    - "average" over data: (p-mc)/p=.34
+
+3: Goeree (2008)
+https://www.vwl.uni-mannheim.de/media/Lehrstuehle/vwl/Sovinsky/liapci.pdf
+-pc 
+- dont have
+
+4: Houde (2012)
+https://jfhoude.econ.wisc.edu/wp-content/uploads/sites/769/2018/08/Houde_AER2012.pdf
+- table 8
+gas station, naisc code: NAICS Code 447110
+- dont have
+
+
+5: Berry Jia (2010)
+airline https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3417225
+published: https://www.aeaweb.org/articles?id=10.1257/mic.2.3.1
+    - LERNER: 1999:  0.63 (TABLE 8a)
+    - LERNER 2006: .60
+    : NAISC: 481111  Scheduled Passenger Air Transportation
+    - product level 
+    -" aggregate markup" i guess just use mediab
+- have (might need to reimpliment)
+
+6: Crawford, Pavanini, Schivardi (2018)
+https://www-jstor-org.colorado.idm.oclc.org/stable/pdf/26528518.pdf?refreqid=fastly-default%3A8c1c192ec72aa62c817942d77ff6781d&ab_segments=&origin=&initiator=&acceptTC=1
+Table 5 
+- dont have
+
+7: Dooper et al (WP)
+ https://www.nber.org/system/files/working_papers/w31230/w31230.pdf
+very similar to brand in terms of sector, but different results
+    - Manufactoring firms in retail goods
+    - present mean (and percentile) in 2006 and 2018
+    -9 sub sectors (more like max 8 since we know yogurt wont work)
+        -cereal definitly does, min 2
+    - max of 18 data points (not sure what sectors we can match)
+already have
+
+
+8:  EIZENBERG (2012)
+https://www-jstor-org.colorado.idm.oclc.org/stable/pdf/43551618.pdf?refreqid=fastly-default%3A3a416a313c567caba10154532e5efefe&ab_segments=&origin=&initiator=&acceptTC=1
+- table 7b
+- dont have
+
+
+9: Ciliberto, Murry, and Tamer (2021)
+https://www.journals.uchicago.edu/doi/full/10.1086/715848?casa_token=mKsTYh8PRPsAAAAA%3AZD1ICB8CPdBvmnWB3H8uU--M4E8evrRFzYZDEuDBaUGewNkQp4uVJ5C7Jwbru2mGYbQ9zx2jdvw
+- table 4
+- dont have
+
+
+10:  Hellerstein(2008)
+https://pdf.sciencedirectassets.com/271695/1-s2.0-S0022199608X00054/1-s2.0-S0022199608000299/main.pdf?X-Amz-Security-Token=IQoJb3JpZ2luX2VjEGwaCXVzLWVhc3QtMSJHMEUCIQDVjl0rWoiNXiNGA%2FWzINsX6En6AlGKR2%2BYdQ%2FzfedczAIgWl%2BHR45awPpEFGg06fHpoJn8L3DWCVzxuKGVQBy8g7EqvAUIlf%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FARAFGgwwNTkwMDM1NDY4NjUiDMWVFPxGim4bAWmUVyqQBbeNYnMlQ3g0DejB6x6EOOeU4Zx444sM8lfOGsf%2BfErfFP%2BMla%2FJ6GXnk8gc3OBYGOaJC6Nb748u0280LADBVXf%2BnjvfeZ7l3OZMET7xqcR4L9NiFaAzpbz%2BD58IVrYfk562sQrh%2F6nej%2FQuetTy74W4EVzbTuxKlU1BjyVHng3rOYF2IoVKBbk7CIsQ2dNTu11088%2FpJqpZIIRwO%2FowMgSlSz5%2BrTF%2BbKgRTfbm%2B0O2k7MEZoMEmg%2BiwMtIRefBix8d%2B%2BoJDODQJd5HGvcGlxpJVJA1S5xBS2v1zEaAvrmd3b3jm9E9yYWesFb1TNBRhptRkek8wCRidXhTM2v9rwFCR67Kj5smbrftQLbebK7KBDQhGVxn4EPR05aEI5%2Bgjbv0ij%2F4HA53AY7SakTlXgNdWIPiBE8SXQxwY22TyK7kDZcGbo8l1xsUHrVUEUZaeLpG0L5xq5c7aTmAVvXndWSyo2HF1l2ZqXiW51EnhuC0LbFI4PiY3W%2FMK3rR55r%2BxbE9tjS1qDUYhMXdOOUcQ33jpJx2%2BxH%2B%2FpKDmQ2iGlf%2BPmoMr4wbsFeso%2FgyM5G2N9NevgTrY6EEUftDly%2BQ6l1bSxM5dofOHggyZ0q%2FdIF12Sy8z%2FQ7EtnS8TMF93dMu98y3EzLaEr8EnSNGKKChz4%2BQOOwjwEboOfFmwPd89iAm1bl2fj0fPCowbQdn1%2FlJwqvT%2B9V9eXIs4NA3Bj0t3YIStwSyqORVHttffaBYGRPHOACGu8Ike5KqFv5aG1TZmLWhG9soEGsi%2FpeRTLv6YglIS%2FxUU2a0kBL0zjFoOeM%2BzlecUhc887O102zqtfDqhN2BDyPCrk7bT4yNY9OeL1A4pcVJQ%2BJvs%2FnmzGprEM5MP37u7AGOrEB25fs0KsdafT7LOcx%2F1V62YyazMyV4khFOYednJy2gM3SW5LHPWCI2UjRS3uiUD9FFiavy9lKVVUrDRNnrR4GlG665MLW9rWXpj3tABcg7M6tvqPeZB5WDzZtJKU8L7pI5FtzCIxoiPv686%2BfPJJJaeash79wG9Gu0FBZzFswXRcALucOOwUzAHahkVzj0%2FSfs2MJNWRGjGyGuGH%2FMWbP4b3c11cc3cn%2BogHt32c%2Fiz9R&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20240404T202745Z&X-Amz-SignedHeaders=host&X-Amz-Expires=300&X-Amz-Credential=ASIAQ3PHCVTYROG6YKY7%2F20240404%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=19c9cd64cf1686c76231b12870955f1dbab88e2b9b4d6c26886d324c91d3921a&hash=e88f5e89e7becd0e0214aa0ec0cf8f0e4d6466a0a34d16673a1f2b65d8ad1fb3&host=68042c943591013ac2b2430a89b270f6af2c76d8dfd086a07176afe7c76c2c61&pii=S0022199608000299&tid=spdf-cbcbdd9d-e229-4df6-9888-af69daa4c8d0&sid=afa357ee520d75401a487ab23f78146ece34gxrqa&type=client&tsoh=d3d3LnNjaWVuY2VkaXJlY3QuY29t&ua=0f115a52095453025151&rr=86f40a76bdd81f32&cc=us
+- under table 4
+- dont have
+
+11: Moraga-Gonzálezl, Sandor, Wildenbeest (2015)
+https://deliverypdf.ssrn.com/delivery.php?ID=489024064102116111093077106096108064027075072041043035077073031004119012104122067072123098043034107058119100125068106092080076059012026078015001090115071117106086032085044067090078115085065120117120003083088019102019099090100001003068111068093003118&EXT=pdf&INDEX=TRUE
+- table 7
+- dont have
+
+
+12: Miravete, Seim, Thurk (2023)
+https://pdf.sciencedirectassets.com/271699/1-s2.0-S0167718723X00058/1-s2.0-S0167718723000668/main.pdf?X-Amz-Security-Token=IQoJb3JpZ2luX2VjEG0aCXVzLWVhc3QtMSJGMEQCIGDPRLs0etf4lPzYuGgiIaePjRKtxqjeV5U%2Fjw0adXFAAiArdvNfL3%2BfvraMBvy9DfugfVFc7gYBdqN%2B5YZV%2FiaHViq8BQiW%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F8BEAUaDDA1OTAwMzU0Njg2NSIMR4mqQtPwDxgAn4lQKpAFDswuCIMkcIEGHhxYfWNvDTii9%2Fw7%2FFaVeC91x2FIQ6qSCsEA4CdqwqcAvjhh3dUQuKur6CflRjQxDKwzUBfR1YCL78ZVyLLDpTbCR5tFI3o70xNZtdM3%2BYi2g3HmbcdWbjyXsZd8nmtz4Voh0SvHIev8dXmJDANU1xuDZfOC5N%2FCypcgzO%2F4F0n4B6ufIzrX6h1aG3rEKpFXHh9RJ81pV8woliaA8Wi%2BizF7%2Bvc3lONExIwIk1Z2G67I8gINNehXSIDvay%2BN3W46xBDWG4VGpMW0StNQnegXp%2FzjGPAFcRwcdjVLyyxnJ3QIzjO8bLCHDW3IYAvdfDaY3UrHPGRq2Zs%2BBELxOtP4CD6QEW8mKO75Oy7z2mBzn%2FmlzQYrkZXgvOAyep2wQxH%2FuKFQWPqlEnui4oJ0xksyrGRzPoWGhObfpsqhej45%2F8qMlWXvACEn7mRICPuyIL%2F45Jv7ACgquMraMeq2RKcgpJ3yK7XDiywnReq8H1aMl6Zfzq6Y5NN7yBs20IIU%2FUB%2Bz3DLD5K0cpVdbhzf%2By96qGbCRv%2FLcUEq5wlhclUXIQ0GxhC5Q88WbeNHD2EBPWneFC230ou%2F1YpsMzJH2nAw7tafTsXi1t8xxh6%2Fkubh22y9Sl7%2BLGS54dqhrjpdLhZ6M3yuVeMO9jDWSNnaszDrR4flyEOizOwvw6NVrS0RPHkHh2OVl29k8tnrJeg%2BXQzCrPINPShVaHuHajhHwLxSsznVMHuKXdc2iSjeVEK4BE2LLan%2BjFJ%2F3UMhjcs15igsGcBkCDj%2BGV7M93R%2FxrCwUys3sgKorBn9GHA%2FRlsIPPGwpmY%2BlxdmvSwfxNuBvvr3Lhy4ZLUV7TAy5mGy9Aa9TPya0%2FU4xw4w5Ke8sAY6sgF4mI9iWfJrpMiQnX%2F1dWXXTYSycVqp63%2F89LQ39nrUP9Qb4AOGPgcYcJYiHYCPBA1L6VYeg7MCNonCLpjKXOOWiqh1EPqlQQ3wJW9nHyWvdQInzYMgsg4YBI88CAoCFO4hw2Cnw5%2FsYL55qOljlpBpSgnKcd00B0NgfRVUJcya9kySyJo8Fn4lN3E9Nf6ba15uQgBadlo3OM9QYbYOZhHz00zUypV2AZT4DHjzif6I5ZXP&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20240404T212355Z&X-Amz-SignedHeaders=host&X-Amz-Expires=300&X-Amz-Credential=ASIAQ3PHCVTYTCWWWK6J%2F20240404%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=2e68cebe87e3de2c68b344abb33b64cf029b7213a29bdfb2a6521bc6ed2ae1df&hash=901df7fa13fd343c483576aa70d194ba0abc840e390dfa38c292b9df9053072e&host=68042c943591013ac2b2430a89b270f6af2c76d8dfd086a07176afe7c76c2c61&pii=S0167718723000668&tid=spdf-dda2b609-2e6b-49c1-8b62-b5369ee08b30&sid=afa357ee520d75401a487ab23f78146ece34gxrqa&type=client&tsoh=d3d3LnNjaWVuY2VkaXJlY3QuY29t&ua=0f115a52095456000404&rr=86f45cbc5d9c7b16&cc=us
+- figure 3
+- dont have
+
+13:Chu, Chintagunta, Vilcassim (2007)
+https://journals.sagepub.com/doi/full/10.1509/jmkr.44.1.029?casa_token=Bq3eDz1D6vQAAAAA%3AOWuSWcQ_dGWeSXA8bz4_D6qsf2cX5DjxADeNprLrEZscR1WX2Ru1PCAo9B1AJSgK-n1oT12BVfHj
+
+
+14: Derdenger (2010)
+https://www.economics.uci.edu/files/docs/micro/f10/derdenger.pdf
+- below figure 5
+- dont have
+
+
+
+Gooogle scholar fwd citations+ keyword markup
+done on april 5th
+Dopper again
+atakay again
+nevo again
+
+1: Brand (2021)
+https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3712513
+https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3712513
+- already have
+
+
+2: Meilin. Yunjaun (2020)
+https://ageconsearch.umn.edu/record/304350?ln=en&v=pdf
+- dont have
+
+
+3: Miller, Osborne, Sheu, Sileo (2023)
+https://deliverypdf.ssrn.com/delivery.php?ID=400020126087071103119092085071114010096068026065069063076084018102113025127116106127028021100056061044043002103114108117091102049022017012058022015064123071114071030073087060027096078114127029030003114085068070121102007107026113103095081022064088021123&EXT=pdf&INDEX=TRUE
+- table 2
+- dont have
+
+4: Nakamura, Zeorem (2010) 
+https://academic.oup.com/restud/article/77/3/1192/1571044
+- coffe
+- table 6
+- dont have
+
+5: Mariuzzo, Walsh, Whelan (2010)
+https://academic.oup.com/restud/article/77/3/1192/1571044
+-should be able to infer median from from table III
+- dont have
+
+
+6: Grieco, Murry, Yurukolglu (2024)
+https://web.stanford.edu/~ayurukog/CarMarkupsJuly2023.pdf
+- have
+
+
+7: Hottman (2015)
+https://academiccommons.columbia.edu/doi/10.7916/D8Z60N0N
+- not sure if theres anything usable here
+- dont have
+
+8: Li (2021)
+https://www.proquest.com/docview/2556408430/fulltextPDF/E8516FD632C848D5PQ/1?accountid=14503&sourcetype=Dissertations%20&%20Theses
+- dont have
+
+9: Ma Liu (2021)
+https://aae-seminars.s3.us-east-2.amazonaws.com/2021%2FMa%2BLiu_US+beef+markup_202101.pdf
+- table 6
+- dont have
+
+10: Miller, Weinberg (2017)
+http://www.nathanhmiller.org/mwbeer.pdf
+    - major breweries 
+    - data from 2001-2011
+        -split into pre merger (2008 and before) and post (2009-2011)
+        - median at product level, could take median of those and compare to median in sample
+    -cant get data for replication.
+    - "average" over data: (p-mc)/p=.34
+
+11: Florez-Acosta (2016)
+https://www.banrep.gov.co/sites/default/files/eventos/archivos/sem_22_cali.pdf
+- table 7
+
+
+12: Cachon Olivares (2009)
+https://pubsonline.informs.org/doi/epdf/10.1287/mnsc.1090.1095
+- page 208
+- dont have
+
+
+13: Chen (2024)
+https://deliverypdf.ssrn.com/delivery.php?ID=130069006013118014115071119076004031034018053020030049097000096125124102002070088122020018034045018032097092104025112115103073044016056009084003118105008027098125123003034034025031065000069080126073076077091003108111123067118089011082017076064074113000&EXT=pdf&INDEX=TRUE
+- page 34
+- dont have
+
+
+14: Chu, Chintagunta, Vilcassim (2007)
+https://journals.sagepub.com/doi/epub/10.1509/jmkr.44.1.029
+- table 6
+- dont have
+
+
+15: Monardo (2021)
+https://deliverypdf.ssrn.com/delivery.php?ID=049017110001010018001002067026025127017040064087064044065087024074105067122119013077026023006005053121011073124031087030098012060021056026068024024085001105095025088084051021117127021123114082107081123115003102085124116098113015066082077116127005115095&EXT=pdf&INDEX=TRUE
+- page 33
+- dont have
+
+
+16: Badruddozal, McCluskey, Carlson (2022)
+https://onlinelibrary.wiley.com/doi/full/10.1002/aepp.13207
+- below figure 4
+- dont have
+
+
+17 Yigma (2023)
+https://link.springer.com/article/10.1007/s11067-023-09601-3/tables/2
+- table 2
+- dont have
+
+
+18: Murry, Zhou (2020)
+https://link.springer.com/article/10.1007/s11067-023-09601-3/tables/2
+- page 1924
+- dont have
+
+
+19: Kim, Cotterill (2008)
+https://link.springer.com/article/10.1007/s11067-023-09601-3/tables/2
+- table VIII (take median)
+- cheese NAISC code: 311513
+- dont have 
+
+
+20: ou, Prentice, Yin (2012)
+https://www.sciencedirect.com/science/article/pii/S0167718711000488
+- table 5
+- dont have
+
+
+21: Sergiy (2020)
+https://www.sciencedirect.com/science/article/pii/S0167718711000488
+-figure 3.3 page 71
+- dont have
+
+22: Michel Weirgraeber (2018)
+https://economics.virginia.edu/sites/economics.virginia.edu/files/theory/Michel.pdf
+- top of page 35
+- dont have
+
+
+23: Zhang (2018)
+https://deliverypdf.ssrn.com/delivery.php?ID=233094095078068076079016113080116090096053008001005052086021075024067092121028078064114100125059114059052101027096119113070087056008068003082005125024029087000014118042021022111127122067019110067075082110071079026010107079073073094011123079027124107106&EXT=pdf&INDEX=TRUE
+- median from table 5
+- dont have
+
+
+24: Sakamoto (2023)
+https://aae-jmc.s3.us-east-2.amazonaws.com/rsakamoto/JMP_Sakamoto.pdf
+- from table 5 take median
+- dont have
+
+
+25: Song (2015)
+https://onlinelibrary.wiley.com/doi/full/10.1111/iere.12102
+- table 5
+- dont have
+
+
+26: Dai Yuan (2013)
+https://www.sciencedirect.com/science/article/pii/S0378426613003737?casa_token=kdsg8arNAT8AAAAA:OE4xdwHIzmhDH6wVfXQKdKug-el7CQeQMZO0ScyRvjyx6PNw8Gh2jidA1c1k4vf-RV3OnGgIgg
+- Banks
+- table 3
+- dont have
+
+
+27:  Bontemps, Wei (2021)
+https://sites.socsci.uci.edu/~jkbrueck/course%20readings/Bontemps%20et%20al.pdf
+- table 10 and 11
+
+
+28: Jingwen (2021)
+https://www.proquest.com/docview/2555328036?pq-origsite=gscholar&fromopenview=true&sourcetype=Dissertations%20&%20Theses
+- page 20
+
+
+
+
+
+
+
+
+
+
+OLD:
 1: Rising Markups and the Role of Consumer Preferences- 
 https://www.stern.nyu.edu/sites/default/files/assets/documents/Rising_Markups_and_the_Role_of_Consumer_Preferences.pdf
     - Manufactoring firms in retail goods
