@@ -304,12 +304,12 @@ https://deliverypdf.ssrn.com/delivery.php?ID=13006900601311801411507111907600403
 - cant use, doesnt actually report markups
 
 
-*45: Ganapati (2024, WP)
+*35: Ganapati (2024, WP)
 https://www.nber.org/papers/w32036
 - already have
 
 
-*46: Dooper et al (2023, WP)
+*36: Dooper et al (2023, WP)
  https://www.nber.org/system/files/working_papers/w31230/w31230.pdf
 very similar to brand in terms of sector, but different results
     - Manufactoring firms in retail goods
@@ -321,7 +321,7 @@ already have
 
 
 
-*47: Pfander (2024, WP) 
+*37: Pfander (2024, WP) 
 https://cadampfander.github.io/papers/Pfander_JMP.pdf
     - mean transport p/mc: .035 (table 2)
     - 2017 all US transportation

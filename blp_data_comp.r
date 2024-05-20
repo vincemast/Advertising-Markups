@@ -230,14 +230,14 @@ blp <- rbind(blp, pc_2001)
 ######################## 12 ###############################
 # Lou, Prentice, Yin (2012)
 # Digital Cameras naisc 333316 2003-2006
-# GR is Gowrisankaran and Rysman (2009) (call other)
+# GR is Gowrisankaran and Rysman (2009) 
 # RCL mean markup: .88
 # GR mean markup: .3
 
 dc <- data.frame("Digital Cameras", "avg", "markup", 333316, 6, 2003, 2006,
                  "Lou et al. (2012)", "Other",  .88)
 dc_gr <- data.frame("Digital Cameras", "avg", "markup", 333316, 6, 2003, 2006,
-                    "Gowrisankaran, Rysman (2009)", "RCL",  .32)
+                    "Lou et al. (2012)", "RCL",  .32)
 names(dc) <- names(blp_0)
 names(dc_gr) <- names(blp_0)
 blp <- rbind(blp, dc, dc_gr)
@@ -571,22 +571,22 @@ names(entrees_2017) <- names(blp_0)
 
 # naisc code: 311411 Frozen Fruit, Juice, and Vegetable Manufacturing
 juice_b_2006 <- c("Fruit Drinks", "median", "ratio", 311411, 6, 2006, 2006,
-                  "Brand (WP)", "RCL", 1.82)
+                  "Brand (2022)", "RCL", 1.82)
 
 juice_b_2017 <- c("Fruit Drinks", "median", "ratio", 311411, 6, 2017, 2017,
-                  "Brand (WP)", "RCL", 2.20)
+                  "Brand (2022)", "RCL", 2.20)
 
 #cookies naisc code: 311821 Cookie and Cracker Manufacturing
 cookies_2006 <- c("Cookies", "median", "ratio",  311821, 6, 2006, 2006,
-                  "Brand (WP)", "RCL", 2.01)
+                  "Brand (2022)", "RCL", 2.01)
 cookies_2017 <- c("Cookies", "median", "ratio",  311821, 6, 2017, 2017,
-                  "Brand (WP)", "RCL", 2.55)
+                  "Brand (2022)", "RCL", 2.55)
 
 #Entrees naisc code: 311412 Frozen Specialty Food Manufacturing
 entrees_2006 <- c("Entrees", "median", "ratio", 311412, 6, 2006, 2006,
-                  "Brand (WP)", "RCL", 2.09)
+                  "Brand (2022)", "RCL", 2.09)
 entrees_2017 <- c("Entrees", "median", "ratio", 311412, 6, 2017, 2017,
-                  "Brand (WP)", "RCL", 2.42)
+                  "Brand (2022)", "RCL", 2.42)
 
 names(ice_2006) <- names(blp_0)
 names(ice_2017) <- names(blp_0)

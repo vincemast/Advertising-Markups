@@ -85,10 +85,12 @@ Ucost <- read.csv("usercost.csv") # nolint
 
 #generate variables (mainly need)
 data <- vargen(dset, Ucost)
+data <- laggen(data)
 
 #keep only relevant columns (dont drop full might use later)
 data_mu <-
-  data %>% dplyr::select(MU, MU_deu, GVKEY, fyear, naics, industry, sale)
+  data %>% dplyr::select(MU, MU_deu, GVKEY, fyear, naics, industry, sale,
+                         soc, weight, w_l, lead, MU_l, MU_deu_l)
 
 ############################################################
 ############################################################
@@ -99,6 +101,10 @@ data_mu <-
 cor(data_mu$MU, data_mu$MU_deu, use = "complete.obs")
 #0.8100058 (constant elasticity)
 # 0.7960846 (by sector)
+
+
+
+mean(data_mu$MU / data_mu$MU_deu, na.rm = TRUE)
 
 #navigate to folder with functions (incase want to reload)
 setwd(dircs[1])
@@ -117,10 +123,12 @@ density_comp <- ggplot(data_mu) +
   scale_color_manual(values = c("Cost Accounting Markup" = "blue",
                                 "Production Function Markup" = "red")) +
   scale_x_continuous(
-                     trans = "log", breaks = c(0.5, 1, 5),
-                     limits = xlimits_d) +
+                     trans = "log",
+                     breaks = c(0.5, 1, 2, 6),
+                     limits = xlimits_d,
+                     labels = function(x) x - 1) +
   guides(colour = guide_legend(title = NULL)) +
-  labs(x = "Markup",
+  labs(x = "Markup ([p-mc]/mc, log scale)",
        y = "Density") +
   theme(text = element_text(size = 20), legend.position = "bottom")
 #display plot
@@ -146,11 +154,16 @@ density_comp_years <- ggplot(data_selected_years) +
   scale_color_manual(values = c("Cost Accounting Markup" = "blue",
                                 "Production Function Markup" = "red")) +
   facet_wrap(~ year_order, ncol = 2) +
-  scale_x_continuous(limits = xlimits_d, trans = "log10") +
+  scale_x_continuous(limits = xlimits_d,
+                     trans = "log10",
+                     breaks = c(0.5, 1, 2, 6),
+                     labels = function(x) x - 1) +
   guides(colour = guide_legend(title = NULL)) +
-  labs(x = "Markup",
+  labs(x = "Markup ([p-mc]/mc, log scale)",
        y = "Density") +
-  theme(text = element_text(size = 20), legend.position = "bottom")
+  theme(text = element_text(size = 20), legend.position = "bottom")+
+  guides(colour = guide_legend(title = NULL))
+
 
 # Display plot
 density_comp_years
@@ -164,6 +177,40 @@ save_f(density_comp_years, "density_comp_years_s.pdf", dircs, 9, 9, TRUE)
 ############################################################
 
 #create data
+agg_markups_nw <- data_mu %>%
+  group_by(fyear) %>% # nolint
+  summarise(Agg_MU = mean(MU, na.rm = TRUE), # nolint
+            Agg_MU_DEU = mean(MU_deu, na.rm = TRUE))
+
+
+agg_mu_comp_nw <- ggplot(data = agg_markups_nw, aes(x = fyear)) +
+  geom_line(aes(y = Agg_MU - 1, colour = "Cost Accounting Markup")) +
+  geom_line(aes(y = Agg_MU_DEU - 1, colour = "Production Function Markup")) +
+  theme(text = element_text(size = 20)) +
+  scale_colour_manual(values = c("Cost Accounting Markup" = "blue",
+                                 "Production Function Markup" = "red")) +
+  scale_x_continuous(limits = c(1955, 2022)) +
+  labs(x = "Year", y = "Average Markup ([p-mc]/mc)") +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  guides(colour = guide_legend(title = NULL))
+
+agg_mu_comp_nw
+
+cor(agg_markups_nw$Agg_MU, agg_markups_nw$Agg_MU_DEU, use = "complete.obs")
+#0.9754568 by sector
+
+mean(agg_markups_nw$Agg_MU / agg_markups_nw$Agg_MU_DEU, na.rm = TRUE)
+
+plot(agg_markups_nw$Agg_MU / agg_markups_nw$Agg_MU_DEU, type = "l")
+
+#save plot
+save_f(agg_mu_comp_nw, "agg_mu_comp_nw.pdf", dircs, 9, 9, TRUE)
+
+############################################################
+################# 2.b: Agg Comparison weighted ######################
+############################################################
+
+#create data
 agg_markups <- data_mu %>%
   group_by(fyear) %>% # nolint
   summarise(Agg_MU = weighted.mean(MU, sale, na.rm = TRUE), # nolint
@@ -171,14 +218,15 @@ agg_markups <- data_mu %>%
 
 
 agg_mu_comp <- ggplot(data = agg_markups, aes(x = fyear)) +
-  geom_line(aes(y = Agg_MU, colour = "Cost Accounting Markup")) +
-  geom_line(aes(y = Agg_MU_DEU, colour = "Production Function Markup")) +
+  geom_line(aes(y = Agg_MU - 1, colour = "Cost Accounting Markup")) +
+  geom_line(aes(y = Agg_MU_DEU - 1, colour = "Production Function Markup")) +
   theme(text = element_text(size = 20)) +
   scale_colour_manual(values = c("Cost Accounting Markup" = "blue",
                                  "Production Function Markup" = "red")) +
   scale_x_continuous(limits = c(1955, 2022)) +
-  labs(x = "Year", y = "Sales Weighted Markup") +
-  theme(text = element_text(size = 20), legend.position = "bottom")
+  labs(x = "Year", y = "Sales Weighted Markup ([p-mc]/mc)") +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  guides(colour = guide_legend(title = NULL))
 
 agg_mu_comp
 
@@ -190,7 +238,6 @@ cor(agg_markups$Agg_MU, agg_markups$Agg_MU_DEU, use = "complete.obs")
 #save plot
 save_f(agg_mu_comp, "agg_mu_comp_s.pdf", dircs, 9, 9, TRUE)
 
-
 ############################################################
 ################### 2.c: Scatterplot #######################
 ############################################################
@@ -200,24 +247,26 @@ set.seed(123)  # for reproducibility
 data_sample <- data_mu %>% sample_n(500)
 
 # Calculate percentiles
-x_limits <- quantile(data_mu$MU, c(0.1, 0.9), na.rm = TRUE)
-y_limits <- quantile(data_mu$MU_deu, c(0.1, 0.9), na.rm = TRUE)
+x_limits <- quantile(data_mu$MU - 1, c(0.1, 0.9), na.rm = TRUE)
+y_limits <- quantile(data_mu$MU_deu - 1, c(0.1, 0.9), na.rm = TRUE)
 
 # Plot
 scatter_comp <- ggplot() +
-  geom_point(data = data_sample, aes(x = MU, y = MU_deu), shape = 1) +
-  geom_smooth(data = data_mu,
-              aes(x = MU, y = MU_deu, color = "Regression line"),
-              method = "lm", se = FALSE) +
+  geom_point(data = data_sample, aes(x = MU - 1, y = MU_deu - 1), shape = 1) +
+  stat_smooth(data = data_mu,
+              aes(x = MU - 1, y = MU_deu - 1, color = "OLS line"),
+              method = "lm",
+              se = FALSE,
+              fullrange = TRUE) +
   geom_abline(intercept = 0, slope = 1, color = "red") +
   geom_blank(aes(color = "45-degree line")) +
-  xlim(x_limits) +
-  ylim(y_limits) +
+  coord_cartesian(xlim = x_limits, 
+                  ylim = y_limits) +
   scale_color_manual("",
-                     values = c("Regression line" = "blue",
+                     values = c("OLS line" = "blue",
                                 "45-degree line" = "red")) +
-  labs(x = "Cost Accounting Markup",
-       y = "Production Function Markup") +
+  labs(x = "Cost Accounting Markup ([p-mc]/mc)",
+       y = "Production Function Markup ([p-mc]/mc)") +
   theme(text = element_text(size = 20), legend.position = "bottom")
 
 #disolay plot
@@ -225,3 +274,85 @@ scatter_comp
 
 #save plot
 save_f(scatter_comp, "scatter_comp_s.pdf", dircs, 9, 9, TRUE)
+
+
+############################################################
+################### By sector: Scatterplot #######################
+############################################################
+
+
+#create data
+agg_markups_s <- data_mu %>%
+  group_by(industry) %>% # nolint
+  summarise(MU = mean(MU, na.rm = TRUE), # nolint
+            MU_deu = mean(MU_deu, na.rm = TRUE))
+
+#create plot
+scatter_comp_s <- ggplot() +
+  geom_point(data = agg_markups_s, aes(x = MU - 1, y = MU_deu - 1), shape = 1) +
+  stat_smooth(data = agg_markups_s,
+              aes(x = MU - 1, y = MU_deu - 1, color = "OLS line"),
+              method = "lm",
+              se = FALSE,
+              fullrange = TRUE) +
+  geom_abline(intercept = 0, slope = 1, color = "red") +
+  geom_blank(aes(color = "45-degree line")) +
+  scale_color_manual("",
+                     values = c("OLS line" = "blue",
+                                "45-degree line" = "red")) +
+  labs(x = "Sector Average Cost Accounting Markup ([p-mc]/mc)",
+       y = "Sector Average Production Function Markup ([p-mc]/mc)") +
+  theme(text = element_text(size = 20), legend.position = "bottom")
+
+scatter_comp_s
+
+
+#save plot
+save_f(scatter_comp_s, "s_scatter_comp_s.pdf", dircs, 9, 9, TRUE)
+
+mean(agg_markups_s$MU/agg_markups_s$MU_deu)
+
+cor(agg_markups_s$MU, agg_markups_s$MU_deu, use = "complete.obs")
+# by sector corr = 0.6297631
+
+
+###################################################
+################# agg by firm #######################
+###################################################
+
+#create data
+firm_markups <- data_mu %>%
+  group_by(GVKEY) %>% # nolint
+  summarise(MU = mean(MU, na.rm = TRUE), # nolint
+            MU_deu = mean(MU_deu, na.rm = TRUE))
+
+#create plot
+firm_markups_comp <- ggplot() +
+  geom_point(data = firm_markups, aes(x = MU - 1, y = MU_deu - 1), shape = 1) +
+  stat_smooth(data = firm_markups,
+              aes(x = MU - 1, y = MU_deu - 1, color = "OLS line"),
+              method = "lm",
+              se = FALSE,
+              fullrange = TRUE) +
+  geom_abline(intercept = 0, slope = 1, color = "red") +
+  geom_blank(aes(color = "45-degree line")) +
+  coord_cartesian(xlim = x_limits,
+                  ylim = y_limits) +
+  scale_color_manual("",
+                     values = c("OLS line" = "blue",
+                                "45-degree line" = "red")) +
+  labs(x = "Sector Average Cost Accounting Markup ([p-mc]/mc)",
+       y = "Sector Average Production Function Markup ([p-mc]/mc)") +
+  theme(text = element_text(size = 20), legend.position = "bottom")
+
+firm_markups_comp
+
+
+#save plot
+save_f(scatter_comp_s, "s_scatter_comp_s.pdf", dircs, 9, 9, TRUE)
+
+mean(agg_markups_s$MU/agg_markups_s$MU_deu)
+
+cor(agg_markups_s$MU, agg_markups_s$MU_deu, use = "complete.obs")
+
+

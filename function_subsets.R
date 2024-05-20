@@ -126,13 +126,33 @@ vargen <- function(data, Ucost) { #nolint
   min_year <- min(data$fyear, na.rm = TRUE)
   max_year <- max(data$fyear, na.rm = TRUE)
 
+  #sales over cogs
   tempdata <- data %>%
+    mutate( soc = sale / cogs) #nolint
+
+  tempdata <- tempdata %>%
     group_by(GVKEY) %>% #nolint
     mutate(
       entry = min(fyear), #nolint
       exit = max(fyear),
       age = ifelse(entry == min_year, NA, fyear - entry), #nolint
       life = ifelse(exit == max_year, NA, exit - fyear) #nolint
+    )
+
+  medage = 10 #nolint
+
+  tempdata <- tempdata %>%
+    mutate(
+      agep = ifelse(is.na(age), -1, age) #nolint
+    )
+
+  tempdata <- tempdata %>%
+    group_by(GVKEY) %>% #nolint
+    mutate(
+      young = ifelse(agep <= medage, 1, 0) * !is.na(age), #nolint
+      old = ifelse(agep > medage & !is.na(age), 1, 0) +
+            ifelse(is.na(age) & (fyear - min_year > medage), 1, 0), #nolint
+      unvar = ifelse(is.na(age) & (fyear - min_year <= medage), 1, 0)
     )
   ############################################################
   ###2: Merge and generate
@@ -164,6 +184,46 @@ vargen <- function(data, Ucost) { #nolint
   tempdata
 }
 
+
+
+##############################
+#lag gen
+laggen <- function(data) { #nolint
+
+tempdata <- data %>% # nolint
+  group_by(fyear) %>% # nolint
+  mutate(totsale = sum(sale, na.rm = TRUE)) # nolint
+
+tempdata <- tempdata %>% # nolint
+  mutate(weight = sale / totsale) #nolint
+
+
+
+tempdatal <- tempdata %>%
+  mutate(
+    fyear = fyear + 1,  #nolint
+    MU_l = MU, #nolint
+    w_l = weight,#nolint
+    MU_deu_l = MU_deu #nolint
+  )
+
+#select only useful variables
+tempdatal <- tempdatal %>%
+  dplyr::select(GVKEY, fyear, MU_l, w_l, MU_deu_l) #nolint
+
+tempdata <- merge(tempdata, tempdatal, by = c("GVKEY", "fyear"), all.x = TRUE)
+
+tempdata <- tempdata %>%
+  group_by(GVKEY) %>% #nolint
+  mutate(
+    xind = (exit == fyear), #nolint
+    nind = (entry == fyear) #nolint
+  )
+
+tempdata
+
+}
+##############################
 
 Cleanadv <- function(data) {  #nolint
 
@@ -197,7 +257,8 @@ clean_deu <- function(data) { #nolint
   # Remove rows with NA values in the GVKEY, fyear, and accounting variables #nolint
   data <-
     data[!is.na(data$GVKEY) & !is.na(data$fyear) & !is.na(data$naics)
-         & !is.na(data$industry)
+         #& !is.na(data$industry)
+          & !is.na(data$naics)
      & !is.na(data$ppegt) &!is.na(data$xsga) &!is.na(data$sale) & !is.na(data$cogs), ] #nolint
 
   # Ensure that accounting variables are positive
