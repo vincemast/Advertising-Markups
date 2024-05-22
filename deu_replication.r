@@ -205,7 +205,7 @@ ss_controls_l <- setup$ss_controls_l
 orthogs <- setup$orthogs
 
 # sort by sector
-temp <- temp[order(temp$industry),]
+temp <- temp[order(temp$industry), ]
 
 ############################################################
 ###########         2.b by sector estimate       #############
@@ -240,10 +240,6 @@ theta_st <-
                      ss_controls, ss_controls_l, orthogs, r, nmin)
 
 view(theta_st)
-
-plot(density(theta_st$theta, na.rm = TRUE))
-
-plot(x = theta_st$n.obs, y = theta_st$theta)
 
 plot(x = theta_st$n.obs, y = theta_st$theta,
      ylim = c(-.5, 2), xlim = c(0, 1000))
@@ -395,7 +391,7 @@ ggplot(data_st, aes(x = MU_deu)) +
 
 # Create the agg plot
 #create data
-agg_data <- data_g %>%
+agg_data <- data_st %>%
   group_by(fyear) %>% # nolint
   summarise(weighted_mean = weighted.mean(MU_deu, sale, na.rm = TRUE)) # nolint
 
