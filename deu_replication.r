@@ -173,7 +173,7 @@ pdata$m <- log(pdata$m)
 pdata$m3 <- log(pdata$m3)
 pdata$m4 <- log(pdata$m4)
 
-# sort by sector
+#sort by industry
 pdata <- pdata[order(pdata$industry),]
 
 ############################################################
@@ -204,6 +204,8 @@ ss_controls <- setup$ss_controls
 ss_controls_l <- setup$ss_controls_l
 orthogs <- setup$orthogs
 
+# sort by sector
+temp <- temp[order(temp$industry),]
 
 ############################################################
 ###########         2.b by sector estimate       #############
@@ -229,10 +231,9 @@ data_s$MU_deu <- data_s$theta / data_s$alpha
 ############################################################
 ###########         2.b rolling window       #############
 ############################################################
-
 #set rolling window length and min obs (expands window if too low)
 r <- 5
-nmin <- 750
+nmin <- 100
 source("function_deu.R")
 theta_st <-
   acf_rolling_window(temp, yvar, xvars, xvar_l, fs_rhs,
@@ -243,6 +244,18 @@ view(theta_st)
 plot(density(theta_st$theta, na.rm = TRUE))
 
 plot(x = theta_st$n.obs, y = theta_st$theta)
+
+plot(x = theta_st$n.obs, y = theta_st$theta,
+     ylim = c(-.5, 2), xlim = c(0, 1000))
+
+#plot theta by industry
+ggplot(theta_st, aes(x = fyear, y = theta)) +
+  geom_line() +
+  ylim(0.2, 1.5) +
+  labs(x = "Year", y = "Theta") +
+  facet_wrap(~ industry, ncol = 5) +
+  theme_minimal()
+
 ############################################################
 ###########         2.c constant .85       #############
 ############################################################
@@ -281,7 +294,7 @@ setwd(dircs[2])
 
 write.csv(data_st, "DEU_st.csv")
 write.csv(data_s, "DEU_s.csv")
-write.csv(pdata_deu, "DEU_c.csv")
+write.csv(data_c, "DEU_c.csv")
 
 write.csv(theta_st, "theta_st.csv")
 write.csv(theta_s, "theta_s.csv")
@@ -303,22 +316,61 @@ write.csv(theta_s, "theta_s.csv")
 ###########        data greed      #############
 ############################################################
 
-#set rolling window length and min obs (expands window if too low)
-g <- 1
+#set rolling window length to 1 and min obs to 0 to see behavior
+rg <- 1
+nming <- 1
 source("function_deu.R")
 theta_g <-
   acf_rolling_window(temp, yvar, xvars, xvar_l, fs_rhs,
-                     ss_controls, ss_controls_l, orthogs, g, g)
+                     ss_controls, ss_controls_l, orthogs, rg, nming)
 
-plot(x = theta_st$n.obs, y = theta_st$theta)
+plot(x = theta_g$n.obs, y = theta_g$theta, ylim = c(-.5, 2), xlim = c(0, 1000))
 
+plot(x = theta_st$n.obs, y = theta_st$theta, ylim = c(-.5, 2), xlim = c(0, 1000))
 
-
-
-
-
+view(theta_g)
 
 
+ggplot(theta_g, aes(x = fyear, y = theta)) +
+  geom_line() +
+  ylim(0.2, 1.5) +
+  labs(x = "Year", y = "Theta") +
+  facet_wrap(~ industry, ncol = 5) +
+  theme_minimal()
+
+
+#merge thetas with data
+data_g <-
+  merge(data, theta_st, by.x = c("industry", "fyear"),
+        by.y = c("industry", "fyear"), all.x = TRUE)
+
+#generate mu_deu = theta/alpha
+data_g$MU_deu <- data_g$theta / data_g$alpha
+
+
+# Create the agg plot
+#create data
+agg_data_g <- data_g %>%
+  group_by(fyear) %>% # nolint
+  summarise(weighted_mean = weighted.mean(MU_deu, sale, na.rm = TRUE)) # nolint
+
+names(agg_data_g) <- c("year", "Ag_MU")
+agg_data_g$year <- as.numeric(as.character(agg_data_g$year))
+#plot
+agg_mu_g_plot <-  ggplot() +
+  geom_line(data = agg_data_g,
+              aes(y = Ag_MU - 1, x = year, color = "DWL/DEU")) + # nolint
+  theme(text = element_text(size = 20)) +
+  labs(x = "Year", y = "Sales Weighted Markup") +
+  theme(legend.position = "bottom")
+
+agg_mu_g_plot
+
+
+
+
+write.csv(theta_g, "theta_st.csv")
+write.csv(theta_s, "theta_s.csv")
 
 
 
@@ -328,7 +380,8 @@ plot(x = theta_st$n.obs, y = theta_st$theta)
 
 
 
-plot(density(data_s$MU_deu, na.rm = TRUE))
+
+
 
 # Calculate the 1st and 99th percentiles
 q1 <- quantile(data_st$MU_deu, 0.05, na.rm = TRUE)
@@ -342,7 +395,7 @@ ggplot(data_st, aes(x = MU_deu)) +
 
 # Create the agg plot
 #create data
-agg_data <- data_st %>%
+agg_data <- data_g %>%
   group_by(fyear) %>% # nolint
   summarise(weighted_mean = weighted.mean(MU_deu, sale, na.rm = TRUE)) # nolint
 

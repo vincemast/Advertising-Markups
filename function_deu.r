@@ -285,7 +285,7 @@ second_stage_exp <-
                     method = "BFGS", #lower = lower, upper = upper,
                     input = input,
                     control = list(
-                      trace = FALSE, maxit = 1e9, reltol = 1e-9
+                      trace = FALSE, maxit = 1e9, reltol = 1e-10
                                    #,factr = 1e8 #nolint
                                    )) #nolint
 
@@ -431,10 +431,6 @@ acf_rolling_window <-
 
     #get sector names and years
     sectors <- unique(tempdata$industry)
-    # Get the range of years
-    years <- range(tempdata$year)
-    all_years <- seq(from = years[1], to = years[2])
-
     # Initialize a flag for errors
     error_flag <- FALSE
 
@@ -444,10 +440,10 @@ acf_rolling_window <-
       # Subset the data to the rolling windows
       pdata_sector <- tempdata %>% filter(industry == sectors[i]) #nolint
 
-      #ols for starting value (using full sample)
-      formula <- as.formula(paste(yvar, "~ ."))
-      ols <- lm(formula, data = pdata_sector[, c(yvar, xvars)])
-      theta_init[1:l]<- ols$coefficients #nolint
+      # Get the range of years
+      years <- range(pdata_sector$year)
+      all_years <- seq(from = years[1], to = years[2])
+
 
       ##############################################################
       ##################### 1 rolling window ##########################
@@ -483,6 +479,12 @@ acf_rolling_window <-
           NA
         })
 
+        #ols for starting value
+        formula <- as.formula(paste(yvar, "~ ."))
+        ols <- lm(formula, data = pdata_window[, c(yvar, xvars)])
+        theta_init[1:l]<- ols$coefficients #nolint
+
+
         #update starting value to last value
         #(not doing, use ols on full sample for all starting values)
         #if (!is.na(result$par[1])) {
@@ -508,6 +510,7 @@ acf_rolling_window <-
         theta_est <- result$par[2]
         theta_kest <- result$par[3]
         convergence <- result$convergence
+        counts <-  result$counts[1]
 
         #to be added to output of loop
         theta_temp <- c(
@@ -519,14 +522,15 @@ acf_rolling_window <-
           theta_k = theta_kest,
           w_width = r + 2 * e_r,
           w_start = current_year - ((r - 1) / 2 + e_r),
-          w_end = current_year + ((r - 1) / 2 + e_r)
+          w_end = current_year + ((r - 1) / 2 + e_r),
+          counts =  counts
         )
 
         thetas <- rbind(thetas, theta_temp)
 
         print(paste(
                     "Y:", current_year, "I:", sectors[i], "theta_c:",
-                    round(theta_est, 5), "cc:", convergence))
+                    round(theta_est, 5), "cc:", convergence, "its", counts))
 
       }
       if (error_flag) {
@@ -542,8 +546,8 @@ acf_rolling_window <-
     thetas <- data.frame(thetas)
     rownames(thetas) <- NULL
     names(thetas) <-
-      c("industry", "fyear", "theta", "convergence", "n.obs", "theta_k", 
-        "w_width", "w_start", "w_end")
+      c("industry", "fyear", "theta", "convergence", "n.obs", "theta_k",
+        "w_width", "w_start", "w_end", "iterations")
 
     thetas$theta <- as.numeric(as.character(thetas$theta))
     thetas$fyear <- as.numeric(as.character(thetas$fyear))
@@ -551,6 +555,7 @@ acf_rolling_window <-
     thetas$n.obs <- as.numeric(as.character(thetas$n.obs))
     thetas$theta_k <- as.numeric(as.character(thetas$theta_k))
     thetas$w_width <- as.numeric(as.character(thetas$w_width))
+    thetas$iterations <- as.numeric(as.character(thetas$iterations))
     thetas
   }
 
