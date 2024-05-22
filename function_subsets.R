@@ -248,7 +248,7 @@ Cleanadv <- function(data) {  #nolint
 clean_deu <- function(data) { #nolint
 
   #trim at 1%
-  data <- alpha_xsag_trim(data, 1, 1)
+  data <- c_p_trim(data, 5, 5)
 
   # Drop observations when duplicates exist
   data <- data[!(duplicated(data[, c("GVKEY", "fyear")]) |
@@ -331,6 +331,36 @@ alpha_xsag_trim <- function(data,p,q){ #nolint
   tempdata <- data %>%  #nolint
     mutate(alpha = cogs / sale) %>%  #nolint
     mutate(alphax = xsga / sale) #nolint
+
+  #get p% and 100-p% quantiles
+  tempdata <- tempdata %>%
+    group_by(fyear) %>% #nolint
+    mutate(
+      q1 = quantile(alpha[is.finite(alpha)], 0 +  p / 100, #nolint
+        na.rm = TRUE), #nolint
+      q99 = quantile(alpha[is.finite(alpha)], 1 - p / 100,
+        na.rm = TRUE), #nolint
+      q1x = quantile(alphax[is.finite(alphax)], 0 +  q / 100, #nolint
+        na.rm = TRUE), #nolint
+      q99x = quantile(alphax[is.finite(alphax)], 1 - q / 100,
+        na.rm = TRUE) #nolint
+    ) %>%
+    ungroup() %>%
+    filter(alpha > q1 & alpha < q99) %>% #nolint
+    filter(alphax > q1x & alphax < q99x) #nolint
+
+  tempdata
+
+}
+
+
+#generate alpha = cogs/sales and alphax = xsga/sales
+# and trim at 1% and 99% by year
+c_p_trim <- function(data,p,q){ #nolint
+
+  tempdata <- data %>%  #nolint
+    mutate(alpha = cogs / sale) %>%  #nolint
+    mutate(alphax = ppegt / sale) #nolint
 
   #get p% and 100-p% quantiles
   tempdata <- tempdata %>%

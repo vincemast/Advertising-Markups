@@ -17,7 +17,7 @@ library(MASS)
 # xvars - inputs
 # fszvars - first stage controls
 # zvars - controls in second stage (if included should be same as fszvars)
-#orthogx - orthogonal momments of x data
+# orthogx - orthogonal momments of x data
 # actual moment also combines poly of second stage
 
 # panel - panel data
@@ -34,7 +34,7 @@ library(MASS)
 #output$orthogs - names of orthogonal moments (adds in controls)
 #     name any xvar lags as "name"_l, will be generated
 
-set_up <- function(yvar, xvars,  fszvars, zvars, orthogx, panel) {
+set_up_o <- function(yvar, xvars,  fszvars, zvars, orthogx, panel) {
 
   temp <- panel
 
@@ -76,7 +76,7 @@ set_up <- function(yvar, xvars,  fszvars, zvars, orthogx, panel) {
   }
 
   ################# 3. intruments ##################
-  orthogs <- c(orthogx, ss_controls, ss_controls_l)
+  orthogs <- c(orthogx, ss_controls_l)
 
 
   #return list
@@ -95,6 +95,72 @@ set_up <- function(yvar, xvars,  fszvars, zvars, orthogx, panel) {
 
 }
 
+
+
+
+
+set_up <- function(yvar, xvars,  fszvars, zvars, orthogx, panel) {
+
+  temp <- panel
+
+  ################# 1. gen all lags before polys (saves time) #####
+
+  #generate xlags
+  temp <- gen_lags(temp, xvars)
+  xvar_l <- lag_names(xvars)
+
+  #generate zlags and xz lags
+  #first get xz
+  temp <- gen_xz(xvars, zvars, temp)
+  xz <- xz_names(xvars, zvars)
+  #generate lags of xz and z
+  temp <- gen_lags(temp, c(xz, zvars))
+
+  z_l <- lag_names(c(zvars))
+
+  ################# 2. gen first stage rhs ##################
+
+  #generate first stage polynominals
+  temp <- poly_gen(temp, c(xvars, fszvars))
+  fs_rhs <- poly_gen_names(c(xvars, fszvars))
+
+  ################# 3. gen second stage controls ##################
+
+  #check if zvars are given
+  #default to NULL
+  if (!is.null(zvars)) {
+    #generate second stage control polynominals
+    temp <- poly_gen(temp, c(zvars))
+    ss_controls <<- poly_gen_names(c(zvars))
+    #generate lags of second stage controls poly lags
+    temp <- poly_gen(temp, z_l)
+    ss_controls_l <<- poly_gen_names(z_l)
+  } else {
+    ss_controls <- NULL
+    ss_controls_l <- NULL
+  }
+
+  ################# 3. intruments ##################
+  orthogs <- c(orthogx, ss_controls_l)
+
+
+  #return list
+  return <- list()
+  return$data <- temp
+  return$y <- yvar
+  return$xvars <- xvars
+  return$y <- yvar
+  return$xvar_l <- xvar_l
+  return$fs_rhs <- fs_rhs
+  return$ss_controls <- ss_controls
+  return$ss_controls_l <- ss_controls_l
+  return$orthogs <- orthogs
+  #return
+  return
+
+}
+
+
 ############################################################
 ############################################################
 ##################   1: First Stage    #####################
@@ -103,6 +169,8 @@ set_up <- function(yvar, xvars,  fszvars, zvars, orthogx, panel) {
 
 #adapted from:
 #https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/5GH8XO #nolint
+
+#need to make more flexible, currently hard coding in time index and GVKEY
 
 #runs regression using rhs (should be polys)
 first_stage_exp <- function(yvar, rhs, panel) {
@@ -121,12 +189,7 @@ first_stage_exp <- function(yvar, rhs, panel) {
   panel$phi <- predicted_df$phi
 
   # Create the lagged phi
-  panel <- panel %>%
-    group_by(GVKEY) %>% #nolint
-    mutate(
-      phi_l = lag(phi)) %>% #nolint
-    ungroup()
-
+  panel <- p_lag(panel, "year", "GVKEY", "phi", "_l")
   panel
 
 }
@@ -222,7 +285,7 @@ second_stage_exp <-
                     method = "BFGS", #lower = lower, upper = upper,
                     input = input,
                     control = list(
-                      trace = FALSE, maxit = 1e9, reltol = 1e-6
+                      trace = FALSE, maxit = 1e9, reltol = 1e-9
                                    #,factr = 1e8 #nolint
                                    )) #nolint
 
@@ -264,7 +327,7 @@ acf_bysector_exp <-
       # Initialize a flag for errors
       error_flag <- FALSE
 
-      # Subset the data to the rolling windows
+      # Subset the data to the sector
       pdata_sector <- temp %>% filter(industry == sectors[i]) #nolint
 
       # Run the first stage and handle errors
@@ -346,6 +409,163 @@ acf_bysector_exp <-
 
 
 
+
+
+
+
+acf_rolling_window <-
+  function(temp, yvar, xvars, xvar_l, fs_rhs,
+    ss_controls, ss_controls_l, orthogs, r, nmin) { #nolint
+
+
+    ##################### 0 prep inputs for 2 stages ##########################
+    #get length of xvars and ss_controls
+    l <- length(xvars) + 1
+    lt <- l + length(ss_controls)
+    theta_init <- rep(0, lt) #nolint
+
+    #sort so it prints nice
+    tempdata <- temp %>% arrange(year, industry) #nolint
+    #initiate empty theta
+    thetas <- data.frame()
+
+    #get sector names and years
+    sectors <- unique(tempdata$industry)
+    # Get the range of years
+    years <- range(tempdata$year)
+    all_years <- seq(from = years[1], to = years[2])
+
+    # Initialize a flag for errors
+    error_flag <- FALSE
+
+    ##################### 1 loop over sectors ##########################
+    for (i in 1:length(sectors)) { #nolint
+
+      # Subset the data to the rolling windows
+      pdata_sector <- tempdata %>% filter(industry == sectors[i]) #nolint
+
+      #ols for starting value (using full sample)
+      formula <- as.formula(paste(yvar, "~ ."))
+      ols <- lm(formula, data = pdata_sector[, c(yvar, xvars)])
+      theta_init[1:l]<- ols$coefficients #nolint
+
+      ##############################################################
+      ##################### 1 rolling window ##########################
+      ##############################################################
+      #loop over years
+      for (current_year in  all_years) {
+
+        # Initialize a flag for errors
+        error_flag <- FALSE
+
+        # Subset the data to the rolling windows
+        pdata_window <- pdata_sector %>% filter(year >= current_year - (r - 1) / 2, #nolint
+                                                year <= current_year + (r - 1) / 2) #nolint
+
+        #increase window if not enough obs
+        e_r <- 0
+
+        while (sum(complete.cases(pdata_window[, c(xvars, xvar_l)])) < nmin) {
+          e_r <- e_r + 1
+          pdata_window <- pdata_sector %>% filter(year >= current_year - ((r - 1) / 2 + e_r), #nolint
+                                                    year <= current_year + ((r - 1) / 2 + e_r)) #nolint
+          if (e_r > years[2] - years[1]) {
+            break
+          }
+        }
+
+
+        # Run the first stage and handle errors
+        panelf <- tryCatch({
+          first_stage_exp(yvar, fs_rhs, pdata_window)
+        }, error = function(e) {
+          error_flag <<- TRUE
+          NA
+        })
+
+        #update starting value to last value
+        #(not doing, use ols on full sample for all starting values)
+        #if (!is.na(result$par[1])) {
+        #  theta_init <- result$par #nolint
+        #}
+
+        # Run the second stage and handle errors
+        result <- tryCatch({
+          result <-
+            second_stage_exp(
+                             panelf, yvar, xvars, xvar_l,
+                             ss_controls, ss_controls_l, orthogs,
+                             theta_init)
+          result
+        }, error = function(e) {
+          error_flag <- TRUE #nolint
+          result$par <- c(NA, NA, NA)
+          result$convergence <<- NA
+          result
+        })
+
+        #temp save the things we want
+        theta_est <- result$par[2]
+        theta_kest <- result$par[3]
+        convergence <- result$convergence
+
+        #to be added to output of loop
+        theta_temp <- c(
+          sector = sectors[i],
+          year = current_year,
+          theta = theta_est,
+          convergence = convergence,
+          n = sum(complete.cases(pdata_window[, c("c", "c_l")])),
+          theta_k = theta_kest,
+          w_width = r + 2 * e_r,
+          w_start = current_year - ((r - 1) / 2 + e_r),
+          w_end = current_year + ((r - 1) / 2 + e_r)
+        )
+
+        thetas <- rbind(thetas, theta_temp)
+
+        print(paste(
+                    "Y:", current_year, "I:", sectors[i], "theta_c:",
+                    round(theta_est, 5), "cc:", convergence))
+
+      }
+      if (error_flag) {
+        print(paste("\n \n !!Sector", sectors[i],
+                    "estimation complete WITH ERRORS!! \n \n"))
+      } else {
+        print(
+              paste("\n \n Sector",
+                    sectors[i], "estimation complete without errors. \n \n"))
+      }
+    }
+    #clean output and names
+    thetas <- data.frame(thetas)
+    rownames(thetas) <- NULL
+    names(thetas) <-
+      c("industry", "fyear", "theta", "convergence", "n.obs", "theta_k", 
+        "w_width", "w_start", "w_end")
+
+    thetas$theta <- as.numeric(as.character(thetas$theta))
+    thetas$fyear <- as.numeric(as.character(thetas$fyear))
+    thetas$convergence <- as.numeric(as.character(thetas$convergence))
+    thetas$n.obs <- as.numeric(as.character(thetas$n.obs))
+    thetas$theta_k <- as.numeric(as.character(thetas$theta_k))
+    thetas$w_width <- as.numeric(as.character(thetas$w_width))
+    thetas
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
 acf_rolling_window_exp <-
   function(temp, yvar, xvars, xvar_l, fs_rhs,
     ss_controls, ss_controls_l, orthogs, r, block) { #nolint
@@ -424,7 +644,7 @@ acf_rolling_window_exp <-
           year = years[1] + j - 1,
           theta = theta_est,
           convergence = convergence,
-          n = nrow(pdata_window),
+          n = sum(complete.cases(pdata_window[, c("c", "c_l")])),
           theta_k = theta_kest
         )
 
@@ -488,7 +708,7 @@ acf_rolling_window_exp <-
           year = current_year,
           theta = theta_est,
           convergence = convergence,
-          n = nrow(pdata_window),
+          n = sum(complete.cases(pdata_window[, c("c", "c_l")])),
           theta_k = theta_kest
         )
 
@@ -529,6 +749,25 @@ acf_rolling_window_exp <-
 ##################   3: useful    #####################
 ############################################################
 ############################################################
+
+p_lag <- function(data, tvar, index, var, suffix) {
+  data_l <- data
+  #time + 1
+  data_l[tvar] <- data_l[tvar]  + 1
+  #rename to lag
+  lagname <- paste0(var, suffix)
+  data_l[lagname] <- data_l[var]
+  #keep just new var and things needed for merge
+  data_l <- data_l[c(index, tvar, lagname)]
+  #merge
+  data <- merge(data, data_l, by = c(index, tvar), all.x = TRUE)
+
+  data
+
+}
+
+
+
 
 #generate polynominals, defining seperate saves a few lines later
 
@@ -600,15 +839,10 @@ poly_gen_names <- function(vars, degree = 3) {
 
 #generate lags
 gen_lags <- function(panel, vars) {
-
-  # Create the lagged variables
-  panel <- panel %>% #nolint
-    group_by(GVKEY) %>% #nolint
-    mutate_at(vars, list(l = ~ lag(.))) %>% #nolint
-    ungroup()
-
+  for (i in vars) {
+    panel <- p_lag(panel, "year", "GVKEY", i, "_l")
+  }
   panel
-
 }
 
 #generate names of lags following generate lags

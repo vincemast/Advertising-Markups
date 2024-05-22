@@ -33,7 +33,7 @@ m_share_2_3_digit <- c("m", "m3")
 m_share_2_3_4_digit <- c("m", "m3", "m4")
 
 #pick here
-mvars <- m_share_2_digit
+mvars <- m_share_2_3_4_digit
 
 ############################################################
 ############################################################
@@ -134,7 +134,8 @@ data <- clean_deu(data)
 #keep only relevant columns
 data <- data %>% dplyr::select(sale, cogs,
   ppegt, xsga, naics, industry, conm, #nolint
-  year, GVKEY, fyear, m, m3, m4, xad, K) #nolint
+  year, GVKEY, fyear, m, m3, m4, xad, K,
+  alpha) #nolint
 
 ############################################################
 ################## 1.e Check DEU subset  ###################
@@ -168,6 +169,12 @@ pdata <- pdata %>% #nolint
 pdata <- pdata %>% dplyr::select(y, c, k, x, naics, industry, #nolint
   year, GVKEY, fyear, m, m3, m4) #nolint
 
+pdata$m <- log(pdata$m)
+pdata$m3 <- log(pdata$m3)
+pdata$m4 <- log(pdata$m4)
+
+# sort by sector
+pdata <- pdata[order(pdata$industry),]
 
 ############################################################
 ############################################################
@@ -193,9 +200,10 @@ yvar <- setup$y
 xvars <- setup$xvars
 xvar_l <- setup$xvar_l
 fs_rhs <- setup$fs_rhs
-ss_con <- setup$ss_controls
-ss_con_l <- setup$ss_controls_l
+ss_controls <- setup$ss_controls
+ss_controls_l <- setup$ss_controls_l
 orthogs <- setup$orthogs
+
 
 ############################################################
 ###########         2.b by sector estimate       #############
@@ -205,7 +213,7 @@ source("function_deu.R")
 theta_s <-
   acf_bysector_exp(
                    temp, yvar, xvars, xvar_l,
-                   fs_rhs, ss_con, ss_con_l, orthogs)
+                   fs_rhs, ss_controls, ss_controls_l, orthogs)
 
 view(theta_s)
 
@@ -218,27 +226,23 @@ data_s <-
 #generate mu_deu = theta/alpha
 data_s$MU_deu <- data_s$theta / data_s$alpha
 
-#navigate to data folder
-setwd(dircs[2])
-write.csv(data_s, "DEU_s.csv")
-write.csv(theta_s, "thetas_s.csv")
-
 ############################################################
 ###########         2.b rolling window       #############
 ############################################################
 
-#set rolling window length and initial block
+#set rolling window length and min obs (expands window if too low)
 r <- 5
-block <- 19
+nmin <- 750
 source("function_deu.R")
 theta_st <-
-  acf_rolling_window_exp(temp, yvar, xvars, xvar_l, fs_rhs,
-                         ss_con, ss_con_l, orthogs, r, block)
+  acf_rolling_window(temp, yvar, xvars, xvar_l, fs_rhs,
+                     ss_controls, ss_controls_l, orthogs, r, nmin)
 
 view(theta_st)
 
 plot(density(theta_st$theta, na.rm = TRUE))
 
+plot(x = theta_st$n.obs, y = theta_st$theta)
 ############################################################
 ###########         2.c constant .85       #############
 ############################################################
@@ -274,12 +278,13 @@ data_c$MU_deu <- data_c$theta / data_c$alpha
 #navigate to data folder
 setwd(dircs[2])
 
-write.csv(data_s_yr, "DEU_st.csv")
+
+write.csv(data_st, "DEU_st.csv")
 write.csv(data_s, "DEU_s.csv")
 write.csv(pdata_deu, "DEU_c.csv")
 
 write.csv(theta_st, "theta_st.csv")
-write.csv(thetas_s, "thetas_s.csv")
+write.csv(theta_s, "theta_s.csv")
 
 
 
@@ -293,7 +298,37 @@ write.csv(thetas_s, "thetas_s.csv")
 ############################################################
 ############################################################
 
-plot(density(data_st$MU_deu, na.rm = TRUE))
+
+############################################################
+###########        data greed      #############
+############################################################
+
+#set rolling window length and min obs (expands window if too low)
+g <- 1
+source("function_deu.R")
+theta_g <-
+  acf_rolling_window(temp, yvar, xvars, xvar_l, fs_rhs,
+                     ss_controls, ss_controls_l, orthogs, g, g)
+
+plot(x = theta_st$n.obs, y = theta_st$theta)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+plot(density(data_s$MU_deu, na.rm = TRUE))
 
 # Calculate the 1st and 99th percentiles
 q1 <- quantile(data_st$MU_deu, 0.05, na.rm = TRUE)
@@ -315,10 +350,7 @@ names(agg_data) <- c("year", "Ag_MU")
 
 agg_data$year <- as.numeric(as.character(agg_data$year))
 
-# Filter the data
-agg_data_filtered <- agg_data %>% filter(year > 1955)
-
-agg_data_filtered <- agg_data_filtered %>% filter(year < 2017)
+plot(x = agg_data$year, y = agg_data$Ag_MU)
 
 #plot
 agg_mu_plot <-  ggplot() +

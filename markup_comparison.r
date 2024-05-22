@@ -23,7 +23,7 @@ p_folder <-
 #switch to save files or not
 save_files <- FALSE
 
-deu_marks <- c("DEU_st.csv", "DEU_s.csv", "DEU_c.csv")
+deu_marks <- c("DEU_s_yr.csv", "DEU_s.csv", "DEU_c.csv")
 #select which version of DEU markups to use
 use <- deu_marks[2]
 
@@ -90,7 +90,7 @@ data <- laggen(data)
 #keep only relevant columns (dont drop full might use later)
 data_mu <-
   data %>% dplyr::select(MU, MU_deu, GVKEY, fyear, naics, industry, sale,
-                         soc, weight, w_l, lead, MU_l, MU_deu_l)
+                         soc, weight, w_l, MU_l, MU_deu_l)
 
 ############################################################
 ############################################################
