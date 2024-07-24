@@ -14,10 +14,11 @@ require(scales)
 ############################################################
 
 xad_density <- function(Data) {# nolint
-  xaddensity <- ggplot(Data, aes(x = Adr_MC)) + # nolint
+  xaddensity <- ggplot(Data, aes(x = Adr)) + # nolint
     geom_density() +
     theme(text = element_text(size = 20)) +
-    labs(x = "xad (Advertising Share) \n (Log-scale)", y = "Density") +
+    labs(x = "xad (Advertising Share of Revenue) \n (Log-scale)", 
+         y = "Density") +
     scale_x_continuous(trans = log10_trans(), # nolint
                        limits = c(.00001, 30), labels = comma) #nolint
 
@@ -54,16 +55,30 @@ mu_density <- function(Data,Dset) {# nolint
 ##############   2.a create data  ############################
 ############################################################
 #aggregate markups
-agg_mu <- function(MU_data) { # nolint
+agg_mu <- function(MU_data, weight) { # nolint
+
+  #make sure weight is either "sales" or ""
+   if(!weight %in% c("sales", "")) {
+    stop("Error, weight should either be \"sales\" or blank (i.e., \"\")")
+  }
+
   tempdata <- MU_data %>%
     filter(!is.na(usercost)) %>% # nolint
     filter(MU >= 0) %>% # nolint
     filter(MU < 100000)
   #drop crazy values
 
-  tempdata_2 <- tempdata %>%
-    group_by(fyear) %>% # nolint
-    summarise(weighted.mean(MU, sale, na.rm = TRUE)) # nolint
+  #agg depending on weight
+  if(weight == "sales") {
+    tempdata_2 <- tempdata %>%
+      group_by(fyear) %>% # nolint
+      summarise(weighted.mean(MU, sale, na.rm = TRUE)) # nolint
+    #remove NAs for sector
+  }else{
+    tempdata_2 <- tempdata %>%
+      group_by(fyear) %>% # nolint
+      summarise(mean(MU, na.rm = TRUE)) # nolint
+  }
 
   names(tempdata_2) <- c("year", "Ag_MU")
   #rename
@@ -73,7 +88,12 @@ agg_mu <- function(MU_data) { # nolint
 }
 
 #Aggregate markups with weight
-agg_mu_reweight <- function(MU_data, reweight_data) {# nolint
+agg_mu_reweight <- function(MU_data, reweight_data, weight) {# nolint
+
+  #make sure weight is either "sales" or ""
+   if(!weight %in% c("sales", "")) {
+    stop("Error, weight should either be \"sales\" or blank (i.e., \"\")")
+  }
 
 
 tempdata_MU <- MU_data %>% # nolint
@@ -87,26 +107,39 @@ tempdata_weight <- reweight_data %>%
   filter(sale > 0)
   #remove NAs for sector
 
-  tempdata <- tempdata_MU %>%
-    group_by(fyear,naics) %>% # nolint
-  summarise(weighted.mean(MU, sale, na.rm = TRUE)) # nolint
-  #generate sales weighted average markups within each sector year
+
+  #generate sales average markups within each sector year depending on weight
+  if(weight == "sales") {
+    tempdata <- tempdata_MU %>% # nolint
+      group_by(fyear,naics) %>% # nolint
+    summarise(weighted.mean(MU, sale, na.rm = TRUE)) # nolint
+  }else{
+    tempdata <- tempdata_MU %>% # nolint
+      group_by(fyear,naics) %>% # nolint
+    summarise(mean(MU, na.rm = TRUE)) # nolint
+  }
   names(tempdata) <- c("year", "naics", "MU")
   #rename
 
-tempdata_2 <- tempdata_weight %>% # nolint
-  group_by(fyear, naics) %>% # nolint
-  summarise(sum(sale, na.rm = TRUE)) # nolint
   #generate weights for each secgor within each year
-  names(tempdata_2) <- c("year", "naics", "sale")
-  #rename
+  if(weight == "sales") {
+    tempdata_weight <- tempdata_weight %>% # nolint
+      group_by(fyear, naics) %>% # nolint
+    summarise(sum(sale, na.rm = TRUE)) # nolint
+  }else{
+    tempdata_weight <- tempdata_weight %>% # nolint
+      group_by(fyear, naics) %>% # nolint
+    summarise(n()) # nolint
+  }
+  names(tempdata_weight) <- c("year", "naics", "weight")
 
-tempdata_3 <- merge(tempdata, tempdata_2) # nolint
+tempdata_3 <- merge(tempdata, tempdata_weight) # nolint
   #merge with weights
 
+  #apply weights
 tempdata_4 <- tempdata_3 %>% # nolint
   group_by(year) %>% # nolint
-  summarise(weighted.mean(MU, sale, na.rm = TRUE)) # nolint
+  summarise(weighted.mean(MU, weight, na.rm = TRUE)) # nolint
   #apply weights
   names(tempdata_4) <- c("year", "Ag_MU")
 
@@ -118,11 +151,24 @@ tempdata_4 <- tempdata_3 %>% # nolint
 ##############   2.b Plot  ############################
 ############################################################
 
-agg_mu_plot <- function(fullsample, subsample) {
+agg_mu_plot <- function(fullsample, subsample, weight) {
 
-  agg_mu_all <- invisible(agg_mu(fullsample))
-  agg_mu_insamp <- invisible(agg_mu(subsample))
-  agg_mu_rew <- invisible(agg_mu_reweight(subsample, fullsample))
+  #make sure weight is either "sales" or ""
+   if(!weight %in% c("sales", "")) {
+    stop("Error, weight should either be \"sales\" or blank (i.e., \"\")")
+  }
+
+
+   #agg depending on weight
+  if(weight == "sales") {
+    tit <- "Sales Weighted Markup"
+  }else{
+    tit <- "Average Markup"
+  }
+
+  agg_mu_all <- invisible(agg_mu(fullsample, weight))
+  agg_mu_insamp <- invisible(agg_mu(subsample, weight))
+  agg_mu_rew <- invisible(agg_mu_reweight(subsample, fullsample, weight))
 
   agg_mu_plot <-  ggplot() +
     geom_line(data = agg_mu_all,
@@ -132,7 +178,7 @@ agg_mu_plot <- function(fullsample, subsample) {
     geom_line(data = agg_mu_rew,
               aes(y = Ag_MU - 1, x = year, color = "Reweighted")) +
     theme(text = element_text(size = 20)) +
-    labs(x = "Year", y = "Sales Weighted Markup") +
+    labs(x = "Year", y = tit) +
     theme(legend.position = "bottom")
 
   print(agg_mu_plot)
@@ -239,8 +285,490 @@ MU_advert_plot <- function(Sub_Panel_data, sub_panel_name, N){ # nolint
 
 }
 
+
+
+
+
+
+l_advert_plot <- function(Sub_Panel_data, sub_panel_name, l_type, N){ # nolint
+
+  ############################################################
+  ###1: clean
+
+  #filter vars depending on l_type if DEU use l_DEU, if CA use l_CA, else break
+  ifelse(l_type == "Production Approach",
+         tempdata <-  Sub_Panel_data[, c("l_deu", "Adr")],
+         ifelse(l_type == "Cost Accounting Approach",
+                tempdata <-  Sub_Panel_data[, c("l_ca", "Adr")],
+                stop("l_type must be 'Production Approach' or 'Cost Accounting Approach'")))
+
+
+  #remove na observations
+  tempdata <- tempdata[complete.cases(tempdata), ] # nolint
+
+  names(tempdata) <- c("l", "Adr")
+  ############################################################
+  ###2: objects to plot
+
+  #sample
+  set.seed(123456)
+  ifelse(N == 0, samp <- tempdata,
+         samp <- tempdata[sample(nrow(tempdata), size = N), ])
+
+  #no int regression line
+  model <- lm(Adr ~ l - 1, data = tempdata)
+  #calculate confidence interval for regression coefficient for 'hours'
+  con <- round(confint(model, "l", level = 0.95), digits = 4)
+  con_int <- paste("[", con[, 1], ",", con[, 2], "]", sep = "")
+  reg_line <- c(paste("Slope=", # nolint
+                      round(model$coefficients, digits = 4)),
+                paste("95% interval:", con_int))
+
+  #int regression line
+  model_2 <- lm(Adr ~ l, data = tempdata)
+  #calculate confidence interval for regression coefficient for 'hours'
+  con_2 <- round(confint(model_2)[1, ], digits = 4)
+  con_int_int <- paste("[", con_2[1], ",", con_2[2], "]", sep = "")
+
+  con_3 <- round(confint(model_2)[2, ], digits = 4)
+  con_int_slope <- paste("[", con_3[1], ",", con_3[2], "]", sep = "")
+  reg_line_2 <-c(paste("Intercept=", round(model_2$coefficients[1], digits = 4)), # nolint
+                 paste("95% interval:", con_int_int),
+                 paste("Slope=", round(model_2$coefficients[2], digits = 4)),
+                 paste("95% interval:", con_int_slope))
+
+  caption_temp <- paste("No intercept: Slope =", # nolint
+                        round(model$coefficients, digits = 4),
+                        " (95% confidence interval: ", con_int,
+                        ").\n", "W/ intercept: Slope =",
+                        round(model_2$coefficients[2], digits = 4),
+                        " (95% confidence interval: ", con_int_slope,
+                        "), ", "Intercept=",
+                        round(model_2$coefficients[1], digits = 4),
+                        " (95% confidence interval: ", con_int_int, ").",
+                        sep = "")
+
+  ###########################################################
+  ###3: title
+  #create title
+
+  ifelse(N == 0, title_temp <- sub_panel_name,
+    title_temp <- paste(
+                        "Trend lines +", N, " sample points",
+                        sub_panel_name,
+                        sep = "")
+  )
+
+  colors <- c("Sample points" = "black",
+              "OLS line (with intercept)" = "black",
+              "OLS line (No intercept)" = "blue")
+
+  ############################################################
+  ###4: plot
+
+  ifelse(N == 0, lims <- rbind(c(0, .09), c(0, .5)),
+         lims <- rbind(c(0, .2), c(-.1, 1)))
+
+
+  ifelse(N == 0, sze <- 4.5,
+         sze <- 2)
+
+  plot <- ggplot() +
+    geom_point(aes(samp$l, samp$Adr),
+               shape = 1, size = sze, stroke = .005) +
+    geom_line(aes(tempdata$l, predict(model_2),
+                  color = "OLS line (with intercept)"), size = 1.5) +
+    geom_line(aes(tempdata$l, predict(model),
+                  color = "OLS line (No intercept)") ,
+              linetype = "dashed", size = 1.5) +
+    ylim(lims[1,]) +
+    xlim(lims[2,]) +
+    ylab("Advertising Share of Revenue") +
+    xlab(paste("Lerner Index (", l_type, ")", sep = "")) +
+    labs(title = title_temp, color = "legend") +
+    theme(legend.position = "bottom") +
+    theme(text = element_text(size = 25)) +
+    theme(plot.title = element_text(hjust = 0.5),
+          plot.caption = element_text(hjust = 0)) +
+    scale_color_manual(values = colors)
+
+  print(plot)
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 ############################################################
-##################   3.b test table  ########################
+##################   3.b test table (neq) ########################
+############################################################
+test_table_new_nt <- function(data) {
+
+  ################# Store industry names##################
+
+  #remove NAs
+  temp_data <- data %>%
+    filter(!is.na(Industry)) # nolint
+ 
+  #collect sector names
+  sectors_ <- data.frame(unique(temp_data$Industry))
+  names(sectors_) <- "industry"
+  #only industries with >2 obs will produce an estimate
+  #get number of observations for each industry
+  Ind_count_temp <- temp_data %>% group_by(Industry) %>% tally() # nolint
+  names(Ind_count_temp) <- c("industry", "n") # nolint
+  hold <- merge(sectors_, Ind_count_temp) # nolint
+  sectors_temp <- merge(sectors_, Ind_count_temp) %>% filter(n > 2)
+  sectors <- sectors_temp$industry
+
+  ################# table  #################
+  #fill in full sample row
+
+  #CA regression
+  tempmodel_1 <- feols(Adr ~ l_ca,
+                       cluster = "GVKEY",
+                       data = temp_data)
+
+  #DEU regression
+  tempmodel_2 <- feols(Adr ~ l_deu,
+                       cluster = "GVKEY",
+                       data = temp_data)
+
+
+  #fill in point estimates in row 1 (default all questions to not)
+  table <- data.frame(
+    "Full Sample",
+    tempmodel_1$nobs,
+    #ca stuff
+    round(tempmodel_1$coefficients[2], digits = 4),
+
+    ifelse(round(summary(tempmodel_1)$coeftable[2, 4], digits = 4) == 0,
+           "<.0001",
+           round(summary(tempmodel_1)$coeftable[2, 4], digits = 4)),
+
+    round(tempmodel_1$sq.cor, digits = 4),
+    #deu stuff
+    round(tempmodel_2$coefficients[2], digits = 4),
+
+    ifelse(round(summary(tempmodel_2)$coeftable[2, 4], digits = 4) == 0,
+           "<.0001",
+           round(summary(tempmodel_2)$coeftable[2, 4], digits = 4)),
+
+    round(tempmodel_2$sq.cor, digits = 4),
+    "?"
+  )
+  #fill in se's on row below (in parenthesis)
+  table[2, 3] <- paste("(",
+                       format(round(summary(tempmodel_1)$se[2], digits = 4),
+                              scientific = FALSE), ")", sep = "")
+  table[2, 6] <- paste("(",
+                       format(round(summary(tempmodel_2)$se[2], digits = 4),
+                              scientific = FALSE), ")", sep = "")
+
+  #check if CA confidence interval crosses 0
+  test1 <- confint(tempmodel_1, level = 0.95)[2, 1] * confint(tempmodel_1,
+                                level = 0.95)[2, 2] # nolint
+  #<0 iff crosses 0
+  #if (test1 > 0) {
+  #  table[1, 4] <- "Yes"
+  #}
+
+  #check if DEU confidence interval crosses 0
+  #test2 <- confint(tempmodel_2, level = 0.95)[2, 1] * confint(tempmodel_2,
+  #                              level = 0.95)[2, 2] # nolint
+  ##<0 iff crosses 0
+  #if (test2 > 0) {
+  #  table[1, 7] <- "Yes"
+  #}
+
+  #check who has higher R2
+  if (tempmodel_1$sq.cor > tempmodel_2$sq.cor) {
+    table[1, 9] <- "Cost Accounting"
+  } else {
+    table[1, 9] <- "Production Function"
+  }
+
+  names(table) <- c(
+                    "Sample", "N. obs",
+                    "Slope", "P-Value", "R^2",
+                    "Slope", "P-Value", "R^2",
+                    "Higher R^2?")
+
+  ################# loop over sectors  #################
+
+
+  for (i in 1:length(sectors)) { # nolint
+    tempname <- paste(sectors[i])
+
+    sector_temp <- temp_data %>%
+      filter(Industry == sectors[i]) # nolint
+
+    #CA regression
+    tempmodel_1 <- feols(Adr ~ l_ca,
+                         cluster = "GVKEY",
+                         data = sector_temp)
+    #DEU regression
+    tempmodel_2 <- feols(Adr ~ l_deu,
+                         cluster = "GVKEY",
+                         data = sector_temp)
+
+    #fill in point estimates in row 1 (default to not)
+    table[2 * i + 1, ] <- data.frame(
+      tempname,
+      #ca stuff
+      tempmodel_1$nobs,
+      round(tempmodel_1$coefficients[2], digits = 4),
+
+      ifelse(round(summary(tempmodel_1)$coeftable[2, 4], digits = 4) == 0,
+             "<.0001",
+             round(summary(tempmodel_1)$coeftable[2, 4], digits = 4)),
+
+      round(tempmodel_1$sq.cor, digits = 4),
+      #deu stuff
+      round(tempmodel_2$coefficients[2], digits = 4),
+
+      ifelse(round(summary(tempmodel_2)$coeftable[2, 4], digits = 4) == 0,
+             "<.0001",
+             round(summary(tempmodel_2)$coeftable[2, 4], digits = 4)),
+
+      round(tempmodel_2$sq.cor, digits = 4),
+      "?"
+    )
+
+    #fill in se's on row below (in parenthesis)
+    table[2 * i + 2, 3] <- paste("(",
+            format(round(summary(tempmodel_1)$se[2], digits = 4), # nolint
+                   scientific = FALSE), ")", sep = "")
+
+    table[2 * i + 2, 6] <- paste("(",
+                                 format(round(summary(tempmodel_2)$se[2],
+                                              digits = 4), scientific = FALSE),
+                                 ")", sep = "")
+
+
+    #check if CA confidence interval crosses 0
+    test1 <- confint(tempmodel_1, level = 0.90)[2, 1] * confint(tempmodel_1,
+                                  level = 0.90)[2, 2] # nolint
+    ##<0 iff crosses 0
+    #if (test1 > 0) {
+    #  table[2 * i + 1, 4] <- "Yes"
+    #}
+
+
+    #check if DEU confidence interval crosses 0
+    #test2 <- confint(tempmodel_2, level = 0.90)[2, 1] * confint(tempmodel_2,
+    #                              level = 0.90)[2, 2] # nolint
+    ##<0 iff crosses 0
+    #if (test2 > 0) {
+    #  table[2 * i + 1, 7] <- "Yes"
+    #}
+
+
+    #check who has higher R2
+    if (tempmodel_1$sq.cor > tempmodel_2$sq.cor) {
+      table[2 * i + 1, 9] <- "Cost Accounting"
+    } else {
+      table[2 * i + 1, 9] <- "Production Function"
+    }
+
+  }
+
+
+  print(table)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+############################################################
+##################   3.b test table (neq) ########################
+############################################################
+test_table_new <- function(data) {
+
+  ################# Store industry names##################
+
+  #remove NAs
+  temp_data <- data %>%
+    filter(!is.na(Industry)) # nolint
+ 
+  #collect sector names
+  sectors_ <- data.frame(unique(temp_data$Industry))
+  names(sectors_) <- "industry"
+  #only industries with >2 obs will produce an estimate
+  #get number of observations for each industry
+  Ind_count_temp <- temp_data %>% group_by(Industry) %>% tally() # nolint
+  names(Ind_count_temp) <- c("industry", "n") # nolint
+  hold <- merge(sectors_, Ind_count_temp) # nolint
+  sectors_temp <- merge(sectors_, Ind_count_temp) %>% filter(n > 2)
+  sectors <- sectors_temp$industry
+
+  ################# table  #################
+  #fill in full sample row
+
+  #CA regression
+  tempmodel_1 <- feols(Adr ~ l_ca,
+                       cluster = "GVKEY",
+                       data = temp_data)
+  #DEU regression
+  tempmodel_2 <- feols(Adr ~ l_deu,
+                       cluster = "GVKEY",
+                       data = temp_data)
+
+
+  #fill in point estimates in row 1 (default all questions to not)
+  table <- data.frame(
+    "Full Sample",
+    tempmodel_1$nobs,
+    #ca stuff
+    round(tempmodel_1$coefficients[2], digits = 4),
+    "No",
+    round(tempmodel_1$sq.cor, digits = 4),
+    #deu stuff
+    round(tempmodel_2$coefficients[2], digits = 4),
+    "No",
+    round(tempmodel_2$sq.cor, digits = 4),
+    "?"
+  )
+  #fill in se's on row below (in parenthesis)
+  table[2, 3] <- paste("(",
+                       format(round(summary(tempmodel_1)$se[2], digits = 4),
+                              scientific = FALSE), ")", sep = "")
+  table[2, 6] <- paste("(",
+                       format(round(summary(tempmodel_2)$se[2], digits = 4),
+                              scientific = FALSE), ")", sep = "")
+
+  #check if CA confidence interval crosses 0
+  test1 <- confint(tempmodel_1, level = 0.95)[1, 1] * confint(tempmodel_1,
+                                level = 0.95)[1, 2] # nolint
+  #<0 iff crosses 0
+  if (test1 > 0) {
+    table[1, 4] <- "Yes"
+  }
+
+  #check if DEU confidence interval crosses 0
+  test2 <- confint(tempmodel_2, level = 0.95)[1, 1] * confint(tempmodel_2,
+                                level = 0.95)[1, 2] # nolint
+  #<0 iff crosses 0
+  if (test2 > 0) {
+    table[1, 7] <- "Yes"
+  }
+
+  #check who has higher R2
+  if (tempmodel_1$sq.cor > tempmodel_2$sq.cor) {
+    table[1, 9] <- "Cost Accounting"
+  } else {
+    table[1, 9] <- "Production Function"
+  }
+
+  names(table) <- c(
+                    "Sample", "n.obs",
+                    "Cost Accounting Slope", "CA Significant?", "CA R^2",
+                    "Production Function Slope", "DEU Significant?", "DEU R^2",
+                    "Higher R^2?")
+
+  ################# loop over sectors  #################
+
+
+  for (i in 1:length(sectors)) { # nolint
+    tempname <- paste(sectors[i])
+
+    sector_temp <- temp_data %>%
+      filter(Industry == sectors[i]) # nolint
+
+    #CA regression
+    tempmodel_1 <- feols(Adr ~ l_ca| time,
+                         cluster = "GVKEY",
+                         data = sector_temp)
+    #DEU regression
+    tempmodel_2 <- feols(Adr ~ l_deu| time,
+                         cluster = "GVKEY",
+                         data = sector_temp)
+
+    #fill in point estimates in row 1 (default to not)
+    table[2 * i + 1, ] <- data.frame(
+      tempname,
+      #ca stuff
+      tempmodel_1$nobs,
+      round(tempmodel_1$coefficients[1], digits = 4),
+      "No",
+      round(tempmodel_1$sq.cor, digits = 4),
+      #deu stuff
+      round(tempmodel_2$coefficients[1], digits = 4),
+      "No",
+      round(tempmodel_2$sq.cor, digits = 4),
+      "?"
+    )
+
+    #fill in se's on row below (in parenthesis)
+    table[2 * i + 2, 3] <- paste("(",
+            format(round(summary(tempmodel_1)$se[2], digits = 4), # nolint
+                   scientific = FALSE), ")", sep = "")
+
+    table[2 * i + 2, 6] <- paste("(",
+                                 format(round(summary(tempmodel_2)$se[2],
+                                              digits = 4), scientific = FALSE),
+                                 ")", sep = "")
+
+
+    #check if CA confidence interval crosses 0
+    test1 <- confint(tempmodel_1, level = 0.95)[1, 1] * confint(tempmodel_1,
+                                  level = 0.95)[1, 2] # nolint
+    #<0 iff crosses 0
+    if (test1 > 0) {
+      table[2 * i + 1, 4] <- "Yes"
+    }
+
+
+    #check if DEU confidence interval crosses 0
+    test2 <- confint(tempmodel_2, level = 0.95)[1, 1] * confint(tempmodel_2,
+                                  level = 0.95)[1, 2] # nolint
+    #<0 iff crosses 0
+    if (test2 > 0) {
+      table[2 * i + 1, 7] <- "Yes"
+    }
+
+
+    #check who has higher R2
+    if (tempmodel_1$sq.cor > tempmodel_2$sq.cor) {
+      table[2 * i + 1, 9] <- "Cost Accounting"
+    } else {
+      table[2 * i + 1, 9] <- "Production Function"
+    }
+
+  }
+
+
+  print(table)
+}
+
+
+
+
+
+
+############################################################
+##################   3.b test table (old) ########################
 ############################################################
 test_table <- function(data, naics, n) {
 
@@ -319,9 +847,11 @@ test_table <- function(data, naics, n) {
 
     #no int regression
     tempmodel_1 <- feols(Adr_MC ~ MU_1 - 1,
+                         cluster = "GVKEY",
                          data = sector_temp)
     #w/ int regression
     tempmodel_2 <- feols(Adr_MC ~ MU_1,
+                         cluster = "GVKEY",
                          data = sector_temp)
 
     #fill in point estimates in row 1 (default to not)

@@ -25,7 +25,7 @@ save_files <- FALSE
 
 deu_marks <- c("DEU_st.csv", "DEU_s.csv", "DEU_c.csv")
 #select which version of DEU markups to use
-use <- deu_marks[2]
+use <- deu_marks[1]
 
 #directories
 dircs <- c(f_folder, d_folder, p_folder)
@@ -232,3 +232,189 @@ soc_scatter <- ggplot(data_long, aes(x = logsoc, y = value, color = markup)) +
 soc_scatter
 
 save_f(soc_scatter, "soc_scatter.pdf", dircs, 11.5, 12, TRUE)
+
+
+
+
+
+
+
+
+
+
+########################################################################
+
+
+
+
+data_ln <- data %>%
+  mutate(logMu = log(MU),
+    logMu_deu = log(MU_deu),
+    logtheta = log(MU_deu) - log(soc),
+    logsoc = log(soc),
+    logsop = log(sale) - log(ppegt) - log(usercost),
+    logresid = log(MU) - log(soc) - (
+      log(sale) - log(ppegt) - log(usercost)
+    )
+)
+
+
+model_1 <- lm(logMu_deu ~ logsoc, data = data_ln)
+model_2 <- lm(logMu_deu ~ logtheta, data = data_ln)
+model_3 <- lm(logMu_deu ~ logsop, data = data_ln)
+model_4 <- lm(logMu_deu ~ logresid, data = data_ln)
+
+model_5 <- lm(logMu ~ logsoc, data = data_ln)
+model_6 <- lm(logMu ~ logtheta, data = data_ln)
+model_7 <- lm(logMu ~ logsop, data = data_ln)
+model_8 <- lm(logMu ~ logresid, data = data_ln)
+
+
+models1 <- list("$ln(\\mu_{DEU})$" = model_1,
+               "..." = model_2,
+               "..." = model_3,
+               "..." = model_4,
+               "$ln(\\mu_{CA})$" = model_5,
+               "..." = model_6,
+               "..." = model_7,
+               "..." = model_8
+)
+
+
+
+# Define the mapping of raw coefficient names to clean names
+coef_temp <- data.frame(
+  raw = c("logsoc", "logtheta", "logresid"),
+  clean = c("ln(SALE over COGS)", "ln(Theta)", "ln(COGS over COGS plus UCC)")
+)
+
+# Define the mapping of raw coefficient names to clean names
+coef_temp <- c("(Intercept)" = "(Intercept)",
+               "logsoc" = "$Ln\\left( 
+                \\frac{SALE}{COGS} 
+                \\right)$",
+               "logtheta" = "$Ln(\\theta)$",
+               "logsop" = "$Ln\\left( 
+                \\frac{SALE}{r \\times PPEGT} 
+                \\right)$",
+               "logresid" = "$Ln\\left(
+	\\frac{r \\times PPEGT \\times COGS}
+	{SALE \\times \\left[ r \\times PPEGT + COGS \\right]}
+	\\right)$")
+
+
+#select GOF measures
+gm_temp <- tribble(
+  ~raw,        ~clean,      ~fmt,
+  "nobs", "N", 0,
+  "r.squared", "R2", 3
+)
+
+
+# Create a summary table of the models
+ms <- msummary(models1, gof_map = gm_temp, stars = TRUE, coef_map = coef_temp,
+  notes = c("")
+)
+
+ms
+
+ms_latex <-
+  msummary(models1, gof_map = gm_temp, stars = TRUE, coef_map = coef_temp,
+           output = "latex")
+
+ms_latex <- gsub("\\$", "$", ms_latex, fixed = FALSE)
+
+
+ms_latex
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+########################################################################
+
+
+
+
+data_ln <- data %>%
+  mutate(logMu = log(MU),
+    logMu_deu = log(MU_deu),
+    logtheta = log(MU_deu) - log(soc),
+    logsoc = log(soc),
+    logresid = log(MU) - log(soc)
+    )
+
+
+model_1 <- lm(logMu_deu ~ logsoc, data = data_ln)
+model_2 <- lm(logMu_deu ~ logtheta, data = data_ln)
+model_4 <- lm(logMu_deu ~ logresid, data = data_ln)
+
+model_5 <- lm(logMu ~ logsoc, data = data_ln)
+model_6 <- lm(logMu ~ logtheta, data = data_ln)
+model_8 <- lm(logMu ~ logresid, data = data_ln)
+
+
+models1 <- list("$ln(\\mu_{DEU})$" = model_1,
+               "..." = model_2,
+               "..." = model_4,
+               "$ln(\\mu_{CA})$" = model_5,
+               "..." = model_6,
+               "..." = model_8
+)
+
+
+
+# Define the mapping of raw coefficient names to clean names
+coef_temp <- data.frame(
+  raw = c("logsoc", "logtheta", "logresid"),
+  clean = c("ln(SALE over COGS)", "ln(Theta)", "ln(COGS over COGS plus UCC)")
+)
+
+# Define the mapping of raw coefficient names to clean names
+coef_temp <- c("(Intercept)" = "(Intercept)",
+               "logsoc" = "$Ln\\left( 
+                \\frac{SALE}{COGS} 
+                \\right)$",
+               "logtheta" = "$Ln(\\theta)$",
+               "logresid" = "$Ln\\left( 
+                \\frac{COGS}{COGS+r \\times PPEGT} 
+                \\right)$")
+
+
+#select GOF measures
+gm_temp <- tribble(
+  ~raw,        ~clean,      ~fmt,
+  "nobs", "N", 0,
+  "r.squared", "R2", 3
+)
+
+
+# Create a summary table of the models
+ms <- msummary(models1, gof_map = gm_temp, stars = TRUE, coef_map = coef_temp,
+  notes = c("")
+)
+
+ms
+
+ms_latex <-
+  msummary(models1, gof_map = gm_temp, stars = TRUE, coef_map = coef_temp,
+           output = "latex")
+
+ms_latex <- gsub("\\$", "$", ms_latex, fixed = FALSE)
+
+
+ms_latex

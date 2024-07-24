@@ -342,7 +342,7 @@ varipo <- ggplot(ipo_marks, aes(x = year)) +
   scale_color_manual(values = c("ipo" = "blue", "else" = "red"),
                      labels = c("ipo" = "IPOs",
                                 "else" = "Other")) +
-  coord_cartesian(ylim = c(0, 50)) +
+  coord_cartesian(ylim = c(0, 8)) +
   theme(text = element_text(size = 20), legend.position = "bottom")
 
 nipo <- ggplot(ipo_marks, aes(x = year)) +
@@ -424,7 +424,7 @@ data <- merge(data, data_l, by = c("GVKEY", "fyear"), all.x = TRUE)
 data <- data %>%
 mutate(
   sgr = (sshare - sshare_l) / sshare_l,
-  mugr = (MU - MU_l) / MU_l
+  mugr = (MU - MU_l) / abs(MU_l - 1)
   )
 
 #save means
@@ -522,11 +522,12 @@ gr10 <- ggplot(ipo_10_marks, aes(x = age, y = avg_gr * 100)) +
 MUgr10 <- ggplot(ipo_10_marks, aes(x = age, y = adv_MU_gr * 100)) +
   geom_point(size = 4) +
   geom_line(size = .5) +
-  geom_hline(aes(yintercept = meanmugr* 100,
+  geom_hline(aes(yintercept = meanmugr * 100,
                  linetype = "Full sample Average"),
              show.legend = TRUE) +
   labs(x = "Years Since IPO", y = "Avererage Markup Ratio Growth Rate(%)") +
-  coord_cartesian(ylim = c(0, max(ipo_10_marks$adv_MU_gr * 100))) +
+  coord_cartesian(ylim = c(min(ipo_10_marks$adv_MU_gr * 100), 
+                           max(ipo_10_marks$adv_MU_gr * 100))) +
   theme(text = element_text(size = 20), legend.position = "bottom") +
   scale_linetype_manual(values =
                         c("Full sample Average" = "dashed")) +
@@ -666,7 +667,7 @@ decvar <- ggplot(ipo_dec, aes(x = decade)) +
   scale_color_manual(values = c("ipo" = "blue", "else" = "red"),
                      labels = c("ipo" = "IPOs",
                                 "else" = "Other")) +
-  coord_cartesian(ylim = c(0, 50)) +
+  coord_cartesian(ylim = c(0, 3)) +
   theme(text = element_text(size = 20), legend.position = "bottom")
 
 
@@ -897,10 +898,16 @@ print(top_bottom_5_latex, type = "latex", include.rownames = FALSE)
 setwd(dircs[3])
 #ipo x year
 pdf("ipoxyear.pdf", width = 20, height = 14)
-grid.arrange(meanipo, swipo, avgwipo,
-             totipo, nipo,
+grid.arrange(meanipo, swipo, avgwipo, nipo,
              ncol = 2)
 dev.off()
+
+
+pdf("ipoxyear.pdf", width = 20, height = 10)
+grid.arrange(meanipo, avgwipo,
+             ncol = 2)
+dev.off()
+
 
 #ipos var
 pdf("ipovar.pdf", width = 20, height = 14)
@@ -913,6 +920,13 @@ dev.off()
 pdf("ipoxdecade.pdf", width = 20, height = 14)
 grid.arrange(decmu, decmusw,
              decn, decw,
+             ncol = 2)
+dev.off()
+
+
+#ipo x decade
+pdf("ipoxdecade.pdf", width = 20, height = 10)
+grid.arrange(decmu, decw,
              ncol = 2)
 dev.off()
 

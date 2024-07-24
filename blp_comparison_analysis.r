@@ -98,7 +98,7 @@ meta <- read.csv("blp_data.csv") #nolint
 
 colnames(dset)[colnames(dset) == "gvkey"] <- "GVKEY"
 #with DEU markups generated
-data <- read.csv("DEU_s.csv")
+data <- read.csv("DEU_st.csv")
 
 # comment out to clean differently
 #wont allow deu markups
@@ -318,6 +318,437 @@ cat(latex_table_str)
 ############################################################
 ############################################################
 
+################################################################
+#### 4.a ca on mu
+################################################################
+
+# Calculate ols lines and correlation coef
+model_ca <- lm(mu ~ ca_mu, data = blp)
+s_mu_ca <- model_ca$coefficients[2]
+i_mu_ca <- model_ca$coefficients[1]
+model_car <- lm(ca_mu ~ mu, data = blp)
+s_ca_mu <- model_car$coefficients[2]
+i_ca_mu <- model_car$coefficients[1]
+
+correlation <- cor(blp$ca_mu, blp$mu, use = "pairwise.complete.obs")
+# Create the label for the legend
+label <- paste0("Correlation Coef. = ", round(correlation, 2),
+                ", N. obs =", nrow(blp))
+
+# Get the unique levels in the paper and method and save as shapes and colors
+shapes <- c(15 + seq(0, length(unique(blp$method)) - 2), 1)
+seq(0, length(unique(blp$method)) - 1) + 30
+palette <- rainbow(length(unique(blp$paper)))
+
+# Create a dummy data frame for the 45-degree line
+df_line <- data.frame(ca_mu = range(blp$ca_mu), mu = range(blp$mu))
+
+############## plot #####################
+comp_ca <- ggplot(blp, aes(x = ca_mu, y = mu)) +
+  geom_point(aes(color = paper, shape = method), size = 4) +
+  geom_abline(slope = s_mu_ca,
+              intercept = i_mu_ca,
+              color = "blue") +
+  geom_abline(slope = 1 / s_ca_mu,
+              intercept = - i_ca_mu / s_ca_mu,
+              color = "red") +
+  geom_line(data = df_line, color = "black",
+            aes(x = mu,
+                linetype = "45 Degree line")) +
+  geom_line(aes(linetype = "OLS line (Main)"),
+            data = data.frame(ca_mu = 0, mu = 0),
+            color = "blue") +
+  geom_line(aes(linetype = "OLS line (Reverse)"),
+            data = data.frame(ca_mu = 0, mu = 0),
+            color = "red") +
+  scale_linetype_manual(
+         values = c("OLS line (Main)" = "solid", # nolint
+                    "OLS line (Reverse)" = "solid",
+                    "45 Degree line" = "solid")) +
+  labs(
+    color = "Paper",
+    shape = "Method",
+    linetype = label
+  ) +
+  theme(
+    text = element_text(size = 16),
+    legend.position = "bottom",
+    legend.box = "vertical"
+  ) +
+  coord_cartesian(
+    xlim = c(min(blp$ca_mu, blp$mu), max(blp$ca_mu, blp$mu)),  #nolint
+    ylim = c(min(blp$ca_mu, blp$mu), max(blp$ca_mu, blp$mu))  #nolint
+  ) +
+  xlab("Accounting Markup (p-mc)/mc") +
+  ylab("Demand Estimation Markup (p-mc)/mc") +
+  scale_shape_manual(
+    values = shapes,
+    labels = unique(blp$method),
+    breaks = unique(blp$method)
+  ) +
+  guides(
+    color = guide_legend(nrow = 10, byrow = TRUE, order = 1),
+    shape = guide_legend(nrow = 1, byrow = TRUE, order = 2),
+    linetype = guide_legend(nrow = 1, byrow = TRUE, order = 3,
+    override.aes = list(color = c("black", "blue", "red"))) #nolint
+  ) +
+  guides(color = "none")  # Remove the color part of the legend
+
+comp_ca
+
+save_f(comp_ca, "BLP_comp_CA.pdf", dircs, 11.5, 12, TRUE)
+
+
+
+################################################################
+#### 4.b deu on mu
+################################################################
+
+# Calculate ols lines and correlation coef
+model_deu <- lm(mu ~ deu_mu, data = blp)
+s_mu_deu <- model_deu$coefficients[2]
+i_mu_deu <- model_deu$coefficients[1]
+model_deur <- lm(deu_mu ~ mu, data = blp)
+s_deu_mu <- model_deur$coefficients[2]
+i_deu_mu <- model_deur$coefficients[1]
+
+correlation <- cor(blp$deu_mu, blp$mu, use = "pairwise.complete.obs")
+# Create the label for the legend
+labeldeu <- paste0("Correlation Coef. = ", round(correlation, 2),
+                   ", N. obs =", nrow(blp))
+# Create a dummy data frame for the 45-degree line
+df_line <- data.frame(ca_mu = range(blp$deu_mu), mu = range(blp$mu))
+
+############## plot #####################
+comp_deu <- ggplot(blp, aes(x = deu_mu, y = mu)) +
+  geom_point(aes(color = paper, shape = method), size = 4) +
+  geom_abline(slope = s_deu_mu,
+              intercept = i_mu_deu,
+              color = "blue") +
+  geom_abline(slope = 1 / s_deu_mu,
+              intercept = - i_deu_mu / s_deu_mu,
+              color = "red") +
+  geom_line(data = df_line, color = "black",
+            aes(x = mu,
+                linetype = "45 Degree line")) +
+  geom_line(aes(linetype = "OLS line (Main)"),
+            data = data.frame(deu_mu = 0, mu = 0),
+            color = "blue") +
+  geom_line(aes(linetype = "OLS line (Reverse)"),
+            data = data.frame(deu_mu = 0, mu = 0),
+            color = "red") +
+  scale_linetype_manual(
+         values = c("OLS line (Main)" = "solid", # nolint
+                    "OLS line (Reverse)" = "solid",
+                    "45 Degree line" = "solid")) +
+  labs(
+    color = "Paper",
+    shape = "Method",
+    linetype = labeldeu
+  ) +
+  theme(
+    text = element_text(size = 16),
+    legend.position = "bottom",
+    legend.box = "vertical"
+  ) +
+  coord_cartesian(
+    xlim = c(min(blp$ca_mu, blp$mu), max(blp$ca_mu, blp$mu)),  #nolint
+    ylim = c(min(blp$ca_mu, blp$mu), max(blp$ca_mu, blp$mu))  #nolint
+  ) +
+  xlab("DEU (2020) Markup  (p-mc)/mc") +
+  ylab("Demand Estimation Markup (p-mc)/mc") +
+  scale_shape_manual(
+    values = shapes,
+    labels = unique(blp$method),
+    breaks = unique(blp$method)
+  ) +
+  guides(
+    color = guide_legend(nrow = 10, byrow = TRUE, order = 1),
+    shape = guide_legend(nrow = 1, byrow = TRUE, order = 2),
+    linetype = guide_legend(nrow = 1, byrow = TRUE, order = 3,
+    override.aes = list(color = c("black", "blue", "red"))) #nolint
+  ) +
+  guides(color = "none")  # Remove the color part of the legend
+
+comp_deu
+save_f(comp_deu, "BLP_comp_DEU.pdf", dircs, 11.5, 12, TRUE)
+
+
+
+################################################################
+#### 4.a ca on deu
+################################################################
+#### ca on deu_mu
+
+# Calculate ols lines and correlation coef
+model_cadeu <- lm(deu_mu ~ ca_mu, data = blp)
+s_mudeu_ca <- model_cadeu$coefficients[2]
+i_mudeu_ca <- model_cadeu$coefficients[1]
+model_cadeur <- lm(ca_mu ~ deu_mu, data = blp)
+s_cadeu_mu <- model_cadeur$coefficients[2]
+i_cadeu_mu <- model_cadeur$coefficients[1]
+
+correlation <- cor(blp$ca_mu, blp$deu_mu, use = "pairwise.complete.obs")
+# Create the label for the legend
+label <- paste0("Correlation Coef. = ", round(correlation, 2),
+                ", N. obs =", nrow(blp))
+
+# Create a dummy data frame for the 45-degree line
+df_line <- data.frame(ca_mu = range(blp$ca_mu), deu_mu = range(blp$deu_mu))
+
+############## plot #####################
+comp_cadeu <- ggplot(blp, aes(x = ca_mu, y = deu_mu)) +
+  geom_point(size = 4) +
+  geom_abline(slope = s_mudeu_ca,
+              intercept = i_mudeu_ca,
+              color = "blue") +
+  geom_abline(slope = 1 / s_cadeu_mu,
+              intercept = - i_cadeu_mu / s_cadeu_mu,
+              color = "red") +
+  geom_line(data = df_line, color = "black",
+            aes(x = deu_mu,
+                linetype = "45 Degree line")) +
+  geom_line(aes(linetype = "OLS line (Main)"),
+            data = data.frame(ca_mu = 0, deu_mu = 0),
+            color = "blue") +
+  geom_line(aes(linetype = "OLS line (Reverse)"),
+            data = data.frame(ca_mu = 0, deu_mu = 0),
+            color = "red") +
+  scale_linetype_manual(
+         values = c("OLS line (Main)" = "solid", # nolint
+                    "OLS line (Reverse)" = "solid",
+                    "45 Degree line" = "solid")) +
+  theme(
+    text = element_text(size = 16),
+    legend.position = "bottom",
+    legend.box = "vertical"
+  ) +
+  coord_cartesian(
+    xlim = c(min(blp$ca_mu, blp$deu_mu), max(blp$ca_mu, blp$deu_mu)),  #nolint
+    ylim = c(min(blp$ca_mu, blp$deu_mu), max(blp$ca_mu, blp$deu_mu))  #nolint
+  ) +
+  labs(linetype = labeldeu) +
+  xlab("Accounting Markup (p-mc)/mc") +
+  ylab("Production Function Markup (p-mc)/mc") +
+  guides(
+    linetype = guide_legend(nrow = 1, byrow = TRUE, order = 3,
+    override.aes = list(color = c("black", "blue", "red"))) #nolint
+  ) +
+  guides(color = "none")  # Remove the color part of the legend
+
+comp_cadeu
+
+save_f(comp_cadeu, "BLP_comp_CA_deu.pdf", dircs, 11.5, 12, TRUE)
+
+
+############################################################
+############################################################
+#     5: Regression Table
+############################################################
+############################################################
+
+# Fit the models with clustered standard errors
+m_mu_ca <- feols(mu ~ ca_mu, data = blp,
+                 cluster = "paper")
+m_mu_deu <- feols(mu ~ deu_mu, data = blp,
+                  cluster = "paper")
+m_ca_mu <- feols(ca_mu ~ mu, data = blp,
+                 cluster = "paper")
+m_deu_mu <- feols(deu_mu ~ mu, data = blp,
+                  cluster = "paper")
+m_ca_deu <- feols(ca_mu ~ deu_mu, data = blp,
+                  cluster = "paper")
+m_deu_ca <- feols(deu_mu ~ ca_mu, data = blp,
+                  cluster = "paper")
+
+
+#put models into list
+models <- list("Demand Markup" = m_mu_ca,
+               "Demand Markup" = m_mu_deu,
+               "Accounting Markup" = m_ca_mu,
+               "DEU Markup" = m_deu_mu,
+               "Accounting Markup" = m_ca_deu,
+               "DEU Markup" = m_deu_ca)
+
+
+
+# Create a named character vector of new names
+new_names <- c(
+  "mu" = "Demand Markup",
+  "ca_mu" = "Accounting Markup",
+  "deu_mu" = "DEU Markup",
+  "paper" = "Paper level"
+)
+
+# Create the summary table with the new names
+summary_table <- etable(models, dict = new_names)
+
+print(summary_table)
+
+# Create the summary table with the new names
+l_table <- etable(models, dict = new_names, tex = TRUE)
+
+# Print the LaTeX-formatted summary table
+print(l_table)
+
+
+
+#r^2 ratio
+summary(m_mu_ca)$r.squared / summary(m_mu_deu)$r.squared
+
+
+############################################################
+############################################################
+############################################################
+################    OLD BELOW
+############################################################
+############################################################
+############################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#select GOF measures
+gm_temp <- tribble(
+  ~raw,        ~clean,      ~fmt,
+  "nobs", "N", 0,
+  "r.squared", "R2", 4,
+)
+
+
+
+
+
+
+
+
+
+
+
+# Fit the models with clustered standard errors
+m_mu_ca <- plm(mu ~ ca_mu, data = blp,
+               index = "paper", model = "pooling")
+m_mu_deu <- plm(mu ~ deu_mu, data = blp,
+                index = "paper", model = "pooling")
+m_ca_mu <- plm(ca_mu ~ mu, data = blp,
+               index = "paper", model = "pooling")
+m_deu_mu <- plm(deu_mu ~ mu, data = blp,
+                index = "paper", model = "pooling")
+m_ca_deu <- plm(ca_mu ~ deu_mu, data = blp,
+                index = "paper", model = "pooling")
+m_deu_ca <- plm(deu_mu ~ ca_mu, data = blp,
+                index = "paper", model = "pooling")
+
+
+# Create a summary table of the models
+ms <- msummary(models, gof_map = gm_temp, stars = TRUE, notes = c(
+  "Right hand side variable listed above.
+   Standard errors in parentheses. Clustered by paper."
+))
+
+# Print the model summary table with the notes
+ms
+
+# Export the summary table as a LaTeX file
+
+ms_latexraw <-
+  msummary(models, gof_map = gm_temp, stars = TRUE,
+           notes = c("Right hand side variable listed above.
+                     Standard errors in parentheses. Clustered by paper."),
+           output = "latex")
+
+ms_latex <-   gsub("ca\\_mu", "\\hline \\\\ Accounting Markup",
+                   ms_latexraw, fixed = TRUE)
+
+ms_latex <-   gsub("deu\\_mu", "\\hline \\\\ DEU Markup",
+                   ms_latex, fixed = TRUE)
+
+ms_latex <-   gsub("mu &", "\\hline \\\\ Demand Markup &",
+                   ms_latex, fixed = TRUE)
+
+ms_latex
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ############################################################
 #cost accounting
 ############################################################
@@ -490,6 +921,36 @@ save_f(my_legend, "Paper_legend.pdf", dircs, 10, 5.5, TRUE)
 ############################################################
 
 # Fit the models with clustered standard errors
+model_ca <- feols(mu ~ ca_mu,
+                  cluster = "paper",
+                  data = blp)
+
+model_deu <- feols(mu ~ deu_mu,
+                   cluster = "paper",
+                   data = blp)
+
+
+
+model_ca2 <- plm(mu ~ ca_mu + as.factor(method) - 1, data = blp,
+              index = "paper", model = "pooling")
+model_deu2 <- plm(mu ~ deu_mu + as.factor(method) - 1, data = blp,
+                  index = "paper", model = "pooling")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Fit the models with clustered standard errors
 model <- plm(mu ~ ca_mu, data = blp,
              index = "paper", model = "pooling")
 model_deu <- plm(mu ~ deu_mu, data = blp,
@@ -534,7 +995,7 @@ models <- list("Demand Estimate Markup" = c_model,
 gm_temp <- tribble(
   ~raw,        ~clean,      ~fmt,
   "nobs", "N", 0,
-  "adj.r.squared", "Adj. R2", 3,
+    "r.squared", "R2", 4,
 )
 
 # Create a summary table of the models
@@ -615,164 +1076,6 @@ ms_r_latex
 
 
 
-################################################################
-################################################################
-### redoing plots
-
-#### ca on mu
-
-# Calculate ols lines and correlation coef
-model_ca <- lm(mu ~ ca_mu, data = blp)
-s_mu_ca <- model_ca$coefficients[2]
-i_mu_ca <- model_ca$coefficients[1]
-model_car <- lm(ca_mu ~ mu, data = blp)
-s_ca_mu <- model_car$coefficients[2]
-i_ca_mu <- model_car$coefficients[1]
-
-correlation <- cor(blp$ca_mu, blp$mu, use = "pairwise.complete.obs")
-# Create the label for the legend
-label <- paste0("Correlation Coef. = ", round(correlation, 2),
-                ", N. obs =", nrow(blp))
-
-# Get the unique levels in the paper and method and save as shapes and colors
-shapes <- c(15 + seq(0, length(unique(blp$method)) - 2), 1)
-seq(0, length(unique(blp$method)) - 1) + 30
-palette <- rainbow(length(unique(blp$paper)))
-
-# Create a dummy data frame for the 45-degree line
-df_line <- data.frame(ca_mu = range(blp$ca_mu), mu = range(blp$mu))
-
-############## plot #####################
-comp_ca <- ggplot(blp, aes(x = ca_mu, y = mu)) +
-  geom_point(aes(color = paper, shape = method), size = 4) +
-  geom_abline(slope = s_mu_ca,
-              intercept = i_mu_ca,
-              color = "blue") +
-  geom_abline(slope = 1 / s_ca_mu,
-              intercept = - i_ca_mu / s_ca_mu,
-              color = "red") +
-  geom_line(data = df_line, color = "black",
-            aes(x = mu,
-                linetype = "45 Degree line")) +
-  geom_line(aes(linetype = "OLS line (Main)"),
-            data = data.frame(ca_mu = 0, mu = 0),
-            color = "blue") +
-  geom_line(aes(linetype = "OLS line (Reverse)"),
-            data = data.frame(ca_mu = 0, mu = 0),
-            color = "red") +
-  scale_linetype_manual(
-         values = c("OLS line (Main)" = "solid", # nolint
-                    "OLS line (Reverse)" = "solid",
-                    "45 Degree line" = "solid")) +
-  labs(
-    color = "Paper",
-    shape = "Method",
-    linetype = label
-  ) +
-  theme(
-    text = element_text(size = 16),
-    legend.position = "bottom",
-    legend.box = "vertical"
-  ) +
-  coord_cartesian(
-    xlim = c(min(blp$ca_mu, blp$mu), max(blp$ca_mu, blp$mu)),  #nolint
-    ylim = c(min(blp$ca_mu, blp$mu), max(blp$ca_mu, blp$mu))  #nolint
-  ) +
-  xlab("Accounting Markup (p-mc)/mc") +
-  ylab("Demand Estimation Markup (p-mc)/mc") +
-  scale_shape_manual(
-    values = shapes,
-    labels = unique(blp$method),
-    breaks = unique(blp$method)
-  ) +
-  guides(
-    color = guide_legend(nrow = 10, byrow = TRUE, order = 1),
-    shape = guide_legend(nrow = 1, byrow = TRUE, order = 2),
-    linetype = guide_legend(nrow = 1, byrow = TRUE, order = 3,
-    override.aes = list(color = c("black", "blue", "red"))) #nolint
-  ) +
-  guides(color = "none")  # Remove the color part of the legend
-
-comp_ca
-
-save_f(comp_ca, "BLP_comp_CA.pdf", dircs, 11.5, 12, TRUE)
-
-
-
-########### deu on mu ##############
-
-# Calculate ols lines and correlation coef
-model_deu <- lm(mu ~ ca_mu, data = blp)
-s_mu_deu <- model_deu$coefficients[2]
-i_mu_deu <- model_deu$coefficients[1]
-model_deur <- lm(ca_mu ~ mu, data = blp)
-s_deu_mu <- model_deur$coefficients[2]
-i_deu_mu <- model_deur$coefficients[1]
-
-correlation <- cor(blp$deu_mu, blp$mu, use = "pairwise.complete.obs")
-# Create the label for the legend
-labeldeu <- paste0("Correlation Coef. = ", round(correlation, 2),
-                   ", N. obs =", nrow(blp))
-# Create a dummy data frame for the 45-degree line
-df_line <- data.frame(ca_mu = range(blp$deu_mu), mu = range(blp$mu))
-
-############## plot #####################
-comp_deu <- ggplot(blp, aes(x = deu_mu, y = mu)) +
-  geom_point(aes(color = paper, shape = method), size = 4) +
-  geom_abline(slope = s_deu_mu,
-              intercept = i_mu_deu,
-              color = "blue") +
-  geom_abline(slope = 1 / s_deu_mu,
-              intercept = - i_deu_mu / s_deu_mu,
-              color = "red") +
-  geom_line(data = df_line, color = "black",
-            aes(x = mu,
-                linetype = "45 Degree line")) +
-  geom_line(aes(linetype = "OLS line (Main)"),
-            data = data.frame(deu_mu = 0, mu = 0),
-            color = "blue") +
-  geom_line(aes(linetype = "OLS line (Reverse)"),
-            data = data.frame(deu_mu = 0, mu = 0),
-            color = "red") +
-  scale_linetype_manual(
-         values = c("OLS line (Main)" = "solid", # nolint
-                    "OLS line (Reverse)" = "solid",
-                    "45 Degree line" = "solid")) +
-  labs(
-    color = "Paper",
-    shape = "Method",
-    linetype = labeldeu
-  ) +
-  theme(
-    text = element_text(size = 16),
-    legend.position = "bottom",
-    legend.box = "vertical"
-  ) +
-  coord_cartesian(
-    xlim = c(min(blp$ca_mu, blp$mu), max(blp$ca_mu, blp$mu)),  #nolint
-    ylim = c(min(blp$ca_mu, blp$mu), max(blp$ca_mu, blp$mu))  #nolint
-  ) +
-  xlab("DEU (2020) Markup  (p-mc)/mc") +
-  ylab("Demand Estimation Markup (p-mc)/mc") +
-  scale_shape_manual(
-    values = shapes,
-    labels = unique(blp$method),
-    breaks = unique(blp$method)
-  ) +
-  guides(
-    color = guide_legend(nrow = 10, byrow = TRUE, order = 1),
-    shape = guide_legend(nrow = 1, byrow = TRUE, order = 2),
-    linetype = guide_legend(nrow = 1, byrow = TRUE, order = 3,
-    override.aes = list(color = c("black", "blue", "red"))) #nolint
-  ) +
-  guides(color = "none")  # Remove the color part of the legend
-
-comp_deu
-save_f(comp_deu, "BLP_comp_DEU.pdf", dircs, 11.5, 12, TRUE)
-
-
-
-
 
 ##############################
 ##########re doing regression table #############
@@ -803,7 +1106,7 @@ models <- list("Demand Markup" = m_mu_ca,
 gm_temp <- tribble(
   ~raw,        ~clean,      ~fmt,
   "nobs", "N", 0,
-  "r.squared", "R2", 3,
+  "r.squared", "R2", 4,
 )
 
 # Create a summary table of the models
@@ -1023,4 +1326,4 @@ cor_deu_IO <- cor(blp$deu_mu, blp$mu, use = "pairwise.complete.obs")
 
 ratio = (cor_deu_IO / cor_ca_IO)^2
 
-ratio
+1/ratio
