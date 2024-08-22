@@ -50,8 +50,9 @@ library(tidyr)
 library(scales)
 library(sandwich)
 library(multiwayvcov)
-library("gridExtra")
 library(cowplot)
+library(grid)
+library(gridExtra)
 
 #navigate to folder with functions
 setwd(dircs[1])
@@ -92,12 +93,14 @@ setwd(dircs[1])
 
 #apply GDP deflator and generate xad measures
 dset <- vargen(dset, usercost)
-
+dset <- GDPdef(dset, usercost)
 
 #clean
 data <- clean_deu(dset)
 data <- data %>%
   filter(!is.na(MU))
+
+
 
 #generate sales share
 data <- data %>% # nolint
@@ -118,12 +121,560 @@ data <- data %>%
 #select only useful variables
 data <- data %>%
   dplyr::select(MU, GVKEY, year, naics, sale,
-                age, life, conm, decade, sshare) #nolint
+                age, life, conm, decade, sshare, xsga, entry, exit, decade, decade_e) #nolint
 
 #grab first 2 digits of naics
 data$sec <- as.numeric(str_sub(data$naics, 1, 2))
 
 data <- industry_n_dig(data, naics, 2)
+
+
+
+
+
+############################################################
+############################################################
+#     2: first year
+############################################################
+############################################################
+
+#save full sample mean
+
+#save means
+mean_ms <- mean(data$sshare, na.rm = TRUE)
+mean_mu <- mean(data$MU - 1, na.rm = TRUE)
+
+#indicate first year
+data <- data %>%
+  mutate(ipo = ifelse(age == 0, 1, 0),
+         ipo = ifelse(is.na(age), 0, ifelse(age == 0, 1, 0)))
+
+ipos <- data %>%
+  filter(ipo == 1)
+
+nonipos <- data %>%
+  filter(ipo == 0)
+
+
+
+#generate decade variables
+
+ipo_dec <- data %>%
+  group_by(decade) %>%
+  summarise(mu_mean = mean(ifelse(ipo == 1,
+                                  MU - 1, NA),
+                           na.rm = TRUE),
+            mu_median = median(ifelse(ipo == 1,
+                                      MU - 1, NA),
+                               na.rm = TRUE),
+            mu_sw = weighted.mean(ifelse(ipo == 1,
+                                         MU - 1, NA),
+                                  sale, na.rm = TRUE),
+            avg_w = mean(ifelse(ipo == 1,
+                                sshare, NA),
+                         na.rm = TRUE),
+            mu_mean_t = mean(ifelse(ipo == 0,
+                                    MU - 1, NA),
+                             na.rm = TRUE),
+            mu_sw_t = weighted.mean(ifelse(ipo == 0,
+                                           MU - 1, NA),
+                                    sale, na.rm = TRUE),
+            avg_w_t = mean(ifelse(ipo == 0,
+                                  sshare, NA),
+                           na.rm = TRUE))
+
+decmu <- ggplot(ipo_dec, aes(x = decade)) +
+  geom_point(aes(y = mu_mean, color = "mu_mean"), size = 4) +
+  geom_line(aes(y = mu_mean, color = "mu_mean"), size = .5) +
+  geom_point(aes(y = mu_mean_t, color = "mu_mean_t"), size = 4) +
+  geom_line(aes(y = mu_mean_t, color = "mu_mean_t"), size = .5) +
+  labs(x = "Decade", y = "Average Markup", color = " ") +
+  scale_color_manual(values = c("mu_mean" = "blue", "mu_mean_t" = "red"),
+                     labels = c("mu_mean" = "IPOs",
+                                "mu_mean_t" = "Other")) +
+  coord_cartesian(ylim = c(0, max(ipo_dec$mu_mean))) +
+  theme(text = element_text(size = 20), legend.position = "bottom")
+
+
+decmumed <- ggplot(ipo_dec, aes(x = decade)) +
+  geom_point(aes(y = mu_median, color = "ipo"), size = 4) +
+  geom_line(aes(y = mu_median, color = "ipo"), size = .5) +
+  geom_point(aes(y = mu_median_t, color = "else"), size = 4) +
+  geom_line(aes(y = mu_median_t, color = "else"), size = .5) +
+  labs(x = "Decade", y = "Median Markup", color = " ") +
+  scale_color_manual(values = c("ipo" = "blue", "else" = "red"),
+                     labels = c("ipo" = "IPOs",
+                                "else" = "Other")) +
+  coord_cartesian(ylim = c(0, max(ipo_dec$mu_median))) +
+  theme(text = element_text(size = 20), legend.position = "bottom")
+
+
+decmusw <- ggplot(ipo_dec, aes(x = decade)) +
+  geom_point(aes(y = mu_sw, color = "mu_mean"), size = 4) +
+  geom_line(aes(y = mu_sw, color = "mu_mean"), size = .5) +
+  geom_point(aes(y = mu_sw_t, color = "mu_mean_t"), size = 4) +
+  geom_line(aes(y = mu_sw_t, color = "mu_mean_t"), size = .5) +
+  labs(x = "Decade", y = "Sales Weighted Markup", color = " ") +
+  scale_color_manual(values = c("mu_mean" = "blue", "mu_mean_t" = "red"),
+                     labels = c("mu_mean" = "IPOs",
+                                "mu_mean_t" = "Other")) +
+  coord_cartesian(ylim = c(0, max(ipo_dec$mu_sw))) +
+  theme(text = element_text(size = 20), legend.position = "bottom")
+
+
+decw <- ggplot(ipo_dec, aes(x = decade)) +
+  geom_point(aes(y = avg_w, color = "ipo"), size = 4) +
+  geom_line(aes(y = avg_w, color = "ipo"), size = .5) +
+  geom_point(aes(y = avg_w_t, color = "else"), size = 4) +
+  geom_line(aes(y = avg_w_t, color = "else"), size = .5) +
+  labs(x = "Decade", y = "Average Market Share (%)", color = " ") +
+  scale_color_manual(values = c("ipo" = "blue", "else" = "red"),
+                     labels = c("ipo" = "IPOs",
+                                "else" = "Other")) +
+  coord_cartesian(ylim = c(0, max(ipo_dec$avg_w_t))) +
+  theme(text = element_text(size = 20), legend.position = "bottom")
+
+decmu
+
+decw
+
+############################################################
+############################################################
+#     3: By age (full sample)
+############################################################
+############################################################
+
+
+#filter to first dec age
+ipos10 <- data %>%
+  filter(age < 31)
+
+
+ipo_10_marks <- ipos10 %>%
+  group_by(age) %>%
+  summarise(
+    mu_mean = mean(MU - 1, na.rm = TRUE),
+    mu_median = median(MU - 1, na.rm = TRUE),
+    mu_sw = weighted.mean(MU - 1, sale, na.rm = TRUE),
+    avg_w = mean(sshare, na.rm = TRUE),
+    tot_w = sum(sshare, na.rm = TRUE)
+  )
+
+
+marks10 <- ggplot(ipo_10_marks, aes(x = age, y = mu_mean)) +
+  geom_point(size = 4) +
+  geom_line(size = .5) +
+  geom_hline(aes(yintercept = mean_mu,
+                 linetype = "Full sample average"),
+             show.legend = TRUE) +
+  labs(x = "Years Since IPO", y = "Mean Markup") +
+  coord_cartesian(ylim = c(0, max(ipo_10_marks$mu_mean))) +
+  scale_linetype_manual(values = c("Full sample average" = "dashed")) +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  guides(linetype = guide_legend(title = NULL))
+
+marksmed10 <- ggplot(ipo_10_marks, aes(x = age, y = mu_median)) +
+  geom_point(size = 4) +
+  geom_line(size = .5) +
+  labs(x = "Years Since IPO", y = "Median Markup") +
+  coord_cartesian(ylim = c(0, max(ipo_10_marks$mu_median))) +
+  theme(text = element_text(size = 20))
+
+marksw10 <- ggplot(ipo_10_marks, aes(x = age, y = mu_sw)) +
+  geom_point(size = 4) +
+  geom_line(size = .5) +
+  geom_hline(aes(yintercept = mean_swmu,
+                 linetype = "Full sample sales weighted average"),
+             show.legend = TRUE) +
+  labs(x = "Years Since IPO", y = "Sales Weighted Markup") +
+  coord_cartesian(ylim = c(0, max(ipo_10_marks$mu_sw))) +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  scale_linetype_manual(values =
+                        c("Full sample sales weighted average" = "dashed")) +
+  guides(linetype = guide_legend(title = NULL))
+
+
+
+w10 <- ggplot(ipo_10_marks, aes(x = age, y = avg_w)) +
+  geom_point(size = 4) +
+  geom_line(size = .5) +
+  geom_hline(aes(yintercept = mean_ms,
+                 linetype = "Full sample Average"),
+             show.legend = TRUE) +
+  labs(x = "Years Since IPO", y = "Avererage Market Share (%)") +
+  coord_cartesian(ylim = c(0, mean_ms)) +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  scale_linetype_manual(values =
+                        c("Full sample Average" = "dashed")) +
+  guides(linetype = guide_legend(title = NULL))
+
+
+marks10
+
+w10
+
+############################################################
+############################################################
+#     3: By age by sector by decade
+############################################################
+############################################################
+
+data_na <- data %>%
+  filter(!is.na(industry))
+
+ind_names <- unique(data_na$industry)
+# Initialize lists to store the plots
+mu_mean_plots <- list()
+mu_median_plots <- list()
+
+
+for (i in seq_along(ind_names)){
+  data_temp <- data_na %>%
+    filter(industry == ind_names[i])
+
+  temp_data <- data_temp %>%
+    group_by(age, decade_e) %>%
+    summarise(
+      MU_mean = mean(MU, na.rm = TRUE),
+      MU_median = median(MU, na.rm = TRUE)
+    )
+  #remove Na decade
+  temp_data <- temp_data %>%
+    filter(!is.na(decade_e))
+  #save plots
+
+  mu_mean_t <-
+    ggplot(temp_data, aes(x = age,
+                          y = MU_mean - 1,
+                          color = as.factor(decade_e))) +
+    geom_line() +
+    labs(x = "Age", y = "Mean Markup Ratio (p/mc-1)",
+         title = paste(ind_names[i]),
+         color = "Decade of Entry") +
+    lims(x = c(0, 30)) +
+    lims(y = c(0, 1.25)) +
+    theme(text = element_text(size = 25), legend.position = "bottom",
+          legend.text = element_text(size = 25)) +
+    scale_color_discrete(name = "Decade")
+
+  mu_median_t <-
+    ggplot(temp_data, aes(x = age,
+                          y = MU_median - 1,
+                          color = as.factor(decade_e))) +
+    geom_line() +
+    labs(x = "Age",
+         y = "Median Markup Ratio (p/mc-1)",
+         color = "Decade of Entry") +
+    lims(x = c(0, 30)) +
+    lims(y = c(0, 1.25)) +
+    theme(text = element_text(size = 10), legend.position = "bottom",
+          legend.text = element_text(size = 10)) +
+    scale_color_discrete(name = "Decade")
+
+  # Save plots to lists
+  mu_mean_plots[[ind_names[i]]] <- mu_mean_t
+  mu_median_plots[[ind_names[i]]] <- mu_median_t
+}
+
+
+mu_mean_plots[[2]]
+
+
+
+############################################################
+############################################################
+#     4: Regression:
+############################################################
+############################################################
+
+
+#generate variable if last year in data
+data <- data %>%
+  group_by(GVKEY) %>%
+  mutate(last = ifelse(fyear == max(fyear), 1, 0),
+         t = fyear - 1955) %>%
+  ungroup()
+
+
+# Generate 10-year age indicator as a single variable
+data <- data %>%
+  mutate(age_in = case_when(
+    age <= 5 ~ " 0-5",
+    age <= 10 ~ " 6-10",
+    age <= 20 ~ " 11-20",
+    age <= 30 ~ " 21-30",
+    age > 40 ~ " 40+",
+    TRUE ~ "31-40"  # Assuming ages between 31 and 40 should be grouped here
+  ))
+
+
+# Generate 10-year age indicator as a single variable
+data <- data %>%
+  mutate(age_in = case_when(
+    age <= 5 ~ " 0-5",
+    age <= 10 ~ " 6-10",
+    age <= 20 ~ " 11-20",
+    age > 20 ~ " 20+"
+  ))
+
+
+data$MU_1 <- data$MU - 1
+
+
+#sort data by age
+data <- data %>%
+  arrange(age)
+######### regs
+
+model1 <- feols(MU_1 ~ age,
+                cluster = c("GVKEY", "t"),
+                data = data)
+
+model2 <- feols(MU_1 ~ age + t,
+                cluster = c("GVKEY", "t"),
+                data = data)
+
+model3 <- feols(MU_1 ~ age - 1 | decade,
+                cluster = c("GVKEY", "t"),
+                data = data)
+
+model4 <- feols(MU_1 ~ age - 1 | decade + industry,
+                cluster = c("GVKEY", "t"),
+                data = data)
+
+
+model5 <- feols(MU_1 ~ age - 1 | GVKEY + decade,
+                cluster = c("GVKEY", "t"),
+                data = data)
+
+model6 <- feols(MU_1 ~ i(age_in, age) - 1 |  GVKEY + decade,
+                cluster = c("GVKEY", "t"),
+                data = data)
+
+# add last indicator
+model7 <- feols(MU_1 ~ i(age_in, age) + last - 1 |  GVKEY + decade,
+                cluster = c("GVKEY", "t"),
+                data = data)
+
+# add life indicator
+model8 <- feols(MU_1 ~ i(age_in, age) - 1 |  GVKEY + decade + life,
+                cluster = c("GVKEY", "t"),
+                data = data)
+
+models <- list(" " = model1,
+                " " = model2,
+                " " = model3,
+                " " = model4,
+                " " = model5,
+                " " = model6,
+                " " = model7)
+
+new_names <- c(
+  "MU_1" = "Markup",
+  "age" = "Firm Age",
+  "age_in:: 0-5:age" = "$ Age \\times I[Age < 6] $",
+  "age_in:: 6-10:age" = "$ Age \\times I[5 < Age < 11] $",
+  "age_in:: 11-20:age" = "$ Age \\times I[10 < Age < 20] $",
+  "age_in:: 20+:age" = "$ Age \\times i[Age > 20] $",
+  "t" = "Time",
+  "last" = "Last Year in Sample",
+  "life" = "Years To Exit",
+  "GVKEY" = "Firm",
+  "industry" = "Industry",
+  "age_in" = "Years Since IPO Buckets",
+  "decade_e" = "Decade of Entry",
+  "decade" = "Decade"
+)
+
+# Specify the order
+age_order <-
+c("Age < 6", "5 < Age < 11", "10 < Age < 20", "Age > 20")
+
+
+coef_order <- 
+c("Constant", "Firm Age", "Time", age_order)
+
+
+# Display the table with coefficients in the specified order
+etable(models, order = coef_order, dict = new_names)
+
+
+etable(models, order = coef_order, dict = new_names, tex = TRUE)
+
+
+
+
+
+############################################################
+############################################################
+#     9: Save plots
+############################################################
+############################################################
+
+
+
+#save plots
+setwd(dircs[3])
+
+#ipo x decade
+pdf("ipoxdecade.pdf", width = 16, height = 10)
+grid.arrange(decmu, decw,
+             ncol = 2)
+dev.off()
+
+
+pdf("ys_ipo.pdf", width = 16, height = 10)
+grid.arrange(marks10, w10,
+             ncol = 2)
+dev.off()
+
+
+
+pdf("muagedec.pdf", width = 40, height = 60)
+grid.arrange(
+  mu_mean_plots[[1]], mu_mean_plots[[2]], mu_mean_plots[[3]], mu_mean_plots[[4]],
+  mu_mean_plots[[5]], mu_mean_plots[[6]], mu_mean_plots[[7]], mu_mean_plots[[8]],
+  mu_mean_plots[[9]], mu_mean_plots[[10]], mu_mean_plots[[11]], mu_mean_plots[[12]],
+   mu_mean_plots[[14]], mu_mean_plots[[15]], mu_mean_plots[[16]],
+  mu_mean_plots[[17]], mu_mean_plots[[18]], mu_mean_plots[[19]],
+  ncol = 4)
+dev.off()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+############################################################
+############################################################
+############################################################
+############################################################
+#     9999: OLD
+############################################################
+############################################################
+############################################################
+############################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ############################################################
 ############################################################
@@ -413,9 +964,9 @@ mutate(fyear = fyear + 1)
 
 #select relevant variables
 data_l <- data_l %>%
-  dplyr::select(GVKEY, fyear, MU, sshare) #nolint
+  dplyr::select(GVKEY, fyear, MU, sshare, sale, xsga) #nolint
 
-names(data_l) <- c("GVKEY", "fyear", "MU_l", "sshare_l")
+names(data_l) <- c("GVKEY", "fyear", "MU_l", "sshare_l", "sale_l", "xsga_l")
 
 #merge
 data <- merge(data, data_l, by = c("GVKEY", "fyear"), all.x = TRUE)
@@ -424,7 +975,8 @@ data <- merge(data, data_l, by = c("GVKEY", "fyear"), all.x = TRUE)
 data <- data %>%
 mutate(
   sgr = (sshare - sshare_l) / sshare_l,
-  mugr = (MU - MU_l) / abs(MU_l - 1)
+  mugr = (MU - MU_l) / abs(MU_l - 1),
+  fc_s_gr = (xsga / sale) - (xsga_l / sale_l)
   )
 
 #save means
@@ -432,9 +984,10 @@ mean_ms <- mean(data$sshare, na.rm = TRUE)
 mean_mu <- mean(data$MU - 1, na.rm = TRUE)
 mean_swmu <- weighted.mean(data$MU - 1, data$sale, na.rm = TRUE)
 meanmugr <- mean(data$mugr, na.rm = TRUE)
+meanfc_s_gr <- mean(data$fc_s_gr, na.rm = TRUE)
+meanfc_s <- mean(data$xsga / data$sale, na.rm = TRUE)
 meansgr <- mean(data$sgr, na.rm = TRUE)
 
-mean(ipo_10_marks$adv_MU_gr, na.rm = TRUE)
 
 
 
@@ -456,6 +1009,8 @@ ipo_10_marks <- ipos10 %>%
     tot_w = sum(sshare, na.rm = TRUE),
     avg_gr = mean(sgr, na.rm = TRUE),
     adv_MU_gr = mean(mugr, na.rm = TRUE),
+    fc_sale = mean(xsga / sale, na.rm = TRUE),
+    avg_fc_s_gr = mean(fc_s_gr, na.rm = TRUE),
     n = n()
   )
 
@@ -491,6 +1046,34 @@ marksw10 <- ggplot(ipo_10_marks, aes(x = age, y = mu_sw)) +
   scale_linetype_manual(values =
                         c("Full sample sales weighted average" = "dashed")) +
   guides(linetype = guide_legend(title = NULL))
+
+
+
+
+
+
+
+FC_sale10 <- ggplot(ipo_10_marks, aes(x = age, y = fc_sale)) +
+  geom_point(size = 4) +
+  geom_line(size = .5) +
+  geom_hline(aes(yintercept = meanfc_s,
+                 linetype = "Full sample average"),
+             show.legend = TRUE) +
+  labs(x = "Years Since IPO", y = "Mean Fixed Cost / Revenue") +
+  coord_cartesian(ylim = c(0, max(ipo_10_marks$fc_sale))) +
+  scale_linetype_manual(values = c("Full sample average" = "dashed")) +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  guides(linetype = guide_legend(title = NULL))
+
+
+
+
+
+
+
+
+
+
 
 w10 <- ggplot(ipo_10_marks, aes(x = age, y = avg_w)) +
   geom_point(size = 4) +
@@ -534,6 +1117,33 @@ MUgr10 <- ggplot(ipo_10_marks, aes(x = age, y = adv_MU_gr * 100)) +
   guides(linetype = guide_legend(title = NULL))
 
 
+
+
+
+
+
+
+FCSgr10 <- ggplot(ipo_10_marks, aes(x = age, y = avg_fc_s_gr * 100)) +
+  geom_point(size = 4) +
+  geom_line(size = .5) +
+  geom_hline(aes(yintercept = meanfc_s_gr* 100,
+                 linetype = "Full sample Average"),
+             show.legend = TRUE) +
+  labs(x = "Years Since IPO", 
+       y = "Avererage Growth Rate of Fixed Cost/ Revenue (%)") +
+  coord_cartesian(ylim = c(min(ipo_10_marks$avg_fc_s_gr * 100), 
+                           max(ipo_10_marks$avg_fc_s_gr * 100))) +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  scale_linetype_manual(values =
+                        c("Full sample Average" = "dashed")) +
+  guides(linetype = guide_legend(title = NULL))
+
+
+
+
+
+
+
 marks10
 
 marksmed10
@@ -546,6 +1156,10 @@ gr10
 
 MUgr10
 
+
+FC_sale10
+
+FCSgr10
 ############################################################
 ############################################################
 #     4: decade
@@ -580,7 +1194,7 @@ ipo_dec <- data %>%
   avg_w_t = mean(ifelse(ipo == 0,
                         sshare, NA), na.rm = TRUE),
   tot_w_t = sum(ifelse(ipo == 0,
-                       sshare, NA), na.rm = TRUE),
+                       sshare, NA), na.rm = TRUE)
   )
 
 decmu <- ggplot(ipo_dec, aes(x = decade)) +
@@ -963,6 +1577,14 @@ dev.off()
 
 
 
+pdf("ys_ipo.pdf", width = 20, height = 14)
+grid.arrange(marks10, w10,
+             ncol = 2)
+dev.off()
+
+
+
+
 #decade x age
 pdf("decadexage.pdf", width = 20, height = 14)
 grid.arrange(dage_mu, dage_w,
@@ -980,145 +1602,351 @@ dev.off()
 
 
 
-
-
-
-
-
-
-
-
 ############################################################
 ############################################################
-#     7: Pharam comps
+#     8: Break even
 ############################################################
 ############################################################
 
-#filter to pharma
-pharma <- data %>%
-  filter(substr(naics, 1, 5) == "32541")
 
-phrama_2022 <- data %>%
-  filter(substr(naics, 1, 5) == "32541",
-         year == 2019) %>%
-  arrange(desc(sale))
+# Pi(PY) = YP(1-1/mu)-FC | FC, mu
+#BE \equiv PY(BE)=0
+#BE = (\mu)/(\mu-1) *FC
+#ES = PY/BE
 
-view(phrama_2022)
+data <- data %>%
+  mutate(
+    BE = (MU) / ( MU - 1) * xsga,
+    ES =  sale / BE
+  )
 
-big_3 <- phrama_2022$GVKEY[1:3]
+summary(data$BE)
 
-pharma <- pharma %>%
-  mutate(b3 = ifelse(GVKEY %in% big_3, conm, "Other"))
-pharma <- pharma %>%
-  group_by(fyear) %>%
-  mutate(t5 = ifelse(sale >= quantile(sale, .95), "t5", "other"))
+summary(data$ES)
 
-pharma <- pharma %>%
-  arrange(fyear, t5)
 
-view(pharma)
-
-pharma_b5 <- pharma %>%
-  group_by(fyear, b3) %>%
+es_age <- data %>%
+  group_by(age) %>%
   summarise(
-    mu_mean = mean(MU - 1, na.rm = TRUE),
-    mu_sw = weighted.mean(MU - 1, sale, na.rm = TRUE),
-    avg_w = mean(sshare, na.rm = TRUE),
-    n = n(),
-    tot_share = sum(sshare, na.rm = TRUE),
-    avg_share = mean(sshare, na.rm = TRUE),
+    es_mean = mean(ES, na.rm = TRUE),
+    BE_mean = mean(BE, na.rm = TRUE),
+    es_median = median(ES, na.rm = TRUE),
+    BE_median = median(BE, na.rm = TRUE),
+    fc_s_mean = mean(xsga / sale, na.rm = TRUE),
+    fc_s_median = median(xsga / sale, na.rm = TRUE)
   )
 
 
-b3_mu <- ggplot(pharma_b5, aes(x = fyear)) +
-  geom_point(aes(y = mu_sw, color = b3), size = 4) +
-  geom_line(aes(y = mu_sw, color = b3), size = .5) +
-  labs(x = "Year", y = "Sales Weighted Markup", color = " ") +
-  coord_cartesian(ylim = c(0, max(pharma_b5$mu_sw))) +
-  theme(text = element_text(size = 20), legend.position = "bottom")
+plot(es_age$age, es_age$fc_s_median)
 
-b3_share <- ggplot(pharma_b5, aes(x = fyear)) +
-  geom_point(aes(y = tot_share, color = b3), size = 4) +
-  geom_line(aes(y = tot_share, color = b3), size = .5) +
-  labs(x = "Year", y = "Market Share (% of total COMPUSTAT Sales)", 
-       color = " ") +
-  coord_cartesian(ylim = c(0, max(pharma_b5$tot_share))) +
-  theme(text = element_text(size = 20), legend.position = "bottom")
+plot(es_age$age, es_age$fc_s_mean)
+
+plot(es_age$age, es_age$es_mean)
 
 
+#plot of average against es median
+ggplot(es_age, aes(x = age, y = es_median)) +
+  geom_line() +
+  labs(x = "Age", y = "Median ES") +
+  lims(x = c(0, 50)) +
+  coord_cartesian(ylim = c(.9, 1.4)) +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  scale_color_discrete(name = "Decade")
 
 
 
-pharma_t5 <- pharma %>%
-  group_by(fyear, t5) %>%
+
+es_age_dec <- data %>%
+  group_by(age, decade_e) %>%
   summarise(
-    mu_mean = mean(MU - 1, na.rm = TRUE),
-    mu_sw = weighted.mean(MU - 1, sale, na.rm = TRUE),
-    avg_w = mean(sshare, na.rm = TRUE),
-    n = n(),
-    tot_share = sum(sshare, na.rm = TRUE),
-    avg_share = mean(sshare, na.rm = TRUE),
-  )  %>%
-  pivot_wider(names_from = t5,
-    values_from = c(mu_mean, mu_sw, avg_w, n, tot_share, avg_share)
+    es_mean = mean(ES, na.rm = TRUE),
+    BE_mean = mean(BE, na.rm = TRUE),
+    es_median = median(ES, na.rm = TRUE),
+    BE_median = median(BE, na.rm = TRUE),
+    FC_S_mean = mean(xsga / sale, na.rm = TRUE),
+    FC_S_median = median(xsga / sale, na.rm = TRUE),
+    Prof_mean = mean(sale - xsga - sale / MU, na.rm = TRUE),
+    Prof_median = median(sale - xsga - sale / MU, na.rm = TRUE),
+    Prof_r_mean = mean(sale / (sale / MU + xsga) - 1, na.rm = TRUE),
+    Prof_r_median = median(sale / (sale / MU + xsga) - 1, na.rm = TRUE),
+    MU_mean = mean(MU, na.rm = TRUE),
+    MU_median = median(MU, na.rm = TRUE),
+    sshare_mean = mean(sshare, na.rm = TRUE),
+    sshare_median = median(sshare, na.rm = TRUE)
   )
+#remove Na decade
+es_age_dec <- es_age_dec %>%
+  filter(!is.na(decade_e))
 
 
-t5_mu <- ggplot(pharma_t5, aes(x = fyear)) +
-  geom_point(aes(y = mu_sw_t5, color = "b5"), size = 4) +
-  geom_line(aes(y = mu_sw_t5, color = "b5"), size = .5) +
-  geom_point(aes(y = mu_sw_other, color = "other"), size = 4) +
-  geom_line(aes(y = mu_sw_other, color = "other"), size = .5) +
-  labs(x = "Year", y = "Sales Weighted Markup", color = " ") +
-  scale_color_manual(values = c("b5" = "blue", "other" = "red"),
-                     labels = c("b5" =
-                                "Top %5 of Sales",
-                                "other" = "Other Pharmacutical Companies")) +
-  coord_cartesian(ylim = c(0,
-                           max(c(pharma_t5$mu_sw_t5, pharma_t5$mu_sw_other)))) +
-  theme(text = element_text(size = 20), legend.position = "bottom")
-
-t5_share <- ggplot(pharma_t5, aes(x = fyear)) +
-  geom_point(aes(y = tot_share_t5, color = "b5"), size = 4) +
-  geom_line(aes(y = tot_share_t5, color = "b5"), size = .5) +
-  geom_point(aes(y = tot_share_other, color = "other"), size = 4) +
-  geom_line(aes(y = tot_share_other, color = "other"), size = .5) +
-  labs(x = "Year",
-       y = "Market Share (% of total COMPUSTAT Sales)",
-       color = " ") +
-  scale_color_manual(values = c("b5" = "blue", "other" = "red"),
-                     labels = c("b5" = "Top %5 of Sales",
-                                "other" = "Other Pharmacutical Companies")) +
-  coord_cartesian(ylim = c(0,
-                           max(c(pharma_t5$tot_share_t5,
-                                 pharma_t5$tot_share_other)))) +
-  theme(text = element_text(size = 20), legend.position = "bottom")
+#age vs efficent scale by decade
+es_mean <-
+  ggplot(es_age_dec, aes(x = age, y = es_median, color = as.factor(decade_e))) +
+  geom_line() +
+  labs(x = "Age",
+       y = "Median Break Even Scale = Actual Revenue)/(Break Even Revenue) ",
+       color = "Decade of Entry") +
+  lims(x = c(0, 30)) +
+  coord_cartesian(ylim = c(0.5, 3.5)) +
+  theme(text = element_text(size = 17), legend.position = "bottom",
+        legend.text = element_text(size = 30)) +
+  scale_color_discrete(name = "Decade")
+es_median <-
+  ggplot(es_age_dec, aes(x = age, y = es_mean, color = as.factor(decade_e))) +
+  geom_line() +
+  labs(x = "Age",
+       y = "Average Break Even Scale = Actual Revenue)/(Break Even Revenue) ",
+       color = "Decade of Entry") +
+  lims(x = c(0, 30)) +
+  coord_cartesian(ylim = c(0.5, 3.5)) +
+  theme(text = element_text(size = 17), legend.position = "bottom",
+        legend.text = element_text(size = 30)) +
+  scale_color_discrete(name = "Decade")
 
 
+#age vs fixed costs / revenue by decade
+fc_s_mean <-
+  ggplot(es_age_dec, aes(x = age, y = FC_S_mean, color = as.factor(decade_e))) +
+  geom_line() +
+  labs(x = "Age",
+       y = "Average Fixed Cost / Revenue",
+       color = "Decade of Entry") +
+  lims(x = c(0, 30)) +
+  coord_cartesian(ylim = c(0, 3.5)) +
+  theme(text = element_text(size = 30), legend.position = "bottom",
+        legend.text = element_text(size = 30)) +
+  scale_color_discrete(name = "Decade")
+fc_s_median <-
+  ggplot(es_age_dec, aes(x = age,
+                         y = FC_S_median,
+                         color = as.factor(decade_e))) +
+  geom_line() +
+  labs(x = "Age",
+       y = "Median Fixed Cost / Revenue",
+       color = "Decade of Entry") +
+  lims(x = c(0, 30)) +
+  coord_cartesian(ylim = c(0, 3.5)) +
+  theme(text = element_text(size = 30), legend.position = "bottom",
+        legend.text = element_text(size = 30)) +
+  scale_color_discrete(name = "Decade")
+
+
+#age vs PI/Sale
+pr_mean <-
+  ggplot(es_age_dec, aes(x = age, y = Prof_r_mean,
+                         color = as.factor(decade_e))) +
+  geom_line() +
+  labs(x = "Age",
+       y = "Mean Profit Ratio =  (1 - Total Cost/Revenue)",
+       color = "Decade of Entry") +
+  lims(x = c(0, 30)) +
+  lims(y = c(-.2, .25)) +
+  theme(text = element_text(size = 30), legend.position = "bottom",
+        legend.text = element_text(size = 30)) +
+  scale_color_discrete(name = "Decade")
+pr_median <-
+  ggplot(es_age_dec, aes(x = age, y = Prof_r_median,
+                         color = as.factor(decade_e))) +
+  geom_line() +
+  labs(x = "Age",
+       y = "Median Profit Ratio =  (1 - Total Cost/Revenue)",
+       color = "Decade of Entry") +
+  lims(x = c(0, 30)) +
+  lims(y = c(-.2, .25)) +
+  theme(text = element_text(size = 30), legend.position = "bottom",
+        legend.text = element_text(size = 30)) +
+  scale_color_discrete(name = "Decade")
+
+
+#age vs total profit
+pi_mean <-
+  ggplot(es_age_dec, aes(x = age, y = Prof_mean, color = as.factor(decade_e))) +
+  geom_line() +
+  labs(x = "Age",
+       y = "Mean Profits (GDP Deflated to 2020)",
+       color = "Decade of Entry") +
+  lims(x = c(0, 30)) +
+  lims(y = c(-250, 1000000)) +
+  theme(text = element_text(size = 30), legend.position = "bottom",
+        legend.text = element_text(size = 30)) +
+  scale_color_discrete(name = "Decade")
+
+pi_median <-
+  ggplot(es_age_dec, aes(x = age,
+                         y = Prof_median,
+                         color = as.factor(decade_e))) +
+  geom_line() +
+  labs(x = "Age",
+       y = "Median Profits (GDP Deflated to 2020)",
+       color = "Decade of Entry") +
+  lims(x = c(0, 30)) +
+  lims(y = c(-2500, 100000)) +
+  theme(text = element_text(size = 30), legend.position = "bottom",
+        legend.text = element_text(size = 30)) +
+  scale_color_discrete(name = "Decade")
+
+
+#plot of age against es median, with different decades in different colors
+mu_mean <-
+  ggplot(es_age_dec, aes(x = age,
+                         y = MU_mean - 1,
+                         color = as.factor(decade_e))) +
+  geom_line() +
+  labs(x = "Age", y = "Mean Markup Ratio (p/mc-1)", color = "Decade of Entry") +
+  lims(x = c(0, 30)) +
+  lims(y = c(0, 1.25)) +
+  theme(text = element_text(size = 30), legend.position = "bottom",
+        legend.text = element_text(size = 30)) +
+  scale_color_discrete(name = "Decade")
+mu_median <-
+  ggplot(es_age_dec, aes(x = age,
+                         y = MU_median-1,
+                         color = as.factor(decade_e))) +
+  geom_line() +
+  labs(x = "Age",
+       y = "Median Markup Ratio (p/mc-1)",
+       color = "Decade of Entry") +
+  lims(x = c(0, 30)) +
+  lims(y = c(0, 1.25)) +
+  theme(text = element_text(size = 30), legend.position = "bottom",
+        legend.text = element_text(size = 30)) +
+  scale_color_discrete(name = "Decade")
+
+
+
+#plot of age against marketshare
+sshare_mean <-
+  ggplot(es_age_dec, aes(x = age,
+                         y = sshare_mean,
+                         color = as.factor(decade_e))) +
+  geom_line() +
+  labs(x = "Age", y = "Mean Market Share", color = "Decade of Entry") +
+  lims(x = c(0, 30)) +
+  lims(y = c(0, .1)) +
+  theme(text = element_text(size = 30), legend.position = "bottom",
+        legend.text = element_text(size = 30)) +
+  scale_color_discrete(name = "Decade")
+sshare_median <-
+  ggplot(es_age_dec, aes(x = age,
+                         y = sshare_median,
+                         color = as.factor(decade_e))) +
+  geom_line() +
+  labs(x = "Age",
+       y = "Median Market Share",
+       color = "Decade of Entry") +
+  lims(x = c(0, 30)) +
+  lims(y = c(0, .1)) +
+  theme(text = element_text(size = 30), legend.position = "bottom",
+        legend.text = element_text(size = 30)) +
+  scale_color_discrete(name = "Decade")
 
 
 
 
-t5_mu
 
-t5_share
+###########################################################################
+###########################################################################
 
-
+#save plots
 setwd(dircs[3])
 
-#pharma
-pdf("pharama_b3.pdf", 20, height = 14)
-grid.arrange(b3_share, b3_mu,
-             ncol = 2)
-dev.off()
-
-#pharma
-pdf("pharama_t5.pdf", 20, height = 14)
-grid.arrange(t5_share, t5_mu,
+pdf("efficentscale.pdf", width = 20, height = 14)
+grid.arrange(es_mean, es_median,
              ncol = 2)
 dev.off()
 
 
+pdf("fixedcostratio.pdf", width = 20, height = 14)
+grid.arrange(fc_s_mean, fc_s_median,
+             ncol = 2)
+dev.off()
+
+
+pdf("profitratio.pdf", width = 20, height = 14)
+grid.arrange(pr_mean, pr_median,
+             ncol = 2)
+dev.off()
+
+pdf("profits.pdf", width = 20, height = 14)
+grid.arrange(pi_mean, pi_median,
+             ncol = 2)
+dev.off()
+
+
+pdf("markupage_dec.pdf", width = 20, height = 14)
+grid.arrange(mu_mean, mu_median,
+             ncol = 2)
+dev.off()
+
+
+pdf("sshare_decade.pdf", width = 20, height = 14)
+grid.arrange(sshare_mean, sshare_median,
+             ncol = 2)
+dev.off()
+
+
+
+
+
+
+
+
+
+###################################################################
+###################################################################
+# By sector by decade
+
+data_na <- data %>%
+  filter(!is.na(industry))
+
+ind_names <- unique(data_na$industry)
+
+for(i in seq_along(ind_names)){
+  data_temp <- data_na %>%
+    filter(industry == ind_names[i])
+
+  temp_data <- data_temp %>%
+    group_by(age, decade_e) %>%
+    summarise(
+      MU_mean = mean(MU, na.rm = TRUE),
+      MU_median = median(MU, na.rm = TRUE)
+    )
+  #remove Na decade
+  temp_data <- temp_data %>%
+    filter(!is.na(decade_e))
+  #save plots
+
+  mu_mean_t <-
+    ggplot(temp_data, aes(x = age,
+                          y = MU_mean - 1,
+                          color = as.factor(decade_e))) +
+    geom_line() +
+    labs(x = "Age", y = "Mean Markup Ratio (p/mc-1)",
+         color = "Decade of Entry") +
+    lims(x = c(0, 30)) +
+    lims(y = c(0, 1.25)) +
+    theme(text = element_text(size = 30), legend.position = "bottom",
+          legend.text = element_text(size = 30)) +
+    scale_color_discrete(name = "Decade")
+
+  mu_median_t <-
+    ggplot(temp_data, aes(x = age,
+                          y = MU_median - 1,
+                          color = as.factor(decade_e))) +
+    geom_line() +
+    labs(x = "Age",
+         y = "Median Markup Ratio (p/mc-1)",
+         color = "Decade of Entry") +
+    lims(x = c(0, 30)) +
+    lims(y = c(0, 1.25)) +
+    theme(text = element_text(size = 30), legend.position = "bottom",
+          legend.text = element_text(size = 30)) +
+    scale_color_discrete(name = "Decade")
+
+    # Save plots to lists
+  mu_mean_plots[[ind_names[i]]] <- mu_mean_t
+  mu_median_plots[[ind_names[i]]] <- mu_median_t
+}
 
 
 
@@ -1146,138 +1974,339 @@ dev.off()
 
 
 
-############################################################
-############################################################
-#     7: Software pubishing
-############################################################
-############################################################
 
-#filter to 516210	Media Streaming Distribution Services, Social Networks, and Other Media Networks and Content Providers
-pharma <- data %>%
-  filter(substr(naics, 1, 6) == "516210")
 
-phrama_2022 <- data %>%
-  filter(substr(naics, 1, 6) == "516210",
-         year == 2019) %>%
-  arrange(desc(sale))
 
-view(phrama_2022)
 
-big_3 <- phrama_2022$GVKEY[1:3]
 
-pharma <- pharma %>%
-  mutate(b3 = ifelse(GVKEY %in% big_3, conm, "Other"))
-pharma <- pharma %>%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+data_na <- data %>%
+  filter(!is.na(industry))
+
+ind_names <- unique(data_na$industry)
+
+for (i in seq_along(ind_names)){
+
+  data_temp <- data_na %>%
+    filter(industry == ind_names[i])
+
+  #create new market share (by year)
+  data_temp <- data_temp %>%
+    group_by(fyear) %>%
+      mutate(sshare = sale / sum(sale))
+
+  temp_data <- data_temp %>%
+    group_by(age, decade_e) %>%
+    summarise(
+      ms_mean = mean(sshare, na.rm = TRUE),
+      ms_median = median(sshare, na.rm = TRUE)
+    )
+  #remove Na decade
+  temp_data <- temp_data %>%
+    filter(!is.na(decade_e))
+  #save plots
+
+  hold <- temp_data %>%
+    filter(age <= 30)
+
+  maxi = max(
+    max(hold$ms_median),
+    max(hold$mean))
+
+  mu_mean_t <-
+    ggplot(temp_data, aes(x = age,
+                          y = ms_mean,
+                          color = as.factor(decade_e))) +
+    geom_line() +
+    labs(x = "Age", y = "Mean Market Share",
+         color = "Decade of Entry") +
+    lims(x = c(0, 30)) +
+    lims(y = c(0, maxi)) +
+    theme(text = element_text(size = 30), legend.position = "bottom",
+          legend.text = element_text(size = 30)) +
+    scale_color_discrete(name = "Decade")
+
+  mu_median_t <-
+    ggplot(temp_data, aes(x = age,
+                          y = ms_median,
+                          color = as.factor(decade_e))) +
+    geom_line() +
+    labs(x = "Age",
+         y = "Median Market Share",
+         color = "Decade of Entry") +
+    lims(x = c(0, 30)) +
+    lims(y = c(0, maxi))+
+    theme(text = element_text(size = 30), legend.position = "bottom",
+          legend.text = element_text(size = 30)) +
+    scale_color_discrete(name = "Decade")
+
+  setwd(dircs[3])
+  pdf(paste("dec_ms_", ind_names[i], ".pdf", sep = ""), width = 24, height = 12)
+  grid.arrange(mu_mean_t, mu_median_t,
+               ncol = 2,
+               top = textGrob(paste(ind_names[i]),
+                              gp = gpar(fontsize = 35, font = 3)))
+  dev.off()
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###########################################################
+######### predicting survivability
+#########################################################
+
+
+ipos <- data %>%
+  filter(ipo == 1)
+
+
+#generate by year markup and fixed cost deciles
+ipos <- ipos %>%
   group_by(fyear) %>%
-  mutate(t5 = ifelse(sale >= quantile(sale, .95), "t5", "other"))
+  mutate(MU_dec = ntile(MU, 10),
+         xsga_dec = ntile(xsga / sale, 10),
+         ms_dec = ntile(sshare, 10)) %>%
+  ungroup()
 
-pharma <- pharma %>%
-  arrange(fyear, t5)
-
-view(pharma)
-
-pharma_b5 <- pharma %>%
-  group_by(fyear, b3) %>%
-  summarise(
-    mu_mean = mean(MU - 1, na.rm = TRUE),
-    mu_sw = weighted.mean(MU - 1, sale, na.rm = TRUE),
-    avg_w = mean(sshare, na.rm = TRUE),
-    n = n(),
-    tot_share = sum(sshare, na.rm = TRUE),
-    avg_share = mean(sshare, na.rm = TRUE),
+#generate 2, 5, 10, 15, 20 surivial
+  #for each survival s generate 0 if life <s, NA if life = NA and 2023 - fyear<s, and 1 else #nolint
+ipos <- ipos %>%
+  mutate(
+    surv_1 = ifelse(2023 - fyear < 1, NA,
+                    ifelse(is.na(life), 1,
+                           ifelse(life < 1, 0, 1))),
+    surv_5 = ifelse(2023 - fyear < 5, NA,
+                    ifelse(is.na(life), 1,
+                           ifelse(life < 5, 0, 1))),
+    surv_10 = ifelse(2023 - fyear < 10, NA,
+                     ifelse(is.na(life), 1,
+                            ifelse(life < 10, 0, 1))),
+    surv_15 = ifelse(2023 - fyear < 15, NA,
+                     ifelse(is.na(life), 1,
+                            ifelse(life < 15, 0, 1))),
+    surv_20 = ifelse(2023 - fyear < 20, NA,
+                     ifelse(is.na(life), 1,
+                            ifelse(life < 20, 0, 1)))
   )
 
 
-b3_mu <- ggplot(pharma_b5, aes(x = fyear)) +
-  geom_point(aes(y = mu_sw, color = b3), size = 4) +
-  geom_line(aes(y = mu_sw, color = b3), size = .5) +
-  labs(x = "Year", y = "Sales Weighted Markup", color = " ") +
-  coord_cartesian(ylim = c(0, max(pharma_b5$mu_sw))) +
-  theme(text = element_text(size = 20), legend.position = "bottom")
-
-b3_share <- ggplot(pharma_b5, aes(x = fyear)) +
-  geom_point(aes(y = tot_share, color = b3), size = 4) +
-  geom_line(aes(y = tot_share, color = b3), size = .5) +
-  labs(x = "Year", y = "Market Share (% of total COMPUSTAT Sales)", 
-       color = " ") +
-  coord_cartesian(ylim = c(0, max(pharma_b5$tot_share))) +
-  theme(text = element_text(size = 20), legend.position = "bottom")
-
-
-
-
-
-pharma_t5 <- pharma %>%
-  group_by(fyear, t5) %>%
+#generate average survival by decade and decile
+ipos_s_mu <- ipos %>%
+  group_by(MU_dec) %>%
   summarise(
-    mu_mean = mean(MU - 1, na.rm = TRUE),
-    mu_sw = weighted.mean(MU - 1, sale, na.rm = TRUE),
-    avg_w = mean(sshare, na.rm = TRUE),
-    n = n(),
-    tot_share = sum(sshare, na.rm = TRUE),
-    avg_share = mean(sshare, na.rm = TRUE),
-  )  %>%
-  pivot_wider(names_from = t5,
-    values_from = c(mu_mean, mu_sw, avg_w, n, tot_share, avg_share)
+    sr_mu_1 = mean(surv_1, na.rm = TRUE),
+    sr_mu_5 = mean(surv_5, na.rm = TRUE),
+    sr_mu_10 = mean(surv_10, na.rm = TRUE),
+    sr_mu_15 = mean(surv_15, na.rm = TRUE),
+    sr_mu_20 = mean(surv_20, na.rm = TRUE),
+    obs = n(),
+    .groups = "drop"
+  ) %>%
+  ungroup()
+
+view(ipos_s_mu)
+
+
+# Reshape the data to long format
+ipos_s_mu_long <- ipos_s_mu %>%
+  pivot_longer(
+    cols = starts_with("sr_mu"),
+    names_to = "survival_period",
+    values_to = "survival_rate"
   )
 
-
-t5_mu <- ggplot(pharma_t5, aes(x = fyear)) +
-  geom_point(aes(y = mu_sw_t5, color = "b5"), size = 4) +
-  geom_line(aes(y = mu_sw_t5, color = "b5"), size = .5) +
-  geom_point(aes(y = mu_sw_other, color = "other"), size = 4) +
-  geom_line(aes(y = mu_sw_other, color = "other"), size = .5) +
-  labs(x = "Year", y = "Sales Weighted Markup", color = " ") +
-  scale_color_manual(values = c("b5" = "blue", "other" = "red"),
-                     labels = c("b5" =
-                                "Top %5 of Sales",
-                                "other" = "Other Pharmacutical Companies")) +
-  coord_cartesian(ylim = c(0,
-                           max(c(pharma_t5$mu_sw_t5, pharma_t5$mu_sw_other)))) +
-  theme(text = element_text(size = 20), legend.position = "bottom")
-
-t5_share <- ggplot(pharma_t5, aes(x = fyear)) +
-  geom_point(aes(y = tot_share_t5, color = "b5"), size = 4) +
-  geom_line(aes(y = tot_share_t5, color = "b5"), size = .5) +
-  geom_point(aes(y = tot_share_other, color = "other"), size = 4) +
-  geom_line(aes(y = tot_share_other, color = "other"), size = .5) +
-  labs(x = "Year",
-       y = "Market Share (% of total COMPUSTAT Sales)",
-       color = " ") +
-  scale_color_manual(values = c("b5" = "blue", "other" = "red"),
-                     labels = c("b5" = "Top %5 of Sales",
-                                "other" = "Other Pharmacutical Companies")) +
-  coord_cartesian(ylim = c(0,
-                           max(c(pharma_t5$tot_share_t5,
-                                 pharma_t5$tot_share_other)))) +
-  theme(text = element_text(size = 20), legend.position = "bottom")
+# Create the histogram
+sr_mu <-
+ggplot(ipos_s_mu_long,
+       aes(x = MU_dec,
+           y = survival_rate, fill = survival_period)) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Survival Rates by Markup Decile",
+    x = "Survival Rates by Markup Decile (Within Years)",
+    y = "Fraction of Firms Surviving to Year",
+    fill = "Year"
+  ) +
+  theme(text = element_text(size = 30), legend.position = "bottom",
+        legend.text = element_text(size = 30))
 
 
 
 
 
 
-t5_mu
-
-t5_share
 
 
+
+
+
+
+
+
+
+
+
+
+
+#generate average survival by decade and decile
+ipos_s_fc <- ipos %>%
+  group_by(xsga_dec) %>%
+  summarise(
+    sr_mu_1 = mean(surv_1, na.rm = TRUE),
+    sr_mu_5 = mean(surv_5, na.rm = TRUE),
+    sr_mu_10 = mean(surv_10, na.rm = TRUE),
+    sr_mu_15 = mean(surv_15, na.rm = TRUE),
+    sr_mu_20 = mean(surv_20, na.rm = TRUE),
+    obs = n(),
+    .groups = "drop"
+  ) %>%
+  ungroup()
+
+
+
+# Reshape the data to long format
+ipos_s_fc <- ipos_s_fc %>%
+  pivot_longer(
+    cols = starts_with("sr_mu"),
+    names_to = "survival_period",
+    values_to = "survival_rate"
+  )
+
+# Create the histogram
+s_r_fc <-
+ggplot(ipos_s_fc,
+       aes(x = xsga_dec,
+           y = survival_rate, fill = survival_period)) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Survival Rates by Fixed Cost/ Sales Decile",
+    x = "Survival Rates by  Fixed Cost/ Sales Decile (Within Years)",
+    y = "Fraction of Firms Surviving to Year",
+    fill = "Year"
+  ) +
+  theme(text = element_text(size = 30), legend.position = "bottom",
+        legend.text = element_text(size = 30))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#generate average survival by decade and decile
+ipos_s_ms <- ipos %>%
+  group_by(ms_dec) %>%
+  summarise(
+    sr_mu_1 = mean(surv_1, na.rm = TRUE),
+    sr_mu_5 = mean(surv_5, na.rm = TRUE),
+    sr_mu_10 = mean(surv_10, na.rm = TRUE),
+    sr_mu_15 = mean(surv_15, na.rm = TRUE),
+    sr_mu_20 = mean(surv_20, na.rm = TRUE),
+    obs = n(),
+    .groups = "drop"
+  ) %>%
+  ungroup()
+
+
+
+# Reshape the data to long format
+ipos_s_ms <- ipos_s_ms %>%
+  pivot_longer(
+    cols = starts_with("sr_mu"),
+    names_to = "survival_period",
+    values_to = "survival_rate"
+  )
+
+# Create the histogram
+sr_ms <-
+ggplot(ipos_s_ms,
+       aes(x = ms_dec,
+           y = survival_rate, fill = survival_period)) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Survival Rates by Market Share Decile",
+    x = "Survival Rates by   Market Share Decile (Within Years)",
+    y = "Fraction of Firms Surviving to Year",
+    fill = "Year"
+  ) +
+  theme(text = element_text(size = 30), legend.position = "bottom",
+        legend.text = element_text(size = 30))
+
+
+
+
+
+
+sr_mu
+s_r_fc
+sr_ms
+
+
+
+#save plots
 setwd(dircs[3])
 
-#pharma
-pdf("pharama_b3.pdf", 20, height = 14)
-grid.arrange(b3_share, b3_mu,
-             ncol = 2)
-dev.off()
-
-#pharma
-pdf("pharama_t5.pdf", 20, height = 14)
-grid.arrange(t5_share, t5_mu,
-             ncol = 2)
+pdf("sr_mu.pdf", width = 20, height = 14)
+grid.arrange(sr_mu)
 dev.off()
 
 
 
+pdf("s_r_fc.pdf", width = 20, height = 14)
+grid.arrange(s_r_fc)
+dev.off()
+
+pdf("sr_ms.pdf", width = 20, height = 14)
+grid.arrange(sr_ms)
+dev.off()
 
 
 
@@ -1289,3 +2318,249 @@ dev.off()
 
 
 
+
+###################################################################
+###################################################################
+# By sector by decade
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+view(ipos_s_mu)
+
+
+#generate average survival by decade and decile
+ipos_s_xsga <- ipos %>%
+  group_by(xsga_dec) %>%
+  summarise(
+    sr_mu_1 = mean(surv_1, na.rm = TRUE),
+    sr_mu_5 = mean(surv_5, na.rm = TRUE),
+    sr_mu_10 = mean(surv_10, na.rm = TRUE),
+    sr_mu_15 = mean(surv_15, na.rm = TRUE),
+    sr_mu_20 = mean(surv_20, na.rm = TRUE),
+    obs = n(),
+    .groups = "drop"
+  ) %>%
+  ungroup()
+
+
+view(ipos_s_xsga)
+
+
+#generate average survival by decade and decile
+ipos_s_j <- ipos %>%
+  group_by(xsga_dec, MU_dec) %>%
+  summarise(
+    sr_mu_1 = mean(surv_1, na.rm = TRUE),
+    sr_mu_5 = mean(surv_5, na.rm = TRUE),
+    sr_mu_10 = mean(surv_10, na.rm = TRUE),
+    sr_mu_15 = mean(surv_15, na.rm = TRUE),
+    sr_mu_20 = mean(surv_20, na.rm = TRUE),
+    obs = n(),
+    .groups = "drop"
+  ) %>%
+  ungroup()
+
+
+view(ipos_s_j)
+
+
+
+
+#generate average survival by decade and decile
+ipos_s <- ipos %>%
+  group_by(decade_e, xsga_dec, MU_dec) %>%
+  summarise(
+    sr_mu_1 = mean(surv_1, na.rm = TRUE),
+    sr_mu_5 = mean(surv_5, na.rm = TRUE),
+    sr_mu_10 = mean(surv_10, na.rm = TRUE),
+    sr_mu_15 = mean(surv_15, na.rm = TRUE),
+    sr_mu_20 = mean(surv_20, na.rm = TRUE),
+    obs = n(),
+    .groups = "drop"
+  ) %>%
+  ungroup()
+
+view(ipos_dec)
+
+
+
+
+
+
+#generate average survival by decade and decile
+ipos_dec_j <- ipos %>%
+  group_by(decade_e) %>%
+  group_by(MU_dec, xsga_dec) %>%
+  summarise(
+    sr_j_1 = mean(surv_1, na.rm = TRUE),
+    sr_j_5 = mean(surv_5, na.rm = TRUE),
+    sr_j_10 = mean(surv_10, na.rm = TRUE),
+    sr_j_15 = mean(surv_15, na.rm = TRUE),
+    sr_j_20 = mean(surv_20, na.rm = TRUE),
+    obs = n()
+  ) %>%
+  ungroup()
+
+view(ipos_dec)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ipos <- ipos %>%
+  group_by(age, decade_e) %>%
+  summarise(
+    es_mean = mean(ES, na.rm = TRUE),
+    BE_mean = mean(BE, na.rm = TRUE),
+    es_median = median(ES, na.rm = TRUE),
+    BE_median = median(BE, na.rm = TRUE),
+    FC_S_mean = mean(xsga / sale, na.rm = TRUE),
+    FC_S_median = median(xsga / sale, na.rm = TRUE),
+    Prof_mean = mean(sale - xsga - sale / MU, na.rm = TRUE),
+    Prof_median = median(sale - xsga - sale / MU, na.rm = TRUE),
+    Prof_r_mean = mean(sale / (sale / MU + xsga) - 1, na.rm = TRUE),
+    Prof_r_median = median(sale / (sale / MU + xsga) - 1, na.rm = TRUE),
+    MU_mean = mean(MU, na.rm = TRUE),
+    MU_median = median(MU, na.rm = TRUE),
+    sshare_mean = mean(sshare, na.rm = TRUE),
+    sshare_median = median(sshare, na.rm = TRUE)
+  )
+
+
+
+
+
+
+
+
+
+
+
+###########################################################
+######### reg
+#########################################################
+
+#generate variable if last year in data
+data <- data %>%
+  group_by(GVKEY) %>%
+  mutate(last = ifelse(fyear == max(fyear), 1, 0)) %>%
+  ungroup()
+
+
+# Generate 10-year age indicator as a single variable
+data <- data %>%
+  mutate(age_in = case_when(
+    age <= 5 ~ " 0-5",
+    age <= 10 ~ " 6-10",
+    age <= 20 ~ " 11-20",
+    age <= 30 ~ " 21-30",
+    age > 40 ~ " 40+",
+    TRUE ~ "31-40"  # Assuming ages between 31 and 40 should be grouped here
+  ))
+
+######### regs
+model_be1 <- feols(log(ES) ~ t +
+                     i(age_in, age) +  I(age * t)  - 1 |
+                     industry + age_in,
+                   cluster = "GVKEY",
+                   data = data)
+# add last indicator
+model_be2 <- feols(log(ES) ~ t + last +
+                     i(age_in, age) +  I(age * t) + I(age * t) + I(age * last)
+                   - 1 |
+                     industry + age_in,
+                   cluster = "GVKEY",
+                   data = data)
+# add years left in sample
+model_be3 <- feols(log(ES) ~ t + life +
+                     i(age_in, age) +  I(age * t) + I(age * life)  - 1 |
+                     industry + age_in,
+                   cluster = "GVKEY",
+                   data = data)
+
+
+
+models <- list(" " = model_be1,
+               " " = model_be2,
+               " " = model_be3)
+
+
+#change names
+new_names <- c(
+  "age_in:: 0-5:age" = "Years Since IPO x i[YSI:0-5]",
+  "age_in:: 6-10:age" = "Years Since IPO x i[YSI:6-10]",
+  "age_in:: 11-20:age" = "Years Since IPO x i[YSI:11-20]",
+  "age_in:: 21-30:age" = "Years Since IPO x i[YSI:21-30]",
+  "age_in:: 31-40:age" = "Years Since IPO x i[YSI:31-40]",
+  "age_in:: 40+:age" = "Years Since IPO x i[YSI:>40]",
+  "t" = "Time",
+  "I(age * t)" = "Years Since IPO x Time",
+  "last" = "Last Year in Sample",
+  "I(age * last)" = "Years Since IPO x Last Year in Sample",
+  "life" = "Years To Exit",
+  "I(age * life)" = "Years Since IPO x Years To Exit",
+  "GVKEY" = "Firm level",
+  "industry" = "Industry",
+  "age_in" = "Years Since IPO Buckets"
+)
+# Specify the order
+age_order <- c("Years Since IPO x i\\[YSI:0-5\\]",
+               "Years Since IPO x i\\[YSI:6-10\\]",
+               "Years Since IPO x i\\[YSI:11-20\\]",
+               "Years Since IPO x i\\[YSI:21-30\\]",
+               "Years Since IPO x i\\[YSI:31-40\\]",
+               "Years Since IPO x i\\[YSI:>40\\]")
+coef_order <- c("!Last Year in Sample", "!Years To Exit",
+                "Time",
+                age_order)
+
+# Display the table with coefficients in the specified order
+etable(models, order = coef_order, dict = new_names)

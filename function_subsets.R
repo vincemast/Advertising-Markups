@@ -133,11 +133,21 @@ vargen <- function(data, Ucost) { #nolint
   tempdata <- tempdata %>%
     group_by(GVKEY) %>% #nolint
     mutate(
-      entry = min(fyear), #nolint
-      exit = max(fyear),
-      age = ifelse(entry == min_year, NA, fyear - entry), #nolint
-      life = ifelse(exit == max_year, NA, exit - fyear) #nolint
+      entry = ifelse(min(fyear) == min_year, NA, min(fyear)), #nolint
+      exit = ifelse(max(fyear) == max_year, NA, max(fyear)),
+      decade =  min(fyear) %/% 10 * 10
     )
+    
+
+    tempdata <- tempdata %>%
+    group_by(GVKEY) %>% #nolint
+    mutate(
+      decade_e = entry%/% 10 * 10,  #nolint
+      age = fyear - entry, #nolint
+      life = exit - fyear #nolint
+    )
+
+
 
   medage = 10 #nolint
 
@@ -459,8 +469,11 @@ GDPdef <- function(data, Ucost) { #nolint
   #convert from millions to thousands
   norm <- norm * 1000
 
-  #merge
-  tempdata <- merge(data, Ucost, by = "fyear", all = TRUE)
+  #drop before merge to avoid name issues
+  tempdata <- data %>%
+    dplyr::select(-GDP_def) #nolint
+
+  tempdata <- merge(tempdata, Ucost, by = "fyear", all = TRUE)
 
   tempdata <- tempdata %>%
     mutate(

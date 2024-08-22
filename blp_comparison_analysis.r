@@ -563,30 +563,35 @@ m_deu_ca <- feols(deu_mu ~ ca_mu, data = blp,
 
 
 #put models into list
-models <- list("Demand Markup" = m_mu_ca,
-               "Demand Markup" = m_mu_deu,
-               "Accounting Markup" = m_ca_mu,
-               "DEU Markup" = m_deu_mu,
+models <- list("Accounting Markup" = m_ca_mu,
                "Accounting Markup" = m_ca_deu,
-               "DEU Markup" = m_deu_ca)
+               "DEU Markup" = m_deu_mu,
+               "DEU Markup" = m_deu_ca,
+               "Demand Markup" = m_mu_ca,
+               "Demand Markup" = m_mu_deu)
 
 
 
 # Create a named character vector of new names
 new_names <- c(
-  "mu" = "Demand Markup",
-  "ca_mu" = "Accounting Markup",
-  "deu_mu" = "DEU Markup",
+  "mu" = "$\\mu_{_{IO}}-1$",
+  "ca_mu" = "$\\mu_{_{CA}}-1$",
+  "deu_mu" = "$\\mu_{_{PF}}-1$",
   "paper" = "Paper level"
 )
 
+
+coef_order <-
+c("Constant", "CA", "PF", "IO")
+
+
 # Create the summary table with the new names
-summary_table <- etable(models, dict = new_names)
+summary_table <- etable(models, dict = new_names, order = coef_order)
 
 print(summary_table)
 
 # Create the summary table with the new names
-l_table <- etable(models, dict = new_names, tex = TRUE)
+l_table <- etable(models, dict = new_names, order = coef_order, tex = TRUE)
 
 # Print the LaTeX-formatted summary table
 print(l_table)
@@ -1098,8 +1103,8 @@ m_deu_ca <- plm(deu_mu ~ ca_mu, data = blp,
 models <- list("Demand Markup" = m_mu_ca,
                "Demand Markup" = m_mu_deu,
                "Accounting Markup" = m_ca_mu,
-               "DEU Markup" = m_deu_mu,
                "Accounting Markup" = m_ca_deu,
+               "DEU Markup" = m_deu_mu,
                "DEU Markup" = m_deu_ca)
 
 #select GOF measures
@@ -1109,13 +1114,22 @@ gm_temp <- tribble(
   "r.squared", "R2", 4,
 )
 
+#rename
+c_rn <-
+  c("ca_mu" = "$\\mu_{_{CA}}-1$",
+    "deu_mu" = "$\\mu_{_{PF}}-1$",
+    "mu" = "$\\mu_{_{IO}}-1$",
+    "paper" = "Paper level")
+
+
+# Print the model summary table with the notes
 # Create a summary table of the models
-ms <- msummary(models, gof_map = gm_temp, stars = TRUE, notes = c(
+ms <- msummary(models, gof_map = gm_temp, coef_rename = c_rn,
+stars = TRUE, notes = c(
   "Right hand side variable listed above.
    Standard errors in parentheses. Clustered by paper."
 ))
 
-# Print the model summary table with the notes
 ms
 
 # Export the summary table as a LaTeX file

@@ -179,7 +179,8 @@ agg_mu_plot <- function(fullsample, subsample, weight) {
               aes(y = Ag_MU - 1, x = year, color = "Reweighted")) +
     theme(text = element_text(size = 20)) +
     labs(x = "Year", y = tit) +
-    theme(legend.position = "bottom")
+    theme(legend.position = "bottom") +
+    guides(color=guide_legend(title=NULL))
 
   print(agg_mu_plot)
 }
