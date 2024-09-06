@@ -3,6 +3,7 @@
 #0: Set working directories
 ############################################################
 ############################################################
+install.packages("sass")
 cat("\014")
 rm(list = setdiff(ls()))
 
@@ -58,6 +59,7 @@ library(tidyr)
 library(scales)
 library(sandwich)
 library(multiwayvcov)
+library(htmltools)
 
 #navigate to folder with functions
 setwd(dircs[1])
@@ -98,8 +100,170 @@ data_mu <-
 ############################################################
 ############################################################
 
+data_ln <- data %>%
+  mutate(logMu = log(MU),
+    logMu_deu = log(MU_deu),
+    logtheta = log(MU_deu) - log(soc),
+    logsoc = log(soc),
+    logresid = log(MU) - log(soc)
+    )
 
 
+model_1 <- lm(logMu_deu ~ logsoc, data = data_ln)
+model_2 <- lm(logMu_deu ~ logtheta, data = data_ln)
+model_4 <- lm(logMu_deu ~ logresid, data = data_ln)
+
+model_5 <- lm(logMu ~ logsoc, data = data_ln)
+model_6 <- lm(logMu ~ logtheta, data = data_ln)
+model_8 <- lm(logMu ~ logresid, data = data_ln)
+
+
+models1 <- list("$ln(\\mu_{DEU})$" = model_1,
+               "..." = model_2,
+               "..." = model_4,
+               "$ln(\\mu_{CA})$" = model_5,
+               "..." = model_6,
+               "..." = model_8
+)
+
+
+
+# Define the mapping of raw coefficient names to clean names
+coef_temp <- data.frame(
+  raw = c("logsoc", "logtheta", "logresid"),
+  clean = c("ln(SALE over COGS)", "ln(Theta)", "ln(COGS over COGS plus UCC)")
+)
+
+# Define the mapping of raw coefficient names to clean names
+coef_temp <- c("(Intercept)" = "(Intercept)",
+               "logsoc" = "$Ln\\left( 
+                \\frac{SALE}{COGS} 
+                \\right)$",
+               "logtheta" = "$Ln(\\theta)$",
+               "logresid" = "$Ln\\left( 
+                \\frac{COGS}{COGS+r \\times PPEGT} 
+                \\right)$")
+
+
+#select GOF measures
+gm_temp <- tribble(
+  ~raw,        ~clean,      ~fmt,
+  "nobs", "N", 0,
+  "r.squared", "R2", 3
+)
+
+
+# Create a summary table of the models
+ms <- msummary(models1, gof_map = gm_temp, stars = TRUE, coef_map = coef_temp,
+  notes = c("")
+)
+
+ms
+
+ms_latex <-
+  msummary(models1, gof_map = gm_temp, stars = TRUE, coef_map = coef_temp,
+           output = "latex")
+
+ms_latex <- gsub("\\$", "$", ms_latex, fixed = FALSE)
+
+
+ms_latex
+
+
+############################################################
+############################################################
+#     2: Scatter Plot
+############################################################
+############################################################
+
+# Reshape the data
+data_long <- data_ln %>%
+  gather(key = "markup", value = "value", logMu, logMu_deu)
+
+#grab 1000 sample points (setting seed for reproducibility)
+set.seed(123)
+data_long <- data_long[sample(nrow(data_long), 1000), ]
+ 
+# Rename the markups
+data_long$markup[data_long$markup == "logMu"] <- "ln(Cost Accounting Markup)"
+data_long$markup[data_long$markup == "logMu_deu"] <- "ln(DEU Markup)"
+
+# Create the scatter plot with OLS trend lines
+# Create a dummy data frame for the 45-degree line
+line_data <- data.frame(x = c(min(data_long$logsoc, na.rm = TRUE),
+                              max(data_long$logsoc, na.rm = TRUE)))
+line_data$y <- line_data$x
+
+# Plot with the 45-degree line included in the legend
+soc_scatter <- ggplot(data_long, aes(x = logsoc, y = value, color = markup)) +
+  geom_point(size = 3) +  # Adjust the size of the dots
+  geom_line(data = line_data,
+            aes(x = x, y = y, linetype = "45-degree line"),
+            color = "black", size = 1.5) +  # Add 45-degree line
+  geom_smooth(method = "lm",
+              se = FALSE,
+              formula = y ~ x,
+              linetype = "dashed",
+              size = 1.5) +  # Add OLS trend lines
+  labs(title = "Markups and Sales Over Cogs (1000 Sample Points)",
+       x = "ln(SALE over COGS)",
+       y = "Ln(Markup)") +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  scale_color_manual(name = "",
+                     breaks = c("ln(Cost Accounting Markup)",
+                                "ln(DEU Markup)"),
+                     values = c("red", "blue")) +  # Specify the colors
+  scale_linetype_manual(name = "",
+                        values = c("45-degree line" = "solid")) +
+  guides(color = guide_legend(override.aes = list(linetype = c(NA, NA))),
+         linetype = guide_legend(override.aes = list(color = "black")))
+
+soc_scatter
+
+save_f(soc_scatter, "soc_scatter.pdf", dircs, 11.5, 12, TRUE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+############################################################
+############################################################
+#    old
+############################################################
+############################################################
 
 data_sector <- data %>%
   group_by(industry) %>%
@@ -175,10 +339,8 @@ gm_temp <- tribble(
   "adj.r.squared", "Adj. R2", 3,
 )
 
-
 # Create a summary table of the models
 ms <- msummary(models, gof_map = gm_temp, stars = TRUE, coef_map = coef_temp,
-  notes = c("")
 )
 
 ms
@@ -221,10 +383,8 @@ soc_scatter <- ggplot(data_long, aes(x = logsoc, y = value, color = markup)) +
   geom_point(size = 3) +  # Adjust the size of the dots
   geom_smooth(method = "lm", se = FALSE) +  # Add OLS trend lines
   labs(x = "ln(SALE over COGS)", y = "Ln(Markup)") +
-  theme_minimal() +
-  theme(legend.position = "bottom",  # Put the legend at the bottom
-        text = element_text(size = 14)) +  # Adjust the size of the text
-  scale_color_manual(name = "Markup Type",
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  scale_color_manual(name = "",
                      breaks = c("ln(Cost Accounting Markup)",
                                 "ln(DEU Markup)"),
                      values = c("red", "blue"))  # Specify the colors
