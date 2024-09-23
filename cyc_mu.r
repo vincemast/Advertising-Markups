@@ -99,12 +99,12 @@ usercost <- read.csv("usercost.csv") #nolint
 
 #military news from CSV (ramey 2011 updated to 2017 via ramey and Nekarda 2020)
 mnews <- read.csv("gs_shock.csv") #nolint
-#create annual 
+#create annual
 mnews <- mnews %>%
   mutate(year = as.numeric(sub("q[1-4]", "", qdate)))
 mnews <- mnews %>%
   group_by(year) %>%
-  summarize(avg_pdvmil_ngdp = mean(pdvmil_ngdp, na.rm = TRUE))
+  summarize(avg_pdvmil_ngdp = sum(pdvmil_ngdp, na.rm = TRUE))
 names(mnews) <- c("year", "mnews")
 #4th q shocks
 mnews4 <-  read.csv("gs_shock.csv") %>% filter(grepl("q4", qdate))
@@ -114,6 +114,28 @@ names(mnews4) <- c("year", "mnews4")
 
 
 
+#1st q shocks
+mnews1 <-  read.csv("gs_shock.csv") %>% filter(grepl("q1", qdate))
+mnews1 <- mnews1 %>%
+  mutate(qdate = as.numeric(sub("q[1-4]", "", qdate)))
+names(mnews1) <- c("year", "mnews1")
+
+#shift down by 1 quater
+mnews2 <- read.csv("gs_shock.csv")
+mnews2 <- mnews2 %>%
+  mutate(qdate = as.numeric(sub("q[1-4]", "", qdate)))
+mnews2$qdate[2:length(mnews2$qdate)] <- mnews2$qdate[1:length(mnews2$qdate)-1] 
+#create annual 
+mnews2 <- mnews2 %>%
+  mutate(year = as.numeric(sub("q[1-4]", "", qdate)))
+mnews2 <- mnews2 %>%
+  group_by(year) %>%
+  summarize(avg_pdvmil_ngdp = sum(pdvmil_ngdp, na.rm = TRUE))
+names(mnews2) <- c("year", "mnews2")
+
+
+# federal government spending growth rate expectations
+gvgr_exp <- read.csv("gvgr_exp.csv") # nolint
 
 
 #consumption of nondurables plus service (from n&r2020)
@@ -129,8 +151,8 @@ names(ppcendsv) <- c("year", "ppcendsv")
 #fernald series (from excel)
 fernald <- read_excel(path = paste(dircs[2],
                                    "/fernald_series.xlsx", sep = "/"),
-                      sheet = "annual")[, c(1, 14)]
-names(fernald) <- c("year", "dtfp")
+                      sheet = "annual")[, c(1, 14, 21, 22)]
+names(fernald) <- c("year", "dtfp", "dtfp_I", "dtfp_C")
 
 
 
@@ -154,7 +176,7 @@ rec <- fredr_series_observations("USRECQ",
                                  aggregation_method = "sum")[, c(1, 3)]
 # set to 1 if any quarter in year is recession
 rec$value <- ifelse(rec$value > 0, 1, 0)
-#unemployment (annual) rate
+#gdp deflator
 gdpdef <- fredr_series_observations("GDPDEF",
                                     frequency = "a",
                                     aggregation_method = "avg")[, c(1, 3)]
@@ -185,11 +207,17 @@ fdspend <- fredr_series_observations("FDEFX",
 pop <- fredr_series_observations("B230RC0A052NBEA")[, c(1, 3)]
 
 
-#government expenditures
-gexp <- fredr_series_observations("W068RCQ027SBEA",
-                                  frequency = "a",
-                                  aggregation_method = "avg")[, c(1, 3)]
+#federal government expenditures (note nominal)
+fedexp <- fredr_series_observations("FGCEA")[, c(1, 3)]
 
+#growth in federal government expenditures (use to create gs_shock)
+gs_gr <- fredr_series_observations("FGCEA", units = "pc1")[, c(1, 3)]
+
+#gdp deflator gr (so we can convert gs_gr to real)
+infl <- fredr_series_observations("GDPDEF",
+                                    frequency = "a",
+                                    aggregation_method = "avg",
+                                    units = "pc1")[, c(1, 3)]
 
 #set names
 names(rgdp) <- c("year", "RGDP")
@@ -202,7 +230,9 @@ names(fedfunds) <- c("year", "ffunds")
 names(pequip) <- c("year", "pequip")
 names(fdspend) <- c("year", "fdspend")
 names(pop) <- c("year", "pop")
-names(gexp) <- c("year", "gexp")
+names(gs_gr) <- c("year", "gs_gr")
+names(infl) <- c("year", "infl")
+names(fedexp) <- c("year", "fedexp")
 
 #convernt date to year
 rgdp$year <- as.numeric(format(as.Date(rgdp$year), "%Y"))
@@ -215,7 +245,9 @@ fedfunds$year <- as.numeric(format(as.Date(fedfunds$year), "%Y"))
 pequip$year <- as.numeric(format(as.Date(pequip$year), "%Y"))
 fdspend$year <- as.numeric(format(as.Date(fdspend$year), "%Y"))
 pop$year <- as.numeric(format(as.Date(pop$year), "%Y"))
-gexp$year <- as.numeric(format(as.Date(gexp$year), "%Y"))
+gs_gr$year <- as.numeric(format(as.Date(gs_gr$year), "%Y"))
+infl$year <- as.numeric(format(as.Date(infl$year), "%Y"))
+fedexp$year <- as.numeric(format(as.Date(fedexp$year), "%Y"))
 
 
 ################### 1.b clean data #########################
@@ -247,27 +279,12 @@ agg_markups <- data %>%
 
 names(agg_markups) <- c("year", "Agg_MU", "sw_MU")
 
-#merge with RGDP, unemp and fernald
+#merge with RGDP, unemp, fernald, deflator, tbill
 ag_data <- merge(agg_markups, rgdp, by = "year")
 ag_data <- merge(ag_data, unemp, by = "year")
 ag_data <- merge(ag_data, fernald, by = "year")
 ag_data <- merge(ag_data, gdpdef, by = "year")
 ag_data <- merge(ag_data, tbill, by = "year")
-ag_data <- merge(ag_data, rec, by = "year")
-ag_data <- merge(ag_data, ppi, by = "year")
-ag_data <- merge(ag_data, fedfunds, by = "year")
-ag_data <- merge(ag_data, mnews, by = "year")
-ag_data <- merge(ag_data, mnews4, by = "year")
-ag_data <- merge(ag_data, ppcendsv, by = "year")
-ag_data <- merge(ag_data, pequip, by = "year")
-ag_data <- merge(ag_data, fdspend, by = "year")
-ag_data <- merge(ag_data, pop, by = "year")
-ag_data <- merge(ag_data, gexp, by = "year")
-
-
-#gen decade indicator by taking first 3 digits of year then adding 0
-ag_data$decade <- as.numeric(substr(as.character(ag_data$year), 1, 3)) * 10
-
 
 
 ################### 1.d log data #########################
@@ -276,22 +293,6 @@ ag_data$ln_aMu <- log(ag_data$Agg_MU - 1)
 ag_data$ln_swMu <- log(ag_data$sw_MU - 1)
 ag_data$ln_gdp <- log(ag_data$RGDP)
 ag_data$ln_gdpdf <- log(ag_data$gdpdf)
-ag_data$ln_ppi <- log(ag_data$ppi)
-#mil spending per capita
-ag_data$lnmilpc <- log(ag_data$fdspend / ag_data$pop)
-#mil spending as % of gdp
-ag_data$lnmilgdp <- log(ag_data$fdspend / ag_data$RGDP)
-# gov spending as a % of gdp
-ag_data$lngexp <- log(ag_data$gexp) - log(ag_data$pop) - log(ag_data$RGDP)
-
-#switch sign so positive fed funds shock is expansionary
-ag_data$ffunds <- -ag_data$ffunds
-
-#create inflation
-ag_data$inf <- c(NA, diff(ag_data$ln_gdpdf))
-# create "log ratio price of PCE ND+SV to price of equipment investment"
-#needed for fisher 2006
-ag_data$lpe <- log(ag_data$ppcendsv) - log(ag_data$pequip)
 
 
 #####################################################
@@ -304,7 +305,7 @@ rec_c_order_sw <- c("dtfp", "ln_gdp", "ln_gdpdf", "tbill", "ln_swMu")
 
 ts_data_sw <- ts(ag_data[, rec_c_order_sw],
                  start = min(ag_data$year),
-                 frequency = 1)
+                 frequency = 1, end = 2018)
 
 
 # Bootstrap
@@ -344,18 +345,18 @@ mu_gdp_ub <- mu_bs_ci_gdp[, 1]
 
 
 
-year_max = 16
+year_max <- 16
 
 # Plot the IRFs with 90% confidence intervals
 gdp_irf_plot_sw <- ggplot() +
   geom_ribbon(aes(x = 1:n_ah,
                   ymin = tfp_gdp_lb, ymax = tfp_gdp_ub,
-                  fill = "90% Confidence Interval"),
+                  fill = "90% Confidence Interval (Bootstrapped)"),
               alpha = 0.5) +
   geom_line(aes(x = 1:n_ah, y = gdp_pe_sw, color = "Point Estimate")) +
   scale_x_continuous(breaks = 1:n_ah, labels = 0: (n_ah - 1),
                      limits = c(1, year_max)) +
-  scale_y_continuous(labels = percent, limits = c(-.015, .02)) +
+  scale_y_continuous(labels = percent, limits = c(-.02, .02)) +
   labs(x = "Year", y = "Real GDP Per Capita",
        title = "TFP Shock") +
   scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
@@ -373,12 +374,12 @@ gdp_irf_plot_sw
 mu_irf_plot_sw <- ggplot() +
   geom_ribbon(aes(x = 1:n_ah,
                   ymin = mu_gdp_lb, ymax = mu_gdp_ub,
-                  fill = "90% Confidence Interval"),
+                  fill = "90% Confidence Interval (Bootstrapped)"),
               alpha = 0.5) +
   geom_line(aes(x = 1:n_ah, y = mu_pe_sw, color = "Point Estimate")) +
   scale_x_continuous(breaks = 1:n_ah, labels = 0:(n_ah - 1),
                      limits = c(1, year_max)) +
-  scale_y_continuous(labels = percent, limits = c(-.015, .02)) +
+  scale_y_continuous(labels = percent, limits = c(-.02, .02)) +
   labs(x = "Year", y = "Sales Weighted Markup",
        title = "TFP Shock") +
   scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
@@ -393,11 +394,162 @@ mu_irf_plot_sw
 
 setwd(dircs[3])
 
-#ipo x decade
+#
 pdf("IRF_tfp.pdf", width = 20, height = 10)
 grid.arrange(gdp_irf_plot_sw, mu_irf_plot_sw,
              ncol = 2)
 dev.off()
+
+
+############## 2.2 generate ratio of area under IRF to area under IRF of gdp
+
+#area under IRF of gdp (first 5 years)
+tfp_gdp_ce <- sum(i_sw$irf$'epsilon[ dtfp ] %->% ln_gdp'[1:5])
+#area under IRF of mu (first 5 years)
+tfp_mu_ce <- sum(i_sw$irf$'epsilon[ dtfp ] %->% ln_swMu'[1:5])
+tfp_elas <- tfp_mu_ce / tfp_gdp_ce
+tfp_elas
+
+
+
+
+
+
+
+
+
+
+#####################################################
+#####################################################
+#######    3 ITS SVAR
+#####################################################
+#####################################################
+
+rec_order_its <- c("dtfp_I", "ln_gdp", "ln_gdpdf", "tbill", "ln_swMu")
+
+ts_data_its <- ts(ag_data[, rec_order_its],
+                  start = min(ag_data$year),
+                  frequency = 1, end = 2018)
+
+
+# Bootstrap
+n_ah <- 16
+
+# Estimate VAR model
+var_its <- VAR(ts_data_its)
+# Impose Cholesky Decomposition
+x1_its <- id.chol(var_its)
+# Impulse response (no bs)
+i_its <- irf(x1_its, n.ahead = n_ah)
+plot(i_its, scales = 'free_y')
+
+# Bootstrap
+n_boot <- 10000
+set.seed(123)
+bb_its <- mb.boot(x1_its, n.ahead = n_ah, nboot = n_boot)
+plot(bb_its, lowerq = .05, upperq = .95)
+
+
+#get data for my plot
+#point estimates
+gdp_pe_its <- i_its$irf$'epsilon[ dtfp_I ] %->% ln_gdp'
+mu_pe_its <- i_its$irf$'epsilon[ dtfp_I ] %->% ln_swMu'
+
+
+#confidence intervals
+#have to grab each bootstrapped estimate 1 by 1
+#done with function in function_useful
+its_bs_ci_gdp <- be_extra(bb_its, 1, 2, n_boot, n_ah, 5, 90)
+its_gdp_lb <- its_bs_ci_gdp[, 2]
+its_gdp_ub <- its_bs_ci_gdp[, 1]
+
+its_mu_bs_ci_gdp <- be_extra(bb_its, 1, 5, n_boot, n_ah, 5, 90)
+its_mu_gdp_lb <- its_mu_bs_ci_gdp[, 2]
+its_mu_gdp_ub <- its_mu_bs_ci_gdp[, 1]
+
+
+
+year_max <- 16
+
+# Plot the IRFs with 90% confidence intervals
+gdp_irf_plot_its <- ggplot() +
+  geom_ribbon(aes(x = 1:n_ah,
+                  ymin = its_gdp_lb, ymax = its_gdp_ub,
+                  fill = "90% Confidence Interval (Bootstrapped)"),
+              alpha = 0.5) +
+  geom_line(aes(x = 1:n_ah, y = gdp_pe_its, color = "Point Estimate")) +
+  scale_x_continuous(breaks = 1:n_ah, labels = 0: (n_ah - 1),
+                     limits = c(1, year_max)) +
+  scale_y_continuous(labels = percent, limits = c(-.025, .015)) +
+  labs(x = "Year", y = "Real GDP Per Capita",
+       title = "IST Shock") +
+  scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
+  scale_fill_manual(name = "",
+                    values = c(
+                               "90% Confidence Interval (Bootstrapped)"
+                               = "grey")) +
+  theme_minimal() +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  geom_hline(yintercept = 0, linetype = "dashed")
+gdp_irf_plot_its
+
+
+#plot IRF for ln_aMu wth 90% CI
+mu_irf_plot_ist <- ggplot() +
+  geom_ribbon(aes(x = 1:n_ah,
+                  ymin = its_mu_gdp_lb, ymax = its_mu_gdp_ub,
+                  fill = "90% Confidence Interval (Bootstrapped)"),
+              alpha = 0.5) +
+  geom_line(aes(x = 1:n_ah, y = mu_pe_its, color = "Point Estimate")) +
+  scale_x_continuous(breaks = 1:n_ah, labels = 0:(n_ah - 1),
+                     limits = c(1, year_max)) +
+  scale_y_continuous(labels = percent, limits = c(-.025, .015)) +
+  labs(x = "Year", y = "Sales Weighted Markup",
+       title = "IST Shock") +
+  scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
+  scale_fill_manual(name = "",
+                    values = c("90% Confidence Interval (Bootstrapped)"
+                               = "grey")) +
+  theme_minimal() +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  geom_hline(yintercept = 0, linetype = "dashed")
+mu_irf_plot_ist
+
+
+setwd(dircs[3])
+
+#
+pdf("IRF_ist.pdf", width = 20, height = 10)
+grid.arrange(gdp_irf_plot_its, mu_irf_plot_ist,
+             ncol = 2)
+dev.off()
+
+
+############## 2.2 generate ratio of area under IRF to area under IRF of gdp
+
+#area under IRF of gdp (first 5 years)
+tfp_I_gdp_ce <- sum(i_its$irf$'epsilon[ dtfp_I ] %->% ln_gdp'[1:5])
+#area under IRF of mu (first 5 years)
+tfp_I_mu_ce <- sum(i_its$irf$'epsilon[ dtfp_I ] %->% ln_swMu'[1:5])
+tfpI_elas <- tfp_I_mu_ce / tfp_I_gdp_ce
+tfpI_elas
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -412,9 +564,20 @@ dev.off()
 #####################################################
 #####################################################
 
+#need to add ppi and ffunds to data
+mp_data <- merge(ag_data, ppi, by = "year")
+mp_data <- merge(mp_data, fedfunds, by = "year")
+
+#log ppi
+mp_data$ln_ppi <- log(mp_data$ppi)
+
+#switch sign so positive fed funds shock is expansionary
+mp_data$ffunds <- -mp_data$ffunds
+
+
 mp_order <- c("ln_gdp", "ln_gdpdf", "ln_ppi", "ffunds", "ln_swMu")
 
-mp_data <- ts(ag_data[, mp_order], start = min(ag_data$year),
+mp_data <- ts(mp_data[, mp_order], start = min(ag_data$year),
               end = 2007, frequency = 1)
 
 
@@ -462,7 +625,7 @@ year_max <- 16
 gdp_irf_plot_mp <- ggplot() +
   geom_ribbon(aes(x = 1:n_ah,
                   ymin = gdp_mp_lb, ymax = gdp_gdp_ub,
-                  fill = "90% Confidence Interval"),
+                  fill = "90% Confidence Interval (Bootstrapped)"),
               alpha = 0.5) +
   geom_line(aes(x = 1:n_ah, y = gdp_pe_mp, color = "Point Estimate")) +
   scale_x_continuous(breaks = 1:n_ah, labels = 0: (n_ah - 1),
@@ -485,7 +648,7 @@ gdp_irf_plot_mp
 mu_irf_plot_mp <- ggplot() +
   geom_ribbon(aes(x = 1:n_ah,
                   ymin = mu_mp_lb, ymax = mu_mp_ub,
-                  fill = "90% Confidence Interval"),
+                  fill = "90% Confidence Interval (Bootstrapped)"),
               alpha = 0.5) +
   geom_line(aes(x = 1:n_ah, y = mu_pe_mp, color = "Point Estimate")) +
   scale_x_continuous(breaks = 1:n_ah, labels = 0:(n_ah - 1),
@@ -505,14 +668,21 @@ mu_irf_plot_mp
 
 setwd(dircs[3])
 
-#ipo x decade
+#
 pdf("IRF_mp.pdf", width = 20, height = 10)
 grid.arrange(gdp_irf_plot_mp, mu_irf_plot_mp,
              ncol = 2)
 dev.off()
 
 
+############## 3.2 generate ratio of area under IRF to area under IRF of gdp
 
+#area under IRF of gdp (first 5 years)
+mp_gdp_ce <- sum(i1mp$irf$'epsilon[ ffunds ] %->% ln_gdp'[1:5])
+#area under IRF of mu (first 5 years)
+mp_mu_ce <- sum(i1mp$irf$'epsilon[ ffunds ] %->% ln_swMu'[1:5])
+mp_elas <- mp_mu_ce / mp_gdp_ce
+mp_elas
 
 
 
@@ -521,14 +691,31 @@ dev.off()
 
 #####################################################
 #####################################################
-#######    3 Gspen SVAR
+#######    4 Gspen SVAR
 #####################################################
 #####################################################
 
-gs_order <- c("mnews4", "ln_gdp", "ln_gdpdf", "tbill", "ln_swMu")
+#add needed data
+gs_data_a <- merge(ag_data, pop, by = "year")
+gs_data_a <- merge(gs_data_a, gs_gr, by = "year")
+gs_data_a <- merge(gs_data_a, infl, by = "year")
+gs_data_a <- merge(gs_data_a, gvgr_exp, by = "year")
+gs_data_a <- merge(gs_data_a, fedexp, by = "year")
+gs_data_a <- merge(gs_data_a, rec, by = "year")
 
-gs_data <- ts(ag_data[, gs_order], start = min(ag_data$year),
-              end = 2017, frequency = 1)
+## gs_shock is the gap between expected and realized gr in fed spending
+# real fed spending growth rate
+gs_data_a$rgsgr <- gs_data_a$gs_gr - gs_data_a$infl
+#gs suprise
+gs_data_a$gs_shock <- gs_data_a$rgsgr - gs_data_a$gvgr_exp
+# fed gov spending as a % of gdp
+gs_data_a$lngexp <- log(gs_data_a$fedexp)
+
+
+gs_order <- c("gs_shock", "ln_gdp", "ln_gdpdf", "tbill", "ln_swMu")
+
+gs_data <- ts(gs_data_a[, gs_order], start = min(gs_data_a$year),
+              end = 2018, frequency = 1)
 
 
 # Estimate VAR model
@@ -544,7 +731,7 @@ i1gs <- irf(x1gs, n.ahead = n_ah)
 plot(i1gs, scales = 'free_y')
 
 # Bootstrap
-n_boot <- 1000
+n_boot <- 10000
 set.seed(123)
 bbgs <- mb.boot(x1gs, n.ahead = n_ah, nboot = n_boot)
 #all plot
@@ -552,19 +739,19 @@ plot(bbgs, lowerq = .05, upperq = .95)
 
 
 #point estimates
-gdp_pe_gs <- i1gs$irf$'epsilon[ mnews4 ] %->% ln_gdp'
-mu_pe_gs <- i1gs$irf$'epsilon[ mnews4 ] %->% ln_swMu'
+gdp_pe_gs <- i1gs$irf$'epsilon[ gs_shock ] %->% ln_gdp'
+mu_pe_gs <- i1gs$irf$'epsilon[ gs_shock ] %->% ln_swMu'
 
 
 #confidence intervals
 #have to grab each bootstrapped estimate 1 by 1
 #done with function in function_useful
 #gdp is 1, mu is 5, shock is ffunds [4]
-gdp_bs_ci_gs <- be_extra(bbgs, 1, 2, n_boot, n_ah, 5, 90)
+gdp_bs_ci_gs <- be_extra(bbgs, 1, 2, n_boot, n_ah, length(gs_order), 90)
 gdp_gs_lb <- gdp_bs_ci_gs[, 1]
 gdp_gs_ub <- gdp_bs_ci_gs[, 2]
 
-mu_bs_ci_gs <- be_extra(bbgs, 1, 5, n_boot, n_ah, 5, 90)
+mu_bs_ci_gs <- be_extra(bbgs, 1, 5, n_boot, n_ah, length(gs_order), 90)
 mu_gs_lb <- mu_bs_ci_gs[, 1]
 mu_gs_ub <- mu_bs_ci_gs[, 2]
 
@@ -574,12 +761,12 @@ year_max <- 16
 gdp_irf_plot_gs <- ggplot() +
   geom_ribbon(aes(x = 1:n_ah,
                   ymin = gdp_gs_lb, ymax = gdp_gs_ub,
-                  fill = "90% Confidence Interval"),
+                  fill = "90% Confidence Interval (Bootstrapped)"),
               alpha = 0.5) +
   geom_line(aes(x = 1:n_ah, y = gdp_pe_gs, color = "Point Estimate")) +
   scale_x_continuous(breaks = 1:n_ah, labels = 0: (n_ah - 1),
                      limits = c(1, year_max)) +
-  scale_y_continuous(labels = percent, limits = c(-.0025, .02)) +
+  scale_y_continuous(labels = percent, limits = c(-.015, .0275)) +
   labs(x = "Year", y = "Real GDP Per Capita",
        title = "Governent Spending Shock") +
   scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
@@ -597,12 +784,12 @@ gdp_irf_plot_gs
 mu_irf_plot_gs <- ggplot() +
   geom_ribbon(aes(x = 1:n_ah,
                   ymin = mu_gs_lb, ymax = mu_gs_ub,
-                  fill = "90% Confidence Interval"),
+                  fill = "90% Confidence Interval (Bootstrapped)"),
               alpha = 0.5) +
   geom_line(aes(x = 1:n_ah, y = mu_pe_gs, color = "Point Estimate")) +
   scale_x_continuous(breaks = 1:n_ah, labels = 0:(n_ah - 1),
                      limits = c(1, year_max)) +
-  scale_y_continuous(labels = percent, limits = c(-.0025, .02)) +
+  scale_y_continuous(labels = percent, limits = c(-.015, .0275)) +
   labs(x = "Year", y = "Sales Weighted Markup",
        title = "Governent Spending Shock") +
   scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
@@ -617,13 +804,81 @@ mu_irf_plot_gs
 
 setwd(dircs[3])
 
-#ipo x decade
+#
 pdf("IRF_gs.pdf", width = 20, height = 10)
 grid.arrange(gdp_irf_plot_gs, mu_irf_plot_gs,
              ncol = 2)
 dev.off()
 
 
+############## 4.2 generate ratio of area under IRF to area under IRF of gdp
+
+#area under IRF of gdp (first 5 years)
+gs_gdp_ce <- sum(i1gs$irf$'epsilon[ gs_shock ] %->% ln_gdp'[1:5])
+#area under IRF of mu (first 5 years)
+gs_mu_ce <- sum(i1gs$irf$'epsilon[ gs_shock ] %->% ln_swMu'[1:5])
+gs_elas <- gs_mu_ce / gs_gdp_ce
+gs_elas
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -631,9 +886,47 @@ dev.off()
 
 #####################################################
 #####################################################
-#######    4 ITS SVAR
+#######    5 ITS SVAR
 #####################################################
 #####################################################
+
+its_order <- c("ist", "ln_gdp", "ln_gdpdf", "tbill", "ln_swMu")
+
+its_data <- ts(ag_data_ist[, its_order], start = min(ag_data$year),
+               end = 2017, frequency = 1)
+
+#cut first year (since NA for diggs)
+its_data <- window(its_data, start = 1962)
+
+
+# Estimate VAR model
+var_its <- VAR(its_data)
+
+# Impose Cholesky Decomposition
+x1its <- id.chol(var_its)
+
+# Impulse response analysis
+i1its <- irf(x1its, n.ahead = 10)
+plot(i1its, scales = 'free_y')
+
+# Bootstrap
+n_ah <- 16
+n_boot <- 1000
+set.seed(123)
+bbits <- mb.boot(x1its, n.ahead = n_ah, nboot = n_boot)
+#all plot
+plot(bbits, lowerq = .05, upperq = .95)
+
+
+
+
+
+
+
+
+
+
+
 
 
 #create lags that will be in SVAR
@@ -856,7 +1149,7 @@ mu_irf_plot
 
 setwd(dircs[3])
 
-#ipo x decade
+#
 pdf("IRF.pdf", width = 20, height = 10)
 grid.arrange(gdp_irf_plot, mu_irf_plot,
              ncol = 2)
