@@ -113,6 +113,8 @@ dset <- dset %>%
   mutate(year = as.numeric(fyear)) %>% #nolint
   filter(!is.na(fyear)) #nolint
 
+names(data)
+
 
 ######################## 1.c ###############################
 #create function to generate ac_mu
@@ -140,36 +142,49 @@ gen_ac_mu <- function(blp_c, data) {
   # markup ratio := MU = p/c; markup := (p-c)/c = MU - 1;
   #learner: L = (p-c)/p = 1-1/(MU) nolint
   if (blp_c$measure == "markup") {
-    temp <-  temp %>% mutate(mark = MU - 1, mark2 = MU_deu - 1) #nolint
+    temp <-  temp %>% mutate(mark = MU - 1, #nolint
+                             mark2 = MU_deu - 1, #nolint
+                             soc = sale / cogs - 1) #nolint
   } else if (blp_c$measure == "ratio") {
-     temp <-  temp %>% mutate(mark = MU, mark2 = MU_deu) #nolint
+     temp <-  temp %>% mutate(mark = MU, #nolint
+                              mark2 = MU_deu, #nolint
+                              soc = sale / cogs) #nolint
   } else if (blp_c$measure == "lerner") {
-     temp <-  temp %>% mutate(mark = 1 - 1 / (MU), mark2 = 1 - 1 / (MU_deu)) #nolint
+     temp <-  temp %>% mutate(mark = 1 - (MU)^(-1), #nolint
+                             mark2 = 1 - MU_deu^(-1), #nolint
+                              soc = 1 - (cogs / sale) ) #nolint
   } else {
     stop("Invalid measure. It should be 'markup', 'ratio', or 'lerner'.")
   }
 
   # Remove infinite values from temp$mark
   temp <- temp %>% filter(is.finite(mark)) #nolint
-  temp2 <- temp %>% filter(is.finite(mark2)) #nolint
+  temp <- temp %>% filter(is.finite(mark2)) #nolint
+  temp <- temp %>% filter(is.finite(soc)) #nolint
 
   #get relevant summary of accounting data based on agg
   if (blp_c$agg == "avg") {
     agg_mu <- mean(temp$mark, na.rm = TRUE)
-    agg_mudeu <- mean(temp2$mark2, na.rm = TRUE)
+    agg_mudeu <- mean(temp$mark2, na.rm = TRUE)
+    agg_soc <- mean(temp$soc, na.rm = TRUE)
   } else if (blp_c$agg == "median") {
     agg_mu <- median(temp$mark, na.rm = TRUE)
-    agg_mudeu <- median(temp2$mark2, na.rm = TRUE)
+    agg_mudeu <- median(temp$mark2, na.rm = TRUE)
+    agg_soc <- median(temp$soc, na.rm = TRUE)
   } else if (blp_c$agg == "sw") {
     agg_mu <- weighted.mean(temp$mark, w = temp$sale, na.rm = TRUE)
-    agg_mudeu <- weighted.mean(temp2$mark2, w = temp2$sale, na.rm = TRUE)
+    agg_mudeu <- weighted.mean(temp$mark2, w = temp$sale, na.rm = TRUE)
+    agg_soc <- weighted.mean(temp$soc, w = temp$sale, na.rm = TRUE)
   } else if (blp_c$agg == "cw") {
     agg_mu <- weighted.mean(temp$mark,
                             w = (temp$cogs + temp$ppegt * temp$usercost),
                             na.rm = TRUE)
     agg_mudeu <- weighted.mean(temp$mark2,
-                               w = (temp2$cogs + temp2$ppegt * temp2$usercost),
+                               w = (temp$cogs + temp$ppegt * temp$usercost),
                                na.rm = TRUE)
+    agg_soc <- weighted.mean(temp$soc,
+                             w = (temp$cogs + temp$ppegt * temp$usercost),
+                             na.rm = TRUE)
   } else {
     stop("Invalid value for agg. It should be 'avg', 'median', 'cw', or 'sw'.")
   }
@@ -177,23 +192,26 @@ gen_ac_mu <- function(blp_c, data) {
 
   og_mu <- as.numeric(blp_c$mu..in.original.measure.)
 
-  #save as markup (mu-1)
+  #save as markup mu
   #also change their measure to markup
   # L = (p-c)/p = 1-1/(mu) #nolint
-  # 1/(mu) = 1-L#nolint 
+  # 1/(mu) = 1-L #nolint 
   # mu = 1/(1-l) nolint
   if (blp_c$measure == "markup") {
-    blp_c$ca_mu <- agg_mu
-    blp_c$deu_mu <- agg_mudeu
-    blp_c$mu <- og_mu
+    blp_c$ca_mu <- agg_mu + 1
+    blp_c$deu_mu <- agg_mudeu + 1
+    blp_c$mu <- og_mu + 1
+    blp_c$soc <- agg_soc + 1
   } else if (blp_c$measure == "ratio") {
-   blp_c$ca_mu <- agg_mu - 1 #nolint
-   blp_c$mu <- og_mu - 1
-   blp_c$deu_mu <- agg_mudeu - 1
+   blp_c$ca_mu <- agg_mu #nolint
+   blp_c$mu <- og_mu
+   blp_c$deu_mu <- agg_mudeu
+   blp_c$soc <- agg_soc
   } else if (blp_c$measure == "lerner") {
-   blp_c$ca_mu <- 1 / (1 - agg_mu) #nolint
-   blp_c$mu <- 1 / (1 - og_mu)
-   blp_c$deu_mu  <- 1 / (1 - agg_mudeu)
+   blp_c$ca_mu <- (1 - agg_mu)^(-1) #nolint
+   blp_c$mu <- (1 - og_mu)^(-1)
+   blp_c$deu_mu  <- (1 - agg_mudeu)^(-1)
+   blp_c$soc <- (1 - agg_soc)^(-1)
   } else {
     stop("Invalid value for measure. It should be 'ratio' or 'lerner'.")
   }
@@ -202,6 +220,7 @@ gen_ac_mu <- function(blp_c, data) {
   data.frame(blp_c)
 
 }
+
 
 ############################################################
 ############################################################
@@ -215,13 +234,134 @@ blp <- map_df(1:nrow(meta), ~gen_ac_mu(meta[.x, ], dset)) #nolint
 #remove any NAs in ca_mu (also correspond to na in deu_mu)
 blp <- blp %>% filter(!is.na(ca_mu)) #nolint
 
+blp$error = abs(blp$mu - 1/2*(blp$ca_mu + blp$deu_mu))
+
+view(blp)
+
 summary(blp)
 
-cor(blp$deu_mu, blp$mu)
-plot(blp$deu_mu, blp$mu)
+names(blp)
 
+plot(log(blp$ca_mu), log(blp$mu))
+plot(log(blp$deu_mu), log(blp$mu))
+
+cor(log(blp$ca_mu), log(blp$mu))^2
+cor(log(blp$deu_mu), log(blp$mu))^2
+
+plot(blp$ca_mu, blp$mu)
+cor(blp$deu_mu, blp$mu)
+
+
+blp_nl <- blp %>% filter(measure != "lerner") #nolint
+
+blp_l <- blp %>% filter(measure == "lerner") #nolint
+
+plot(log(blp_nl$ca_mu), log(blp_nl$mu))
+
+cor(log(blp_nl$ca_mu), log(blp_nl$mu))^2
+
+cor(log(blp_nl$deu_mu), log(blp_nl$mu))^2
+
+plot(log(blp_nl$deu_mu), log(blp_nl$mu))
+
+
+plot(log(blp$ca_mu), log(blp$mu))
+
+plot(log(blp$deu_mu), log(blp$mu))
+
+
+
+cor(log(blp$ca_mu), log(blp$mu))
+
+cor(log(blp$deu_mu), log(blp$mu))
+
+
+plot(log(blp$deu_mu), log(blp$ca_mu))
+
+#filter out airlines
+blp_lna <- blp_l %>% filter(industry != "Airline") #nolint
+
+plot(blp_lna$deu_mu, blp_lna$mu)
+
+plot(blp_lna$ca_mu, blp_lna$mu)
+
+
+plot(log(blp_l$deu_mu), log(blp_l$mu))
+plot(log(blp_l$ca_mu), log(blp_l$mu))
+
+lm(log(mu) ~ log(deu_mu)*i(measure) - 1, data = blp)
+
+lm(log(mu) ~ log(ca_mu)*i(measure) - 1, data = blp)
+
+hold <- lm(log(mu) ~  log(ca_mu) + i(measure) + i(industry) - 1, data = blp)
+
+summary(hold)
+
+blp$at <- .5*(as.numeric(blp$start) + as.numeric(blp$start))
+
+hold <- feols(log(ca_mu) ~  log(mu) + i(agg) + i(measure), data = blp)
+
+hold2 <- feols(log(deu_mu) ~  log(mu) + i(agg) + i(measure), data = blp)
+
+etable(list( hold, hold2))
+
+lm(log(ca_mu) ~ log(mu) + i(measure) + i(method) - 1, data = blp)
+
+
+cor(log(blp_lna$ca_mu), log(blp_lna$mu))
+cor(log(blp_lna$deu_mu), log(blp_lna$mu))
+
+summary(blp)
+
+ggplot() +
+  geom_density(aes(x = blp$mu, color = "mu"), size = 1) +
+  geom_density(aes(x = blp$ca_mu, color = "ca_mu"), size = 1) +
+  geom_density(aes(x = blp$deu_mu, color = "deu_mu"), size = 1) +
+  labs(x = "Value", y = "Density", title = "Density Plots") +
+  scale_color_manual(name = "Variable", values = c("mu" = "blue", "ca_mu" = "red", "deu_mu" = "green")) +
+  theme_minimal() +
+  theme(text = element_text(size = 16), legend.position = "bottom")
+
+#filter out large 
+blp_l2 <- blp_l %>% filter(mu < 2.5) #nolint
+
+cor(log(blp_l2$ca_mu), log(blp_l2$mu))^2
+
+plot(blp_l2$ca_mu, blp_l2$mu)
+
+cor(log(blp_l2$deu_mu), log(blp_l2$mu))^2
+
+
+
+
+plot(blp_l$ca_mu, blp_l$mu)
+
+cor(blp_l$ca_mu, blp_l$mu)
+
+cor(log(blp_l$ca_mu), log(blp_l$mu))
+
+cor(log(blp_l$deu_mu), log(blp_l$mu))
+
+plot(log(blp_l$deu_mu), log(blp_l$mu))
+
+
+
+
+cor(log(blp$deu_mu), log(blp$mu))^2
+cor(blp$deu_mu, blp$mu)
 
 cor(blp$ca_mu, blp$mu)
+
+plot(log(blp$deu_mu), log(blp$mu))
+
+plot(log(blp$soc), log(blp$mu))
+
+cor(log(blp$soc), log(blp$mu))^2
+
+plot(log(blp$ca_mu), log(blp$mu))
+
+
+cor(log(blp$ca_mu), log(blp$mu))^2
 plot(blp$ca_mu, blp$mu)
 
 
@@ -317,34 +457,39 @@ cat(latex_table_str)
 #     4: Plot Data
 ############################################################
 ############################################################
-
+view(blp)
+# remove nas
+blpn <- blp %>% filter(ca_mu > 0) #nolint
+blpn <- blpn %>% filter(deu_mu > 0) #nolint
+blpn <- blpn %>% filter(mu > 0) #nolint
 ################################################################
 #### 4.a ca on mu
 ################################################################
 
 # Calculate ols lines and correlation coef
-model_ca <- lm(mu ~ ca_mu, data = blp)
+model_ca <- lm(log(mu) ~ log(ca_mu), data = blpn)
 s_mu_ca <- model_ca$coefficients[2]
 i_mu_ca <- model_ca$coefficients[1]
-model_car <- lm(ca_mu ~ mu, data = blp)
+model_car <- lm(log(ca_mu) ~ log(mu), data = blpn)
 s_ca_mu <- model_car$coefficients[2]
 i_ca_mu <- model_car$coefficients[1]
 
-correlation <- cor(blp$ca_mu, blp$mu, use = "pairwise.complete.obs")
+correlation <- cor(log(blpn$ca_mu), log(blpn$mu), use = "pairwise.complete.obs")
 # Create the label for the legend
 label <- paste0("Correlation Coef. = ", round(correlation, 2),
-                ", N. obs =", nrow(blp))
+                ", N. obs =", nrow(blpn))
 
 # Get the unique levels in the paper and method and save as shapes and colors
-shapes <- c(15 + seq(0, length(unique(blp$method)) - 2), 1)
-seq(0, length(unique(blp$method)) - 1) + 30
-palette <- rainbow(length(unique(blp$paper)))
+shapes <- c(15 + seq(0, length(unique(blpn$method)) - 2), 1)
+seq(0, length(unique(blpn$method)) - 1) + 30
+palette <- rainbow(length(unique(blpn$paper)))
 
 # Create a dummy data frame for the 45-degree line
-df_line <- data.frame(ca_mu = range(blp$ca_mu), mu = range(blp$mu))
+df_line <- data.frame(ca_mu =  range(c(log(blpn$mu), log(blpn$ca_mu))),
+                      mu = range(c(log(blpn$mu), log(blpn$ca_mu))))
 
 ############## plot #####################
-comp_ca <- ggplot(blp, aes(x = ca_mu, y = mu)) +
+comp_ca <- ggplot(blpn, aes(x = log(ca_mu), y = log(mu))) +
   geom_point(aes(color = paper, shape = method), size = 4) +
   geom_abline(slope = s_mu_ca,
               intercept = i_mu_ca,
@@ -353,7 +498,7 @@ comp_ca <- ggplot(blp, aes(x = ca_mu, y = mu)) +
               intercept = - i_ca_mu / s_ca_mu,
               color = "red") +
   geom_line(data = df_line, color = "black",
-            aes(x = mu,
+            aes(x = mu, y = mu,
                 linetype = "45 Degree line")) +
   geom_line(aes(linetype = "OLS line (Main)"),
             data = data.frame(ca_mu = 0, mu = 0),
@@ -376,11 +521,11 @@ comp_ca <- ggplot(blp, aes(x = ca_mu, y = mu)) +
     legend.box = "vertical"
   ) +
   coord_cartesian(
-    xlim = c(min(blp$ca_mu, blp$mu), max(blp$ca_mu, blp$mu)),  #nolint
-    ylim = c(min(blp$ca_mu, blp$mu), max(blp$ca_mu, blp$mu))  #nolint
+    xlim = c(log(min(blpn$ca_mu, blp$mu)), log(max(blpn$ca_mu, blp$mu))),  #nolint
+    ylim = c(log(min(blpn$ca_mu, blp$mu)), log(max(blpn$ca_mu, blp$mu)))  #nolint
   ) +
-  xlab("Accounting Markup (p-mc)/mc") +
-  ylab("Demand Estimation Markup (p-mc)/mc") +
+  xlab("Log Accounting Markup (p-mc)/mc") +
+  ylab("Log Demand Estimation Markup (p-mc)/mc") +
   scale_shape_manual(
     values = shapes,
     labels = unique(blp$method),
@@ -405,22 +550,24 @@ save_f(comp_ca, "BLP_comp_CA.pdf", dircs, 11.5, 12, TRUE)
 ################################################################
 
 # Calculate ols lines and correlation coef
-model_deu <- lm(mu ~ deu_mu, data = blp)
+model_deu <- lm(log(mu) ~ log(deu_mu), data = blpn)
 s_mu_deu <- model_deu$coefficients[2]
 i_mu_deu <- model_deu$coefficients[1]
-model_deur <- lm(deu_mu ~ mu, data = blp)
+model_deur <- lm(log(deu_mu) ~ log(mu), data = blpn)
 s_deu_mu <- model_deur$coefficients[2]
 i_deu_mu <- model_deur$coefficients[1]
 
-correlation <- cor(blp$deu_mu, blp$mu, use = "pairwise.complete.obs")
+correlation <- cor(log(blpn$deu_mu),
+                   log(blpn$mu), use = "pairwise.complete.obs")
 # Create the label for the legend
 labeldeu <- paste0("Correlation Coef. = ", round(correlation, 2),
-                   ", N. obs =", nrow(blp))
+                   ", N. obs =", nrow(blpn))
 # Create a dummy data frame for the 45-degree line
-df_line <- data.frame(ca_mu = range(blp$deu_mu), mu = range(blp$mu))
+df_line <- data.frame(ca_mu =  range(c(log(blpn$mu), log(blpn$deu_mu))),
+                      mu = range(c(log(blpn$mu), log(blpn$deu_mu))))
 
 ############## plot #####################
-comp_deu <- ggplot(blp, aes(x = deu_mu, y = mu)) +
+comp_deu <- ggplot(blpn, aes(x = log(deu_mu), y = log(mu))) +
   geom_point(aes(color = paper, shape = method), size = 4) +
   geom_abline(slope = s_deu_mu,
               intercept = i_mu_deu,
@@ -429,7 +576,7 @@ comp_deu <- ggplot(blp, aes(x = deu_mu, y = mu)) +
               intercept = - i_deu_mu / s_deu_mu,
               color = "red") +
   geom_line(data = df_line, color = "black",
-            aes(x = mu,
+            aes(x = mu, y = mu,
                 linetype = "45 Degree line")) +
   geom_line(aes(linetype = "OLS line (Main)"),
             data = data.frame(deu_mu = 0, mu = 0),
@@ -452,11 +599,13 @@ comp_deu <- ggplot(blp, aes(x = deu_mu, y = mu)) +
     legend.box = "vertical"
   ) +
   coord_cartesian(
-    xlim = c(min(blp$ca_mu, blp$mu), max(blp$ca_mu, blp$mu)),  #nolint
-    ylim = c(min(blp$ca_mu, blp$mu), max(blp$ca_mu, blp$mu))  #nolint
+    xlim = c(log(min(blpn$deu_mu, blp$mu)),
+             log(max(blpn$deu_mu, blp$mu))),  #nolint
+    ylim = c(log(min(blpn$deu_mu, blp$mu)),
+             log(max(blpn$deu_mu, blp$mu)))  #nolin
   ) +
-  xlab("DEU (2020) Markup  (p-mc)/mc") +
-  ylab("Demand Estimation Markup (p-mc)/mc") +
+  xlab("Log Production Function Markup  (p-mc)/mc") +
+  ylab("Log Demand Estimation Markup (p-mc)/mc") +
   scale_shape_manual(
     values = shapes,
     labels = unique(blp$method),
@@ -548,36 +697,36 @@ save_f(comp_cadeu, "BLP_comp_CA_deu.pdf", dircs, 11.5, 12, TRUE)
 ############################################################
 
 # Fit the models with clustered standard errors
-m_mu_ca <- feols(mu ~ ca_mu, data = blp,
+m_mu_ca <- feols(log(mu) ~ log(ca_mu), data = blpn,
                  cluster = "paper")
-m_mu_deu <- feols(mu ~ deu_mu, data = blp,
+m_mu_deu <- feols(log(mu) ~ log(deu_mu), data = blpn,
                   cluster = "paper")
-m_ca_mu <- feols(ca_mu ~ mu, data = blp,
+m_ca_mu <- feols(log(ca_mu) ~ log(mu), data = blpn,
                  cluster = "paper")
-m_deu_mu <- feols(deu_mu ~ mu, data = blp,
+m_deu_mu <- feols(log(deu_mu) ~ log(mu), data = blpn,
                   cluster = "paper")
-m_ca_deu <- feols(ca_mu ~ deu_mu, data = blp,
+m_ca_deu <- feols(log(ca_mu) ~ log(deu_mu), data = blpn,
                   cluster = "paper")
-m_deu_ca <- feols(deu_mu ~ ca_mu, data = blp,
+m_deu_ca <- feols(log(deu_mu) ~ log(ca_mu), data = blpn,
                   cluster = "paper")
 
 
 #put models into list
-models <- list("Accounting Markup" = m_ca_mu,
+models <- list("Demand Markup" = m_mu_ca,
+               "Demand Markup" = m_mu_deu,
+               "Accounting Markup" = m_ca_mu,
                "Accounting Markup" = m_ca_deu,
                "DEU Markup" = m_deu_mu,
-               "DEU Markup" = m_deu_ca,
-               "Demand Markup" = m_mu_ca,
-               "Demand Markup" = m_mu_deu)
+               "DEU Markup" = m_deu_ca)
 
 
 
 # Create a named character vector of new names
 new_names <- c(
-  "mu" = "$\\mu_{_{IO}}-1$",
-  "ca_mu" = "$\\mu_{_{CA}}-1$",
-  "deu_mu" = "$\\mu_{_{PF}}-1$",
-  "paper" = "Paper level"
+  "log(mu)" = "$\\log\\left(mu_{_{IO}}\\right)$",
+  "log(ca_mu)" = "$\\log\\left(mu_{_{CA}}\\right)",
+  "log(deu_mu)" = "$\\log\\left(mu_{_{PF}}\\right)$",
+  "log(paper)" = "Paper level"
 )
 
 
@@ -588,7 +737,7 @@ c("Constant", "CA", "PF", "IO")
 # Create the summary table with the new names
 summary_table <- etable(models, dict = new_names, order = coef_order)
 
-print(summary_table)
+view(summary_table)
 
 # Create the summary table with the new names
 l_table <- etable(models, dict = new_names, order = coef_order, tex = TRUE)
@@ -599,7 +748,40 @@ print(l_table)
 
 
 #r^2 ratio
-summary(m_mu_ca)$r.squared / summary(m_mu_deu)$r.squared
+summary(m_mu_ca)$sq.cor / summary(m_mu_deu)$sq.cor
+
+
+############################################################
+############################################################
+################    Role of sales/ Cogs
+############################################################
+############################################################
+
+# gen theta and mu resid
+blpn <- blpn %>%
+  mutate(theta = soc / deu_mu,
+         mu_resid = soc / ca_mu)
+
+view(blpn)
+
+
+# Fit the models with clustered standard errors
+m_mu_ca <- feols(log(mu) ~ log(ca_mu), data = blpn,
+                 cluster = "paper")
+m_mu_deu <- feols(log(mu) ~ log(deu_mu), data = blpn,
+                  cluster = "paper")
+m_ca_mu <- feols(log(ca_mu) ~ log(mu), data = blpn,
+                 cluster = "paper")
+m_deu_mu <- feols(log(deu_mu) ~ log(mu), data = blpn,
+                  cluster = "paper")
+m_ca_deu <- feols(log(ca_mu) ~ log(deu_mu), data = blpn,
+                  cluster = "paper")
+m_deu_ca <- feols(log(deu_mu) ~ log(ca_mu), data = blpn,
+                  cluster = "paper")
+
+
+
+
 
 
 ############################################################
@@ -828,7 +1010,7 @@ comp_ca <- ggplot(blp, aes(x = ca_mu, y = mu)) +
   ) +
   guides(color = "none")  # Remove the color part of the legend
 
-comp_ca
+comp_ca 
 
 ############################################################
 #   DEU

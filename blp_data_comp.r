@@ -780,7 +780,7 @@ names(milk_2018) <- names(blp_0)
 dog_2006 <- c("Dog Food", "median", "lerner", 311111, 6, 2006, 2006,
               "Atalay et al. (2023)", "NL", .18)
 dog_2018 <- c("Dog Food", "median", "lerner", 311111, 6, 2018, 2018,
-              "Atalay et al. (2023)", "NL", .78)
+              "Atalay et al. (2023)", "NL", 1.78)
 names(dog_2006) <- names(blp_0)
 names(dog_2018) <- names(blp_0)
 
@@ -801,8 +801,9 @@ names(beer_2018) <- names(blp_0)
 blp <- rbind(blp, soda_2006, soda_2018, water_2006, water_2018,
              cereal_2006, cereal_2018, toilet_2006, toilet_2018,
              juice_2006, juice_2018, milk_2006, milk_2018, dog_2006,
-             dog_2018, chocolate_2006, chocolate_2018, beer_2006, beer_2018)
+             chocolate_2006, chocolate_2018, beer_2006, beer_2018)
 
+#not including dog 2018 bc lerner > 1 is impossible
 
 ######################## 29 ###############################
 # Michel, Mino, Weirgraeber (2023)

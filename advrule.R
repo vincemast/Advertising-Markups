@@ -50,6 +50,7 @@ library(tidyr)
 library(scales)
 library(sandwich)
 library(multiwayvcov)
+library(rsq)
 
 #navigate to folder with functions
 setwd(dircs[1])
@@ -163,43 +164,55 @@ save_f(plot_all_deu, "adv_scatter_deu.pdf", dircs, 12, 12, save_files)
 ############################################################
 ############################################################
 
-two_d_data <- mutate(two_d_data, l =1 - 1/MU) # nolint
+two_d_data <- invisible(industry_n_dig(Data, naics, 2))
 
 two_d_data <- mutate(two_d_data, Industry =industry.y) # nolint
 
+names(two_d_data)
+
+#drop if anything is 0
+two_d_data <- two_d_data %>%
+  filter(MU > 0, MU_deu > 0)
+
+#drop if anything is 0
+two_d_data <- two_d_data %>%
+  filter(MU > 0, MU_deu > 0)
+
 #basic regressions
-model_ca_1 <- feols(Adr ~ l_ca,
+model_ca_1 <- feols(-log(1 - Adr) ~ log(MU),
                     cluster = "GVKEY",
                     data = two_d_data)
 
-model_deu_1 <- feols(Adr ~ l_deu,
+
+
+model_deu_1 <- feols(-log(1 - Adr) ~ log(MU_deu),
                      cluster = "GVKEY",
                      data = two_d_data)
 
 #industry fixed effects
-model_ca_2 <- feols(Adr ~ l_ca | Industry,
+model_ca_2 <- feols(-log(1 - Adr) ~ log(MU) | Industry,
                     cluster = "GVKEY",
                     data = two_d_data)
 
-model_deu_2 <- feols(Adr ~ l_deu | Industry,
+model_deu_2 <- feols(-log(1 - Adr) ~ log(MU_deu) | Industry,
                      cluster = "GVKEY",
                      data = two_d_data)
 
 #time fixed effects
-model_ca_3 <- feols(Adr ~ l_ca | time,
+model_ca_3 <- feols(-log(1 - Adr) ~ log(MU) | time,
                     cluster = "GVKEY",
                     data = two_d_data)
 
-model_deu_3 <- feols(Adr ~ l_deu |  time,
+model_deu_3 <- feols(-log(1 - Adr) ~ log(MU_deu) |  time,
                      cluster = "GVKEY",
                      data = two_d_data)
 
 
-model_ca_4 <- feols(Adr ~ l_ca | Industry + time,
+model_ca_4 <- feols(-log(1 - Adr) ~ log(MU) | Industry + time,
                     cluster = "GVKEY",
                     data = two_d_data)
 
-model_deu_4 <- feols(Adr ~ l_deu | Industry + time,
+model_deu_4 <- feols(-log(1 - Adr) ~ log(MU_deu) | Industry + time,
                      cluster = "GVKEY",
                      data = two_d_data)
 
@@ -212,6 +225,7 @@ new_names <- c(
   "time" = "Year",
   "GVKEY" = "Firm level"
 )
+
 
 # Create a named list of models
 models <- list("Model 1 (CA)" = model_ca_1,
@@ -226,9 +240,38 @@ models <- list("Model 1 (CA)" = model_ca_1,
 # Create the summary table with the new names
 summary_table <- etable(models, dict = new_names)
 
+
+# Calculate R² ci from Cohen et al. (2003)
+calculate_r2_ci <- function(model, conf.level = 0.95) {
+  r2 <- summary(model)$sq.cor
+  n <- length(model$fitted.values)
+  k = length(summary(model)$coefficients[1])
+  se = sqrt(4 * r2 *(1 - r2)^2 * (n - k - 1)^2 / ((n^2 - 1) * (n + 3)))
+  ci_lower <- r2 - 2 * se
+  ci_upper <- r2 + 2 * se
+  return(paste("[",
+               round(ci_lower, 5), ", ",
+               round(ci_upper, 5), ")", sep = ""))
+}
+
+# Calculate R² ci from Cohen et al. (2003)
+calculate_r2_se <- function(model, conf.level = 0.95) {
+  r2 <- summary(model)$sq.cor
+  n <- length(model$fitted.values)
+  k = length(summary(model)$coefficients[1])
+  se = sqrt(4 * r2 *(1 - r2)^2 * (n - k - 1)^2 / ((n^2 - 1) * (n + 3)))
+  return(paste("(",
+               round(se, 5), ")", sep = ""))
+}
+
+# Assuming models is a list of fitted models
+r2se <- lapply(models, calculate_r2_se)
+
 print(summary_table)
 
 view(summary_table)
+
+names(two_d_data)
 
 # Create the summary table with the new names
 l_table <- etable(models, dict = new_names, tex = TRUE)
@@ -236,6 +279,85 @@ l_table <- etable(models, dict = new_names, tex = TRUE)
 # Print the LaTeX-formatted summary table
 print(l_table)
 
+############################################################
+############################################################
+# sale / cogs
+############################################################
+############################################################
+
+# save vars for sale/cogs, theta, and mu resid
+two_d_data <- two_d_data %>%
+  mutate(soc = sale / cogs)
+two_d_data <- two_d_data %>%
+  mutate(theta =  MU_deu / soc,
+         mu_resid = MU / soc)
+
+#regs
+
+#basic regressions
+model_decom_1 <- feols(-log(1 - Adr) ~ log(soc),
+                       cluster = "GVKEY",
+                       data = two_d_data)
+
+model_decom_2 <- feols(-log(1 - Adr) ~ log(theta),
+                       cluster = "GVKEY",
+                       data = two_d_data)
+
+model_decom_3 <- feols(-log(1 - Adr) ~ log(mu_resid),
+                        cluster = "GVKEY",
+                        data = two_d_data)
+
+# 2
+model_decom_4 <- feols(-log(1 - Adr) ~ log(theta) + log(soc),
+                       cluster = "GVKEY",
+                       data = two_d_data)
+
+model_decom_5 <- feols(-log(1 - Adr) ~ log(mu_resid) + log(soc),
+                        cluster = "GVKEY",
+                        data = two_d_data)
+
+
+
+#all 3
+model_decom_6 <- feols(-log(1 - Adr) ~ log(soc) + log(theta) + log(mu_resid),
+                       cluster = "GVKEY",
+                       data = two_d_data)
+
+
+
+# Create a named list of models
+models2 <- list("Model 1" = model_decom_1,
+                "Model 2" = model_decom_2,
+                "Model 3" = model_decom_3,
+                "Model 4" = model_decom_4,
+                "Model 5" = model_decom_5,
+                "Model 6" = model_decom_6)
+
+# Create the summary table with the new names
+summary_table2 <- etable(models2, dict = new_names)
+
+view(summary_table2)
+
+# Create the summary table with the new names
+l_table <- etable(models, dict = new_names, tex = TRUE)
+
+# Print the LaTeX-formatted summary table
+print(etable(models2, dict = new_names, tex = TRUE))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -244,7 +366,7 @@ print(l_table)
 
 ############################################################
 ############################################################
-#5: Test 2
+#old
 ############################################################
 ############################################################
 
@@ -287,6 +409,62 @@ l_table2 <- etable(models2, dict = new_names, tex = TRUE)
 
 # Print the LaTeX-formatted summary table
 print(l_table2)
+
+
+###########################################################
+############################################################
+#6:  Sales / cogs
+############################################################
+############################################################
+
+
+
+#basic regression
+model_cd_1 <- feols(Adr ~ l_ca + l_deu,
+                    cluster = "GVKEY",
+                    data = two_d_data)
+
+#industry fixed effects
+model_cd_2 <- feols(Adr ~ l_ca + l_deu | Industry,
+                    cluster = "GVKEY",
+                    data = two_d_data)
+
+#time fixed effects
+model_cd_3 <- feols(Adr ~ l_ca + l_deu | time,
+                    cluster = "GVKEY",
+                    data = two_d_data)
+
+#sector time fes
+model_cd_4 <- feols(Adr ~ l_ca + l_deu | Industry + time,
+                    cluster = "GVKEY",
+                    data = two_d_data)
+
+# Create a named list of models
+models2 <- list("Model 1" = model_cd_1, 
+               "Model 2" = model_cd_2,
+               "Model 3" = model_cd_3,
+               "Model 4" = model_cd_4)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ############################################################
@@ -352,12 +530,6 @@ save_f(plot_yr_ca, "adv_scatter_ca_yr.pdf", dircs, 12, 12, save_files)
 save_f(plot_yr_deu, "adv_scatter_deu_yr.pdf", dircs, 12, 12, save_files)
 
 
-
-############################################################
-############################################################
-#5:  old
-############################################################
-############################################################
 
 
 
