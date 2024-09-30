@@ -105,6 +105,24 @@ faang <- dset[dset$GVKEY %in% faang_g, ]
 
 names(faang)
 
+#clean
+data <- clean_deu(dset)
+data <- data %>%
+  filter(!is.na(MU))
+
+# get full sample and sector averages
+#tech are those with naisc that start with 52
+avg <- data %>%
+  group_by(fyear) %>%
+  summarise(avg_markup = mean(MU_1, na.rm = TRUE),
+            tech_avg = mean(MU_1[substr((dset$naics), 1 , 2 ) == 51], na.rm = TRUE)
+            )
+
+view(avg)
+
+#trim average to start at 1980
+avg <- avg[avg$fyear >= 1980, ]
+
 ############################################################
 ############################################################
 #     2: Plot
@@ -112,15 +130,37 @@ names(faang)
 ############################################################
 
 
-#plot markup by firm over time with names from conm
-faang_plot <-
-  ggplot(faang, aes(x = fyear, y = MU_1)) +
+# Generate a color palette using scales
+color_palette <- hue_pal()(length(unique(faang$conm)))
+
+# Plot markup by firm over time with names from conm
+faang_plot <- ggplot(faang, aes(x = fyear, y = MU_1)) +
   geom_line(aes(color = conm), size = 1) +
+  geom_line(data = avg, aes(x = fyear, y = avg_markup,
+                            linetype = "Full Sample Average"),
+            color = "black", size = 1) +
+  geom_line(data = avg, aes(x = fyear, y = tech_avg,
+            linetype = "Sector Average"),
+            color = "grey", size = 1) +
   labs(x = "Year",
        y = "Markup ([p-mc]/mc)") +
   labs(color = "") +
-  theme(text = element_text(size = 20), legend.position = "bottom")
+  scale_color_manual(name = "", 
+                     values = c(setNames(color_palette, unique(faang$conm)), 
+                                "Full Sample Average" = "black", 
+                                "Sector Average" = "grey")) +
+  scale_linetype_manual(name = "",
+                        values = c("Full Sample Average" = "dashed",
+                                   "Sector Average" = "dashed")) +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  guides(color = guide_legend(order = 1, nrow = 2),
+         linetype = guide_legend(order = 3, nrow = 2,
+                                 override.aes = list(color = c("black",
+                                                               "grey"))))
 
-faang_plot
+# Print the plot for debugging
+print(faang_plot)
 
-save_f(faang_plot, "faang.pdf", dircs, 12, 12, TRUE)
+
+
+save_f(faang_plot, "faang.pdf", dircs, 16, 12, TRUE)

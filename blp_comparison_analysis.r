@@ -322,7 +322,49 @@ ggplot() +
   theme_minimal() +
   theme(text = element_text(size = 16), legend.position = "bottom")
 
-#filter out large 
+#plot average by at
+ggplot(blp) +
+  geom_smooth(aes(x = at, y = mu), method = "lm", se = FALSE) +
+  geom_smooth(aes(x = at, y = ca_mu), method = "lm", se = FALSE) +
+  geom_smooth(aes(x = at, y = deu_mu), method = "lm", se = FALSE) +
+  labs(x = "Year", y = "Markup", title = "Markup over Time") +
+  theme_minimal() +
+  theme(text = element_text(size = 16))
+
+
+
+hold4 <- feols(log(mu) ~  at | industry, data = blp)
+
+hold5 <- feols(log(deu_mu) ~  at | industry, data = blp)
+
+hold6 <- feols(log(ca_mu) ~  at | industry, data = blp)
+
+hold7 <- feols(log(mu) ~  at | industry + method, data = blp)
+
+hold8 <- feols(log(deu_mu) ~  at | industry + method, data = blp)
+
+hold9 <- feols(log(ca_mu) ~  at | industry + method, data = blp)
+
+hold10 <- feols(log(mu) ~  at | industry + method + agg, data = blp)
+
+hold11 <- feols(log(deu_mu) ~  at | industry + method + agg, data = blp)
+
+hold12 <- feols(log(ca_mu) ~  at | industry + method + agg, data = blp)
+
+hold13 <- feols(log(mu) ~  at | industry + method + agg + paper, data = blp)
+
+hold14 <- feols(log(deu_mu) ~  at | industry + method + agg + paper, data = blp)
+
+hold15 <- feols(log(ca_mu) ~  at | industry + method + agg + paper, data = blp)
+
+ 
+
+etable(list(hold4, hold5, hold6, hold7, hold8,
+            hold9, hold10, hold11, hold12, hold13,
+            hold14, hold15))
+
+
+#filter out large
 blp_l2 <- blp_l %>% filter(mu < 2.5) #nolint
 
 cor(log(blp_l2$ca_mu), log(blp_l2$mu))^2

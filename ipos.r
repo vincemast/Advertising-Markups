@@ -387,6 +387,9 @@ mu_mean_plots[[2]]
 ############################################################
 ############################################################
 
+data$MU_1 <- data$MU - 1
+
+names(data)
 
 #generate variable if last year in data
 data <- data %>%
@@ -395,6 +398,134 @@ data <- data %>%
          t = fyear - 1955) %>%
   ungroup()
 
+#generate age up to 20 years
+data$age_c <- ifelse(data$age > 19, "20+", data$age)
+
+
+twfe <- feols(MU_1 ~ i(age_c) + last - 1 |  GVKEY + year,
+              cluster = c("GVKEY"),
+              data = data)
+
+fixed_effects <- fixef(twfe)
+gvkey_fe <- fixed_effects$GVKEY
+year_fe <- fixed_effects$year
+
+#take fitted value of average firm in 2018
+ref <- year_fe[length(year_fe)-3] + mean(gvkey_fe)
+
+#grabcoefficients and ses (clustered)
+twfe_coef <- data.frame(twfe$coefficients)
+twfe_se <- data.frame(twfe$se)
+
+#grab age from rownames removing "age_c::
+twfe_coef$age <- gsub("age_c::", "", rownames(twfe_coef))
+twfe_se$age <- gsub("age_c::", "", rownames(twfe_se))
+#merege
+twfe_res <- merge(twfe_coef, twfe_se, by = "age")
+#remove age = last
+twfe_res <- twfe_res %>% filter(age != "last")
+names(twfe_res) <- c("age", "coef", "se")
+#refer to the 20+ as 20 (for simplicity in plot)
+twfe_res$age <- as.numeric(gsub("\\+", "", twfe_res$age))
+
+
+#add refences for plot
+twfe_res$coef_r <- twfe_res$coef + ref
+
+#get upper bound for limits of plot
+twfe_res$upper_bound <- twfe_res$coef_r + 1.96 * twfe_res$se
+max_upper_bound <- max(twfe_res$upper_bound)
+
+
+
+# Plot event study with 20+ as last
+twfe_plot <- ggplot(twfe_res, aes(x = age)) +
+  geom_point(aes(y = coef_r, color = "Coefficient"), size = 4) +
+  geom_line(aes(y = coef_r, color = "Coefficient"), size = .5) +
+  geom_errorbar(aes(ymin = coef_r - 1.96 * se,
+                    ymax = coef_r + 1.96 * se, color = "eb"),
+                width = 0.1) +
+  geom_hline(aes(yintercept = ref, color = "Mean"),
+             linetype = "dotted", size = 1) +
+  labs(x = "Years Since IPO", y = "Markup Ratio (p/mc-1)",
+       color = " ") +
+  scale_color_manual(values = c("Coefficient" = "blue", "Mean" = "red", "eb" = "black"),
+                     labels = c("Coefficient" = "Fitted Value", "Mean" = "Reference",
+                                 "eb" = "95% confidence interval")) +
+  scale_x_continuous(breaks = c(0:19, 20), labels = c(0:19, "20+")) +
+  coord_cartesian(ylim = c(0, max_upper_bound)) +
+  theme(text = element_text(size = 20), legend.position = "bottom")
+
+print(twfe_plot)
+
+#save plot
+save_f(twfe_plot, "twfe_plot.pdf", dircs, 12, 8, TRUE)
+
+################################################################
+############# market share
+################################################################
+
+#generate age up to 30 years
+data$age_d <- ifelse(data$age > 29, "30+", data$age)
+
+twfe_ms <- feols(sshare ~ i(age_c) - 1 |  GVKEY + year + last,
+                 cluster = c("GVKEY"),
+                 data = data)
+
+view(etable(twfe_ms, order = c("age_c", "last")))
+
+mean(twfe_ms$fitted.values)
+
+fe_ms <- fixef(twfe_ms)
+
+g_fe_ms <- fe_ms$GVKEY
+y_fe_ms <- fe_ms$year
+
+#take fitted value of average firm in 2018
+ref_ms <- y_fe_ms[length(y_fe_ms)-3] + mean(g_fe_ms)
+
+#grabcoefficients and ses (clustered)
+twfe_coef_ms <- data.frame(twfe_ms$coefficients)
+twfe_se_ms <- data.frame(twfe_ms$se)
+
+#grab age from rownames removing "age_c::
+twfe_coef_ms$age <- gsub("age_c::", "", rownames(twfe_coef_ms))
+twfe_se_ms$age <- gsub("age_c::", "", rownames(twfe_se_ms))
+#merege
+twfe_res_ms <- merge(twfe_coef_ms, twfe_se_ms, by = "age")
+names(twfe_res_ms) <- c("age", "coef", "se")
+
+#refer to the 20+ as 20 (for simplicity in plot)
+twfe_res_ms$age <- as.numeric(gsub("\\+", "", twfe_res_ms$age))
+
+#center and add reference for
+twfe_res_ms$coef_r <- twfe_res_ms$coef + ref_ms - mean(twfe_res_ms$coef)
+
+#get upper bound for limits of plot
+twfe_res_ms$upper_bound <- twfe_res_ms$coef_r + 1.96 * twfe_res_ms$se
+max_upper_bound_ms <- max(twfe_res_ms$upper_bound)
+
+# Plot event study with 20+ as last
+
+twfe_plot_ms <- ggplot(twfe_res_ms, aes(x = age)) +
+  geom_point(aes(y = coef_r, color = "Coefficient"), size = 4) +
+  geom_line(aes(y = coef_r, color = "Coefficient"), size = .5) +
+  geom_errorbar(aes(ymin = coef_r - 1.96 * se,
+                    ymax = coef_r + 1.96 * se, color = "eb"),
+                width = 0.1) +
+  geom_hline(aes(yintercept = ref_ms, color = "Mean"),
+             linetype = "dotted", size = 1) +
+  labs(x = "Years Since IPO", y = "Market Share (%)",
+       color = " ") +
+  scale_color_manual(values = c("Coefficient" = "blue", "Mean" = "red", "eb" = "black"),
+                     labels = c("Coefficient" = "Fitted Value", "Mean" = "Reference",
+                                 "eb" = "95% confidence interval")) +
+  scale_x_continuous(breaks = c(0:19, 20), labels = c(0:19, "20+")) +
+  coord_cartesian(ylim = c(0, max_upper_bound_ms)) +
+  theme(text = element_text(size = 20), legend.position = "bottom")
+
+
+save_f(twfe_plot_ms, "twfe_plot_ms.pdf", dircs, 12, 8, TRUE)
 
 # Generate 10-year age indicator as a single variable
 data <- data %>%
@@ -421,45 +552,51 @@ data <- data %>%
 data$MU_1 <- data$MU - 1
 
 
+#############################################################################################################################
+###### regs
+  #############################################################################################################################
+
 #sort data by age
 data <- data %>%
   arrange(age)
 ######### regs
 
 model1 <- feols(MU_1 ~ age,
-                cluster = c("GVKEY", "t"),
+                cluster = c("GVKEY"),
                 data = data)
 
 model2 <- feols(MU_1 ~ age + t,
-                cluster = c("GVKEY", "t"),
+                cluster = c("GVKEY"),
                 data = data)
 
 model3 <- feols(MU_1 ~ age - 1 | decade,
-                cluster = c("GVKEY", "t"),
+                cluster = c("GVKEY"),
                 data = data)
 
 model4 <- feols(MU_1 ~ age - 1 | decade + industry,
-                cluster = c("GVKEY", "t"),
+                cluster = c("GVKEY"),
                 data = data)
 
 
 model5 <- feols(MU_1 ~ age - 1 | GVKEY + decade,
-                cluster = c("GVKEY", "t"),
+                cluster = c("GVKEY"),
                 data = data)
 
 model6 <- feols(MU_1 ~ i(age_in, age) - 1 |  GVKEY + decade,
-                cluster = c("GVKEY", "t"),
+                cluster = c("GVKEY"),
                 data = data)
 
 # add last indicator
 model7 <- feols(MU_1 ~ i(age_in, age) + last - 1 |  GVKEY + decade,
-                cluster = c("GVKEY", "t"),
+                cluster = c("GVKEY"),
                 data = data)
 
 # add life indicator
 model8 <- feols(MU_1 ~ i(age_in, age) - 1 |  GVKEY + decade + life,
-                cluster = c("GVKEY", "t"),
+                cluster = c("GVKEY"),
                 data = data)
+
+summary(data$MU_1)
 
 models <- list(" " = model1,
                 " " = model2,
@@ -496,7 +633,7 @@ c("Constant", "Firm Age", "Time", age_order)
 
 
 # Display the table with coefficients in the specified order
-etable(models, order = coef_order, dict = new_names)
+view(etable(models, order = coef_order, dict = new_names))
 
 
 etable(models, order = coef_order, dict = new_names, tex = TRUE)

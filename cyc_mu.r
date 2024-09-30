@@ -125,7 +125,7 @@ mnews2 <- read.csv("gs_shock.csv")
 mnews2 <- mnews2 %>%
   mutate(qdate = as.numeric(sub("q[1-4]", "", qdate)))
 mnews2$qdate[2:length(mnews2$qdate)] <- mnews2$qdate[1:length(mnews2$qdate)-1] 
-#create annual 
+#create annual
 mnews2 <- mnews2 %>%
   mutate(year = as.numeric(sub("q[1-4]", "", qdate)))
 mnews2 <- mnews2 %>%
@@ -271,13 +271,46 @@ data <- data %>%
 ################### 1.c gen agg data #########################
 ############################################################
 
+#add 2 d industry codes
+data <- invisible(industry_n_dig(data, naics, 2))
+
+unique(data$industry)
+
+names(data)
+
+summary(data)
+
+
 #aggregate data
 agg_markups <- data %>%
   group_by(fyear) %>% # nolint
-  summarise(Agg_MU = weighted.mean(MU, sale, na.rm = TRUE), # nolint
-            sw_MU = mean(MU, na.rm = TRUE))
+  summarise(sw_MU = weighted.mean(MU, sale, na.rm = TRUE), # nolint
+            Agg_MU = mean(MU, na.rm = TRUE),# nolint
+            med_MU = median(MU, na.rm = TRUE),
+            cw_MU = weighted.mean(MU, cogs + ppegt * usercost.x,
+                                  na.rm = TRUE),
+            m_mu = mean(MU[industry == "Manufacturing"], na.rm = TRUE),
+            r_mu = mean(MU[industry == "Retail Trade"], na.rm = TRUE),
+            t_mu = mean(MU[industry == "Information"], na.rm = TRUE),
+            w_mu = mean(MU[industry == "Wholesale Trade"], na.rm = TRUE),
+            sw_m_mu = weighted.mean(MU[industry == "Manufacturing"],
+                                    sale[industry == "Manufacturing"],
+                                    na.rm = TRUE),
+            sw_r_mu = weighted.mean(MU[industry == "Retail Trade"],
+                                    sale[industry == "Retail Trade"],
+                                    na.rm = TRUE),
+            sw_t_mu = weighted.mean(MU[industry == "Information"],
+                                    sale[industry == "Information"],
+                                    na.rm = TRUE),
+            sw_w_mu = weighted.mean(MU[industry == "Wholesale Trade"],
+                                    sale[industry == "Wholesale Trade"],
+                                    na.rm = TRUE)
+  )
 
-names(agg_markups) <- c("year", "Agg_MU", "sw_MU")
+
+names(agg_markups) <- c("year", "sw_MU", "Agg_MU", "med_MU",
+                        "cw_MU", "m_mu", "r_mu", "t_mu", "w_mu",
+                        "sw_m_mu", "sw_r_mu", "sw_t_mu", "sw_w_mu")
 
 #merge with RGDP, unemp, fernald, deflator, tbill
 ag_data <- merge(agg_markups, rgdp, by = "year")
@@ -285,14 +318,115 @@ ag_data <- merge(ag_data, unemp, by = "year")
 ag_data <- merge(ag_data, fernald, by = "year")
 ag_data <- merge(ag_data, gdpdef, by = "year")
 ag_data <- merge(ag_data, tbill, by = "year")
+ag_data <- merge(ag_data, fedexp, by = "year")
 
 
 ################### 1.d log data #########################
 #log everything well use (except tbill rate and dtfp)
-ag_data$ln_aMu <- log(ag_data$Agg_MU - 1)
-ag_data$ln_swMu <- log(ag_data$sw_MU - 1)
+ag_data$ln_aMu <- log(ag_data$Agg_MU)
+ag_data$ln_swMu <- log(ag_data$sw_MU)
+ag_data$ln_medMU <- log(ag_data$med_MU)
+ag_data$ln_cwMu <- log(ag_data$cw_MU)
+ag_data$ln_MMu <- log(ag_data$m_mu)
+ag_data$ln_RMu <- log(ag_data$r_mu)
+ag_data$ln_TMu <- log(ag_data$t_mu)
+ag_data$ln_WMu <- log(ag_data$w_mu)
+
+ag_data$ln_sw_m_mu <- log(ag_data$sw_m_mu)
+ag_data$ln_sw_r_mu <- log(ag_data$sw_r_mu)
+ag_data$ln_sw_t_mu <- log(ag_data$sw_t_mu)
+ag_data$ln_sw_w_mu <- log(ag_data$sw_w_mu)
+
 ag_data$ln_gdp <- log(ag_data$RGDP)
 ag_data$ln_gdpdf <- log(ag_data$gdpdf)
+ag_data$ln_fexp <- log(ag_data$fedexp)
+
+
+
+
+#####################################################
+#####################################################
+#######    Elasticities
+#####################################################
+#####################################################
+
+mu_list <- c("ln_aMu", "ln_swMu", "ln_medMU",
+             "ln_cwMu", "sw_m_mu", "sw_r_mu", "sw_w_mu")
+
+#set empty matrix to store results
+elasts <- data.frame(matrix(nrow = 2, ncol = length(mu_list)))
+names(elasts) <- mu_list
+rownames(elasts) <- c("TFP", "MP")
+
+########################################################
+######################  TFP
+for (i in mu_list) {
+  #TFP
+  # set variable order
+  TFPvars <- c("dtfp", "ln_gdp", "ln_gdpdf", "tbill", i)
+  TFP_ts<- ts(ag_data[, TFPvars],
+              start = min(ag_data$year),
+              frequency = 1, end = 2017)
+  # Estimate VAR model
+  TFPvar <- VAR(TFP_ts, type = "both", p = 2)
+  # Impose Cholesky Decomposition
+  TFPx1 <- id.chol(TFPvar)
+  # irs
+  # Impulse response (no bs)
+  i_TFP <- irf(TFPx1, n.ahead = 16)
+  # collect elasticity 
+  #area under IRF of gdp (first 5 years)
+  tfp_gdp_ce <- sum(i_TFP$irf$'epsilon[ dtfp ] %->% ln_gdp'[1:6])
+  #area under IRF of mu (first 5 years)
+  shock_name <- paste("'","epsilon[ dtfp ] %->% " , i, "'", sep = "")
+  ir_mu <- eval(parse(text = paste0("i_TFP$irf$", shock_name)))
+  tfp_mu_ce <- sum(ir_mu[1:6])
+  elas <- tfp_mu_ce / tfp_gdp_ce
+  eval(parse(text = paste0("elasts$", i,"[1] <- elas")))
+  }
+
+########################################################
+######################  MP
+
+#need to add ppi and ffunds to data
+mp_data <- merge(ag_data, ppi, by = "year")
+mp_data <- merge(mp_data, fedfunds, by = "year")
+
+#log ppi
+mp_data$ln_ppi <- log(mp_data$ppi)
+
+#switch sign so positive fed funds shock is expansionary
+mp_data$ffunds <- -mp_data$ffunds
+
+
+for (i in mu_list) {
+  #MP
+  # set variable order
+  MPvars <- c("ln_gdp", "ln_gdpdf", "ln_ppi", "ffunds", i)
+  MP_ts<- ts(mp_data[, MPvars], start = min(ag_data$year),
+              end = 2007, frequency = 1)
+  # Estimate VAR model
+  MPvar <- VAR(MP_ts, type = "both", p = 2)
+  # Impose Cholesky Decomposition
+  MPx1 <- id.chol(MPvar)
+  # irs
+  # Impulse response (no bs)
+  i_MP <- irf(MPx1, n.ahead = 16)
+  # collect elasticity 
+  #area under IRF of gdp (first 5 years)
+  tfp_gdp_ce <- sum(i_MP$irf$'epsilon[ ffunds ] %->% ln_gdp'[1:6])
+  #area under IRF of mu (first 5 years)
+  shock_name <- paste("'","epsilon[ ffunds ] %->% " , i, "'", sep = "")
+  ir_mu <- eval(parse(text = paste0("i_MP$irf$", shock_name)))
+  tfp_mu_ce <- sum(ir_mu[1:6])
+  elas <- tfp_mu_ce / tfp_gdp_ce
+  eval(parse(text = paste0("elasts$", i,"[2] <- elas")))
+  }
+
+elasts
+
+
+
 
 
 #####################################################
@@ -301,9 +435,10 @@ ag_data$ln_gdpdf <- log(ag_data$gdpdf)
 #####################################################
 #####################################################
 
+
 rec_c_order_sw <- c("dtfp", "ln_gdp", "ln_gdpdf", "tbill", "ln_swMu")
 
-ts_data_sw <- ts(ag_data[, rec_c_order_sw],
+ts_data_sw <- ts(ag_data[, c(rec_c_order_sw)],
                  start = min(ag_data$year),
                  frequency = 1, end = 2018)
 
@@ -312,12 +447,741 @@ ts_data_sw <- ts(ag_data[, rec_c_order_sw],
 n_ah <- 16
 
 # Estimate VAR model
-var_sw <- VAR(ts_data_sw)
+var_sw <- VAR(ts_data_sw, type = "both", p = 2)
 # Impose Cholesky Decomposition
 x1_sw <- id.chol(var_sw)
 # Impulse response (no bs)
 i_sw <- irf(x1_sw, n.ahead = n_ah)
 plot(i_sw, scales = 'free_y')
+
+
+
+# Bootstrap
+n_boot <- 1000
+set.seed(123)
+bb_sw <- mb.boot(x1_sw, n.ahead = n_ah, nboot = n_boot)
+plot(bb_sw, lowerq = .05, upperq = .95)
+
+#get data for my plot
+#point estimates
+gdp_pe_sw <- i_sw$irf$'epsilon[ dtfp ] %->% ln_gdp'
+mu_pe_sw <- i_sw$irf$'epsilon[ dtfp ] %->% ln_swMu'
+
+
+#confidence intervals
+#have to grab each bootstrapped estimate 1 by 1
+#done with function in function_useful
+tfp_bs_ci_gdp <- be_extra(bb_sw, 1, 2, n_boot, n_ah, 5, 90)
+tfp_gdp_lb <- tfp_bs_ci_gdp[, 1]
+tfp_gdp_ub <- tfp_bs_ci_gdp[, 2]
+
+mu_bs_ci_gdp <- be_extra(bb_sw, 1, 5, n_boot, n_ah, 5, 90)
+mu_gdp_lb <- mu_bs_ci_gdp[, 1]
+mu_gdp_ub <- mu_bs_ci_gdp[, 2]
+
+tfp_lb <- min(c(tfp_gdp_lb, mu_gdp_lb))
+tfp_ub <- max(c(tfp_gdp_ub, mu_gdp_ub))
+
+
+year_max <- 16
+
+# Plot the IRFs with 90% confidence intervals
+gdp_irf_plot_sw <- ggplot() +
+  geom_ribbon(aes(x = 1:n_ah,
+                  ymin = tfp_gdp_lb, ymax = tfp_gdp_ub,
+                  fill = "90% Confidence Interval (Bootstrapped)"),
+              alpha = 0.5) +
+  geom_line(aes(x = 1:n_ah, y = gdp_pe_sw, color = "Point Estimate")) +
+  scale_x_continuous(breaks = 1:n_ah, labels = 0: (n_ah - 1),
+                     limits = c(1, year_max)) +
+  scale_y_continuous(labels = percent, limits = c(tfp_lb, tfp_ub)) +
+  labs(x = "Year", y = "Real GDP Per Capita",
+       title = "TFP Shock") +
+  scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
+  scale_fill_manual(name = "",
+                    values = c(
+                               "90% Confidence Interval (Bootstrapped)"
+                               = "grey")) +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  geom_hline(yintercept = 0, linetype = "dashed")
+gdp_irf_plot_sw
+
+
+#plot IRF for ln_aMu wth 90% CI
+mu_irf_plot_sw <- ggplot() +
+  geom_ribbon(aes(x = 1:n_ah,
+                  ymin = mu_gdp_lb, ymax = mu_gdp_ub,
+                  fill = "90% Confidence Interval (Bootstrapped)"),
+              alpha = 0.5) +
+  geom_line(aes(x = 1:n_ah, y = mu_pe_sw, color = "Point Estimate")) +
+  scale_x_continuous(breaks = 1:n_ah, labels = 0:(n_ah - 1),
+                     limits = c(1, year_max)) +
+  scale_y_continuous(labels = percent, limits = c(tfp_lb, tfp_ub)) +
+  labs(x = "Year", y = "Sales Weighted Markup",
+       title = "TFP Shock") +
+  scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
+  scale_fill_manual(name = "",
+                    values = c("90% Confidence Interval (Bootstrapped)"
+                               = "grey")) +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  geom_hline(yintercept = 0, linetype = "dashed")
+mu_irf_plot_sw
+
+
+setwd(dircs[3])
+
+#
+pdf("IRF_tfp.pdf", width = 20, height = 10)
+grid.arrange(gdp_irf_plot_sw, mu_irf_plot_sw,
+             ncol = 2)
+dev.off()
+
+
+#####################################################
+#####################################################
+#######    3 MP SVAR
+#####################################################
+#####################################################
+
+#need to add ppi and ffunds to data
+mp_data <- merge(ag_data, ppi, by = "year")
+mp_data <- merge(mp_data, fedfunds, by = "year")
+
+#log ppi
+mp_data$ln_ppi <- log(mp_data$ppi)
+
+#switch sign so positive fed funds shock is expansionary
+mp_data$ffunds <- -mp_data$ffunds
+
+
+mp_order <- c("ln_gdp", "ln_gdpdf", "ln_ppi", "ffunds", "ln_swMu")
+
+mp_data <- ts(mp_data[, mp_order], start = min(ag_data$year),
+              end = 2008, frequency = 1)
+
+
+# Estimate VAR model
+var_mp <- VAR(mp_data, type = "both", p = 2)
+
+# Impose Cholesky Decomposition
+x1mp <- id.chol(var_mp)
+
+n_ah <- 16
+
+# Impulse response analysis
+i1mp <- irf(x1mp, n.ahead = n_ah)
+plot(i1mp, scales = 'free_y')
+
+# Bootstrap
+n_boot <- 1000
+set.seed(1234)
+bbmp <- mb.boot(x1mp, n.ahead = n_ah, nboot = n_boot)
+summary(bbmp)
+#all plot
+plot(bbmp, lowerq = .05, upperq = .95)
+
+
+#point estimates
+gdp_pe_mp <- i1mp$irf$'epsilon[ ffunds ] %->% ln_gdp'
+mu_pe_mp <- i1mp$irf$'epsilon[ ffunds ] %->% ln_swMu'
+
+
+#confidence intervals
+#have to grab each bootstrapped estimate 1 by 1
+#done with function in function_useful
+#gdp is 1, mu is 5, shock is ffunds [4]
+gdp_bs_ci_mp <- be_extra(bbmp, 4, 1, n_boot, n_ah, 5, 90)
+gdp_mp_lb <- gdp_bs_ci_mp[, 1]
+gdp_gdp_ub <- gdp_bs_ci_mp[, 2]
+
+mu_bs_ci_mp <- be_extra(bbmp, 4, 5, n_boot, n_ah, 5, 90)
+mu_mp_lb <- mu_bs_ci_mp[, 1]
+mu_mp_ub <- mu_bs_ci_mp[, 2]
+
+year_max <- 16
+
+mpllim <- min(c(gdp_mp_lb, mu_mp_lb))
+mpulim <- max(c(gdp_gdp_ub, mu_mp_ub))
+
+# Plot the IRFs with 90% confidence intervals
+gdp_irf_plot_mp <- ggplot() +
+  geom_ribbon(aes(x = 1:n_ah,
+                  ymin = gdp_mp_lb, ymax = gdp_gdp_ub,
+                  fill = "90% Confidence Interval (Bootstrapped)"),
+              alpha = 0.5) +
+  geom_line(aes(x = 1:n_ah, y = gdp_pe_mp, color = "Point Estimate")) +
+  scale_x_continuous(breaks = 1:n_ah, labels = 0: (n_ah - 1),
+                     limits = c(1, year_max)) +
+  scale_y_continuous(labels = percent, limits = c(mpllim, mpulim)) +
+  labs(x = "Year", y = "Real GDP Per Capita",
+       title = "Monetary Policy Shock") +
+  scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
+  scale_fill_manual(name = "",
+                    values = c(
+                               "90% Confidence Interval (Bootstrapped)"
+                               = "grey")) +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  geom_hline(yintercept = 0, linetype = "dashed")
+gdp_irf_plot_mp
+
+
+#plot IRF for ln_aMu wth 90% CI
+mu_irf_plot_mp <- ggplot() +
+  geom_ribbon(aes(x = 1:n_ah,
+                  ymin = mu_mp_lb, ymax = mu_mp_ub,
+                  fill = "90% Confidence Interval (Bootstrapped)"),
+              alpha = 0.5) +
+  geom_line(aes(x = 1:n_ah, y = mu_pe_mp, color = "Point Estimate")) +
+  scale_x_continuous(breaks = 1:n_ah, labels = 0:(n_ah - 1),
+                     limits = c(1, year_max)) +
+  scale_y_continuous(labels = percent, limits =  c(mpllim, mpulim)) +
+  labs(x = "Year", y = "Sales Weighted Markup",
+       title = "Monetary Policy Shock") +
+  scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
+  scale_fill_manual(name = "",
+                    values = c("90% Confidence Interval (Bootstrapped)"
+                               = "grey")) +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  geom_hline(yintercept = 0, linetype = "dashed")
+mu_irf_plot_mp
+
+
+setwd(dircs[3])
+
+#
+pdf("IRF_mp.pdf", width = 20, height = 10)
+grid.arrange(gdp_irf_plot_mp, mu_irf_plot_mp,
+             ncol = 2)
+dev.off()
+
+
+
+
+
+
+
+
+#####################################################
+#####################################################
+#######    2 TFP SVAR by industry
+#####################################################
+#####################################################
+
+##### retail 
+rec_c_order_r <- c("dtfp", "ln_gdp", "ln_gdpdf", "tbill", "ln_sw_r_mu")
+
+##### manuf
+rec_c_order_m <- c("dtfp", "ln_gdp", "ln_gdpdf", "tbill", "ln_sw_m_mu")
+
+##### whole sale
+rec_c_order_w <- c("dtfp", "ln_gdp", "ln_gdpdf", "tbill", "ln_sw_w_mu")
+
+ts_data_r <- ts(ag_data[, c(rec_c_order_r)],
+                 start = min(ag_data$year),
+                 frequency = 1, end = 2018)
+                 
+
+ts_data_m <- ts(ag_data[, c(rec_c_order_m)],
+                 start = min(ag_data$year),
+                 frequency = 1, end = 2018)
+
+ts_data_w <- ts(ag_data[, c(rec_c_order_w)],
+                  start = min(ag_data$year),
+                  frequency = 1, end = 2018)
+
+
+
+# Bootstrap
+n_ah <- 16
+
+# Estimate VAR models
+var_r <- VAR(ts_data_r, type = "both", p = 2)
+var_m <- VAR(ts_data_m, type = "both", p = 2)
+var_w <- VAR(ts_data_w, type = "both", p = 2)
+# Impose Cholesky DecompositionS
+x1_r <- id.chol(var_r)
+x1_m <- id.chol(var_m)
+x1_w <- id.chol(var_w)
+# Impulse response (no bs)
+i_r <- irf(x1_r, n.ahead = n_ah)
+i_m <- irf(x1_m, n.ahead = n_ah)
+i_w <- irf(x1_w, n.ahead = n_ah)
+
+# Bootstrap
+n_boot <- 1000
+set.seed(123)
+bb_r <- mb.boot(x1_r, n.ahead = n_ah, nboot = n_boot)
+bb_m <- mb.boot(x1_m, n.ahead = n_ah, nboot = n_boot)
+bb_w <- mb.boot(x1_w, n.ahead = n_ah, nboot = n_boot)
+
+#all plot
+plot(bb_r, lowerq = .05, upperq = .95)
+plot(bb_m, lowerq = .05, upperq = .95)
+plot(bb_w, lowerq = .05, upperq = .95)
+
+
+#point estimates
+mu_pe_r <- i_r$irf$'epsilon[ dtfp ] %->% ln_sw_r_mu'
+mu_pe_m <- i_m$irf$'epsilon[ dtfp ] %->% ln_sw_m_mu'
+mu_pe_w <- i_w$irf$'epsilon[ dtfp ] %->% ln_sw_w_mu'
+
+
+#confidence intervals
+#have to grab each bootstrapped estimate 1 by 1
+#done with function in function_useful
+mu_bs_ci_gdp_r <- be_extra(bb_r, 1, 5, n_boot, n_ah, 5, 90)
+mu_lb_r <- mu_bs_ci_gdp_r[, 1]
+mu_ub_r <- mu_bs_ci_gdp_r[, 2]
+
+mu_bs_ci_gdp_m <- be_extra(bb_m, 1, 5, n_boot, n_ah, 5, 90)
+mu_lb_m <- mu_bs_ci_gdp_m[, 1]
+mu_ub_m <- mu_bs_ci_gdp_m[, 2]
+
+mu_bs_ci_gdp_w <- be_extra(bb_w, 1, 5, n_boot, n_ah, 5, 90)
+mu_lb_w <- mu_bs_ci_gdp_w[, 1]
+mu_ub_w <- mu_bs_ci_gdp_w[, 2]
+
+tfp_lb <- min(c(mu_lb_r, mu_lb_m, mu_lb_w))
+tfp_ub <- max(c(mu_ub_r, mu_ub_m, mu_ub_w))
+
+
+year_max <- 16
+
+# Plot the IRFs with 90% confidence intervals
+
+#retail
+mu_irf_plot_r <- ggplot() +
+  geom_ribbon(aes(x = 1:n_ah,
+                  ymin = mu_lb_r, ymax = mu_ub_r,
+                  fill = "90% Confidence Interval (Bootstrapped)"),
+              alpha = 0.5) +
+  geom_line(aes(x = 1:n_ah, y = mu_pe_r, color = "Point Estimate")) +
+  scale_x_continuous(breaks = 1:n_ah, labels = 0: (n_ah - 1),
+                     limits = c(1, year_max)) +
+  scale_y_continuous(labels = percent, limits = c(tfp_lb, tfp_ub)) +
+  labs(x = "Year", y = "Retail Markup",
+       title = "TFP Shock") +
+  scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
+  scale_fill_manual(name = "",
+                    values = c(
+                               "90% Confidence Interval (Bootstrapped)"
+                               = "grey")) +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  geom_hline(yintercept = 0, linetype = "dashed")
+mu_irf_plot_r
+
+#manuf
+mu_irf_plot_m <- ggplot() +
+  geom_ribbon(aes(x = 1:n_ah,
+                  ymin = mu_lb_m, ymax = mu_ub_m,
+                  fill = "90% Confidence Interval (Bootstrapped)"),
+              alpha = 0.5) +
+  geom_line(aes(x = 1:n_ah, y = mu_pe_m, color = "Point Estimate")) +
+  scale_x_continuous(breaks = 1:n_ah, labels = 0: (n_ah - 1),
+                     limits = c(1, year_max)) +
+  scale_y_continuous(labels = percent, limits = c(tfp_lb, tfp_ub)) +
+  labs(x = "Year", y = "Manufacturing Markup",
+       title = "TFP Shock") +
+  scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
+  scale_fill_manual(name = "",
+                    values = c(
+                               "90% Confidence Interval (Bootstrapped)"
+                               = "grey")) +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  geom_hline(yintercept = 0, linetype = "dashed")
+mu_irf_plot_m
+
+#whole sale
+mu_irf_plot_w <- ggplot() +
+  geom_ribbon(aes(x = 1:n_ah,
+                  ymin = mu_lb_w, ymax = mu_ub_w,
+                  fill = "90% Confidence Interval (Bootstrapped)"),
+              alpha = 0.5) +
+  geom_line(aes(x = 1:n_ah, y = mu_pe_w, color = "Point Estimate")) +
+  scale_x_continuous(breaks = 1:n_ah, labels = 0: (n_ah - 1),
+                     limits = c(1, year_max)) +
+  scale_y_continuous(labels = percent, limits = c(tfp_lb, tfp_ub)) +
+  labs(x = "Year", y = "Whole Sale Markup",
+       title = "TFP Shock") +
+  scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
+  scale_fill_manual(name = "",
+                    values = c(
+                               "90% Confidence Interval (Bootstrapped)"
+                               = "grey")) +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  geom_hline(yintercept = 0, linetype = "dashed")
+mu_irf_plot_w
+
+
+setwd(dircs[3])
+#
+pdf("IRF_tfp_indu.pdf", width = 20, height = 10)
+grid.arrange(mu_irf_plot_r, mu_irf_plot_m,mu_irf_plot_w,
+             ncol = 3)
+dev.off()
+
+
+
+
+
+
+#####################################################
+#####################################################
+#######    2 MP SVAR by industry
+#####################################################
+#####################################################
+
+#retail
+##### retail 
+mp_c_order_r <- c("ln_gdp", "ln_gdpdf", "ln_ppi", "ffunds", "ln_sw_r_mu")
+
+##### manuf
+mp_c_order_m <- c("ln_gdp", "ln_gdpdf", "ln_ppi", "ffunds", "ln_sw_m_mu")
+
+##### whole sale
+mp_c_order_w <- c("ln_gdp", "ln_gdpdf", "ln_ppi", "ffunds", "ln_sw_w_mu")
+
+mp_ts_data_r <- ts(mp_data[, c(mp_c_order_r)],
+                   start = min(mp_data$year),
+                   frequency = 1, end = 2008)
+
+mp_ts_data_m <- ts(mp_data[, c(mp_c_order_m)],
+                   start = min(mp_data$year),
+                   frequency = 1, end = 2008)
+
+mp_ts_data_w <- ts(mp_data[, c(mp_c_order_w)],
+                    start = min(mp_data$year),
+                    frequency = 1, end = 2008)
+
+
+# Estimate VAR models
+var_r <- VAR(mp_ts_data_r, type = "both", p = 2)
+var_m <- VAR(mp_ts_data_m, type = "both", p = 2)
+var_w <- VAR(mp_ts_data_w, type = "both", p = 2)
+# Impose Cholesky DecompositionS
+x1_r <- id.chol(var_r)
+x1_m <- id.chol(var_m)
+x1_w <- id.chol(var_w)
+# Impulse response (no bs)
+i_r <- irf(x1_r, n.ahead = n_ah)
+i_m <- irf(x1_m, n.ahead = n_ah)
+i_w <- irf(x1_w, n.ahead = n_ah)
+plot(i_r, scales = 'free_y')
+plot(i_m, scales = 'free_y')
+plot(i_w, scales = 'free_y')
+
+# Bootstrap
+n_boot <- 1000
+set.seed(123)
+bb_r <- mb.boot(x1_r, n.ahead = n_ah, nboot = n_boot)
+bb_m <- mb.boot(x1_m, n.ahead = n_ah, nboot = n_boot)
+bb_w <- mb.boot(x1_w, n.ahead = n_ah, nboot = n_boot)
+
+#all plot
+plot(bb_r, lowerq = .05, upperq = .95)
+plot(bb_m, lowerq = .05, upperq = .95)
+plot(bb_w, lowerq = .05, upperq = .95)
+
+
+#point estimates
+mu_pe_r <- i_r$irf$'epsilon[ ffunds ] %->% ln_sw_r_mu'
+mu_pe_m <- i_m$irf$'epsilon[ ffunds ] %->% ln_sw_m_mu'
+mu_pe_w <- i_w$irf$'epsilon[ ffunds ] %->% ln_sw_w_mu'
+
+
+#confidence intervals
+#have to grab each bootstrapped estimate 1 by 1
+#done with function in function_useful
+mu_bs_ci_gdp_r <- be_extra(bb_r, 4, 5, n_boot, n_ah, 5, 90)
+mu_lb_r <- mu_bs_ci_gdp_r[, 1]
+mu_ub_r <- mu_bs_ci_gdp_r[, 2]
+
+mu_bs_ci_gdp_m <- be_extra(bb_m, 4, 5, n_boot, n_ah, 5, 90)
+mu_lb_m <- mu_bs_ci_gdp_m[, 1]
+mu_ub_m <- mu_bs_ci_gdp_m[, 2]
+
+mu_bs_ci_gdp_w <- be_extra(bb_w, 4, 5, n_boot, n_ah, 5, 90)
+mu_lb_w <- mu_bs_ci_gdp_w[, 1]
+mu_ub_w <- mu_bs_ci_gdp_w[, 2]
+
+tfp_lb <- min(c(mu_lb_r, mu_lb_m, mu_lb_w))
+tfp_ub <- max(c(mu_ub_r, mu_ub_m, mu_ub_w))
+
+
+year_max <- 16
+
+# Plot the IRFs with 90% confidence intervals
+
+#retail
+mu_irf_plot_r <- ggplot() +
+  geom_ribbon(aes(x = 1:n_ah,
+                  ymin = mu_lb_r, ymax = mu_ub_r,
+                  fill = "90% Confidence Interval (Bootstrapped)"),
+              alpha = 0.5) +
+  geom_line(aes(x = 1:n_ah, y = mu_pe_r, color = "Point Estimate")) +
+  scale_x_continuous(breaks = 1:n_ah, labels = 0: (n_ah - 1),
+                     limits = c(1, year_max)) +
+  scale_y_continuous(labels = percent, limits = c(tfp_lb, tfp_ub)) +
+  labs(x = "Year", y = "Retail Markup",
+       title = "Monetary Policy Shock") +
+  scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
+  scale_fill_manual(name = "",
+                    values = c(
+                               "90% Confidence Interval (Bootstrapped)"
+                               = "grey")) +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  geom_hline(yintercept = 0, linetype = "dashed")
+
+mu_irf_plot_r
+
+#manuf
+
+mu_irf_plot_m <- ggplot() +
+  geom_ribbon(aes(x = 1:n_ah,
+                  ymin = mu_lb_m, ymax = mu_ub_m,
+                  fill = "90% Confidence Interval (Bootstrapped)"),
+              alpha = 0.5) +
+  geom_line(aes(x = 1:n_ah, y = mu_pe_m, color = "Point Estimate")) +
+  scale_x_continuous(breaks = 1:n_ah, labels = 0: (n_ah - 1),
+                     limits = c(1, year_max)) +
+  scale_y_continuous(labels = percent, limits = c(tfp_lb, tfp_ub)) +
+  labs(x = "Year", y = "Manufacturing Markup",
+       title = "Monetary Policy Shock") +
+  scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
+  scale_fill_manual(name = "",
+                    values = c(
+                               "90% Confidence Interval (Bootstrapped)"
+                               = "grey")) +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  geom_hline(yintercept = 0, linetype = "dashed")
+
+mu_irf_plot_m
+
+#whole sale
+mu_irf_plot_w <- ggplot() +
+  geom_ribbon(aes(x = 1:n_ah,
+                  ymin = mu_lb_w, ymax = mu_ub_w,
+                  fill = "90% Confidence Interval (Bootstrapped)"),
+              alpha = 0.5) +
+  geom_line(aes(x = 1:n_ah, y = mu_pe_w, color = "Point Estimate")) +
+  scale_x_continuous(breaks = 1:n_ah, labels = 0: (n_ah - 1),
+                     limits = c(1, year_max)) +
+  scale_y_continuous(labels = percent, limits = c(tfp_lb, tfp_ub)) +
+  labs(x = "Year", y = "Whole Sale Markup",
+       title = "Monetary Policy Shock") +
+  scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
+  scale_fill_manual(name = "",
+                    values = c(
+                               "90% Confidence Interval (Bootstrapped)"
+                               = "grey")) +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  geom_hline(yintercept = 0, linetype = "dashed")
+mu_irf_plot_w
+
+setwd(dircs[3])
+
+#
+pdf("IRF_mp_indu.pdf", width = 20, height = 10)
+grid.arrange(mu_irf_plot_r, mu_irf_plot_m,mu_irf_plot_w,
+             ncol = 3)
+dev.off()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#####################################################
+#####################################################
+#######    OLD
+#####################################################
+#####################################################
+
+
+
+#####################################################
+#####################################################
+#######    Elasticities
+#####################################################
+#####################################################
+
+mu_list <- c("ln_aMu", "ln_swMu",
+             "ln_cwMu", "sw_m_mu", "sw_r_mu")
+
+#set empty matrix to store results
+elasts <- data.frame(matrix(nrow = 3, ncol = length(mu_list)))
+names(elasts) <- mu_list
+rownames(elasts) <- c("TFP", "MP", "GS")
+
+i = "ln_aMu"
+
+eval(parse(text = paste0("elasts$", i)))
+
+#######
+# 1.1 TFP
+for (i in mu_list) {
+  #TFP
+  # set variable order
+  TFPvars <- c("dtfp", "ln_gdp", "ln_gdpdf", "tbill", i)
+  TFP_ts<- ts(ag_data[, TFPvars],
+              start = min(ag_data$year),
+              frequency = 1, end = 2017)
+  # Estimate VAR model
+  TFPvar <- VAR(TFP_ts, type = "both", p = 2)
+  # Impose Cholesky Decomposition
+  TFPx1 <- id.chol(TFPvar)
+  # irs
+  # Impulse response (no bs)
+  i_TFP <- irf(TFPx1, n.ahead = 16)
+  # collect elasticity 
+  #area under IRF of gdp (first 5 years)
+  tfp_gdp_ce <- sum(i_TFP$irf$'epsilon[ dtfp ] %->% ln_gdp'[1:6])
+  #area under IRF of mu (first 5 years)
+  shock_name <- paste("'","epsilon[ dtfp ] %->% " , i, "'", sep = "")
+  ir_mu <- eval(parse(text = paste0("i_TFP$irf$", shock_name)))
+  tfp_mu_ce <- sum(ir_mu[1:6])
+  elas <- tfp_mu_ce / tfp_gdp_ce
+  eval(parse(text = paste0("elasts$", i,"[1] <- elas")))
+  }
+
+#######
+# 1.2 MP
+
+#need to add ppi and ffunds to data
+mp_data <- merge(ag_data, ppi, by = "year")
+mp_data <- merge(mp_data, fedfunds, by = "year")
+
+#log ppi
+mp_data$ln_ppi <- log(mp_data$ppi)
+
+#switch sign so positive fed funds shock is expansionary
+mp_data$ffunds <- -mp_data$ffunds
+
+
+for (i in mu_list) {
+  #MP
+  # set variable order
+  MPvars <- c("ln_gdp", "ln_gdpdf", "ln_ppi", "ffunds", i)
+  MP_ts<- ts(mp_data[, MPvars], start = min(ag_data$year),
+              end = 2007, frequency = 1)
+  # Estimate VAR model
+  MPvar <- VAR(MP_ts, type = "both", p = 2)
+  # Impose Cholesky Decomposition
+  MPx1 <- id.chol(MPvar)
+  # irs
+  # Impulse response (no bs)
+  i_MP <- irf(MPx1, n.ahead = 16)
+  # collect elasticity 
+  #area under IRF of gdp (first 5 years)
+  tfp_gdp_ce <- sum(i_MP$irf$'epsilon[ ffunds ] %->% ln_gdp'[1:6])
+  #area under IRF of mu (first 5 years)
+  shock_name <- paste("'","epsilon[ ffunds ] %->% " , i, "'", sep = "")
+  ir_mu <- eval(parse(text = paste0("i_MP$irf$", shock_name)))
+  tfp_mu_ce <- sum(ir_mu[1:6])
+  elas <- tfp_mu_ce / tfp_gdp_ce
+  eval(parse(text = paste0("elasts$", i,"[2] <- elas")))
+  }
+
+
+### gov spending
+#add needed data
+gs_data_a <- merge(ag_data, pop, by = "year")
+gs_data_a <- merge(gs_data_a, gs_gr, by = "year")
+gs_data_a <- merge(gs_data_a, infl, by = "year")
+gs_data_a <- merge(gs_data_a, gvgr_exp, by = "year")
+gs_data_a <- merge(gs_data_a, fedexp, by = "year")
+gs_data_a <- merge(gs_data_a, rec, by = "year")
+
+## gs_shock is the gap between expected and realized gr in fed spending
+# real fed spending growth rate
+gs_data_a$rgsgr <- gs_data_a$gs_gr - gs_data_a$infl
+#gs suprise
+gs_data_a$gs_shock <- gs_data_a$rgsgr - gs_data_a$gvgr_exp
+# fed gov spending as a % of gdp
+gs_data_a$lngexp <- log(gs_data_a$fedexp)
+
+for (i in mu_list) {
+  #GS
+  # set variable order
+  GSvars <- c("gs_shock", "ln_gdp", "ln_gdpdf", "tbill", i)
+  GS_ts<- ts(gs_data_a[, GSvars], start = min(gs_data_a$year),
+              end = 2017, frequency = 1)
+  # Estimate VAR model
+  GSvar <- VAR(GS_ts, type = "both")
+  # Impose Cholesky Decomposition
+  GSx1 <- id.chol(GSvar)
+  # irs
+  # Impulse response (no bs)
+  i_GS <- irf(GSx1, n.ahead = 16)
+  plot(i_GS, scales = 'free_y')
+  # collect elasticity 
+  #area under IRF of gdp (first 5 years)
+  tfp_gdp_ce <- sum(i_GS$irf$'epsilon[ gs_shock ] %->% ln_gdp'[1:6])
+  #area under IRF of mu (first 5 years)
+  shock_name <- paste("'","epsilon[ gs_shock ] %->% " , i, "'", sep = "")
+  ir_mu <- eval(parse(text = paste0("i_GS$irf$", shock_name)))
+  tfp_mu_ce <- sum(ir_mu[1:6])
+  elas <- tfp_mu_ce / tfp_gdp_ce
+  eval(parse(text = paste0("elasts$", i,"[3] <- elas")))
+  }
+
+elasts[1:2,]
+
+
+i = "ln_medMU"
+
+#####################################################
+#####################################################
+#######    2 TFP SVAR
+#####################################################
+#####################################################
+
+
+rec_c_order_sw <- c("dtfp", "ln_gdp", "ln_gdpdf", "tbill", "ln_swMu")
+
+ts_data_sw <- ts(ag_data[, c(rec_c_order_sw)],
+                 start = min(ag_data$year),
+                 frequency = 1, end = 2018)
+
+
+# Bootstrap
+n_ah <- 16
+
+# Estimate VAR model
+var_sw <- VAR(ts_data_sw, type = "both", p = 2)
+# Impose Cholesky Decomposition
+x1_sw <- id.chol(var_sw)
+# Impulse response (no bs)
+i_sw <- irf(x1_sw, n.ahead = n_ah)
+plot(i_sw, scales = 'free_y')
+
+
 
 # Bootstrap
 n_boot <- 1000
@@ -336,13 +1200,15 @@ mu_pe_sw <- i_sw$irf$'epsilon[ dtfp ] %->% ln_swMu'
 #have to grab each bootstrapped estimate 1 by 1
 #done with function in function_useful
 tfp_bs_ci_gdp <- be_extra(bb_sw, 1, 2, n_boot, n_ah, 5, 90)
-tfp_gdp_lb <- tfp_bs_ci_gdp[, 2]
-tfp_gdp_ub <- tfp_bs_ci_gdp[, 1]
+tfp_gdp_lb <- tfp_bs_ci_gdp[, 1]
+tfp_gdp_ub <- tfp_bs_ci_gdp[, 2]
 
 mu_bs_ci_gdp <- be_extra(bb_sw, 1, 5, n_boot, n_ah, 5, 90)
-mu_gdp_lb <- mu_bs_ci_gdp[, 2]
-mu_gdp_ub <- mu_bs_ci_gdp[, 1]
+mu_gdp_lb <- mu_bs_ci_gdp[, 1]
+mu_gdp_ub <- mu_bs_ci_gdp[, 2]
 
+tfp_lb <- min(c(tfp_gdp_lb, mu_gdp_lb))
+tfp_ub <- max(c(tfp_gdp_ub, mu_gdp_ub))
 
 
 year_max <- 16
@@ -356,7 +1222,7 @@ gdp_irf_plot_sw <- ggplot() +
   geom_line(aes(x = 1:n_ah, y = gdp_pe_sw, color = "Point Estimate")) +
   scale_x_continuous(breaks = 1:n_ah, labels = 0: (n_ah - 1),
                      limits = c(1, year_max)) +
-  scale_y_continuous(labels = percent, limits = c(-.02, .02)) +
+  scale_y_continuous(labels = percent, limits = c(tfp_lb, tfp_ub)) +
   labs(x = "Year", y = "Real GDP Per Capita",
        title = "TFP Shock") +
   scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
@@ -364,7 +1230,6 @@ gdp_irf_plot_sw <- ggplot() +
                     values = c(
                                "90% Confidence Interval (Bootstrapped)"
                                = "grey")) +
-  theme_minimal() +
   theme(text = element_text(size = 20), legend.position = "bottom") +
   geom_hline(yintercept = 0, linetype = "dashed")
 gdp_irf_plot_sw
@@ -379,14 +1244,13 @@ mu_irf_plot_sw <- ggplot() +
   geom_line(aes(x = 1:n_ah, y = mu_pe_sw, color = "Point Estimate")) +
   scale_x_continuous(breaks = 1:n_ah, labels = 0:(n_ah - 1),
                      limits = c(1, year_max)) +
-  scale_y_continuous(labels = percent, limits = c(-.02, .02)) +
+  scale_y_continuous(labels = percent, limits = c(tfp_lb, tfp_ub)) +
   labs(x = "Year", y = "Sales Weighted Markup",
        title = "TFP Shock") +
   scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
   scale_fill_manual(name = "",
                     values = c("90% Confidence Interval (Bootstrapped)"
                                = "grey")) +
-  theme_minimal() +
   theme(text = element_text(size = 20), legend.position = "bottom") +
   geom_hline(yintercept = 0, linetype = "dashed")
 mu_irf_plot_sw
@@ -425,7 +1289,7 @@ tfp_elas
 #####################################################
 #####################################################
 
-rec_order_its <- c("dtfp_I", "ln_gdp", "ln_gdpdf", "tbill", "ln_swMu")
+rec_order_its <- c("dtfp_I", "ln_gdp", "ln_gdpdf", "tbill", "ln_aMu")
 
 ts_data_its <- ts(ag_data[, rec_order_its],
                   start = min(ag_data$year),
@@ -436,7 +1300,7 @@ ts_data_its <- ts(ag_data[, rec_order_its],
 n_ah <- 16
 
 # Estimate VAR model
-var_its <- VAR(ts_data_its)
+var_its <- VAR(ts_data_its, trend = "both", p = 2)
 # Impose Cholesky Decomposition
 x1_its <- id.chol(var_its)
 # Impulse response (no bs)
@@ -444,7 +1308,7 @@ i_its <- irf(x1_its, n.ahead = n_ah)
 plot(i_its, scales = 'free_y')
 
 # Bootstrap
-n_boot <- 10000
+n_boot <- 1000
 set.seed(123)
 bb_its <- mb.boot(x1_its, n.ahead = n_ah, nboot = n_boot)
 plot(bb_its, lowerq = .05, upperq = .95)
@@ -578,11 +1442,11 @@ mp_data$ffunds <- -mp_data$ffunds
 mp_order <- c("ln_gdp", "ln_gdpdf", "ln_ppi", "ffunds", "ln_swMu")
 
 mp_data <- ts(mp_data[, mp_order], start = min(ag_data$year),
-              end = 2007, frequency = 1)
+              end = 2008, frequency = 1)
 
 
 # Estimate VAR model
-var_mp <- VAR(mp_data)
+var_mp <- VAR(mp_data, type = "both", p = 2)
 
 # Impose Cholesky Decomposition
 x1mp <- id.chol(var_mp)
@@ -595,7 +1459,7 @@ plot(i1mp, scales = 'free_y')
 
 # Bootstrap
 n_boot <- 1000
-set.seed(123)
+set.seed(1234)
 bbmp <- mb.boot(x1mp, n.ahead = n_ah, nboot = n_boot)
 summary(bbmp)
 #all plot
@@ -621,6 +1485,9 @@ mu_mp_ub <- mu_bs_ci_mp[, 2]
 
 year_max <- 16
 
+mpllim <- min(c(gdp_mp_lb, mu_mp_lb))
+mpulim <- max(c(gdp_gdp_ub, mu_mp_ub))
+
 # Plot the IRFs with 90% confidence intervals
 gdp_irf_plot_mp <- ggplot() +
   geom_ribbon(aes(x = 1:n_ah,
@@ -630,7 +1497,7 @@ gdp_irf_plot_mp <- ggplot() +
   geom_line(aes(x = 1:n_ah, y = gdp_pe_mp, color = "Point Estimate")) +
   scale_x_continuous(breaks = 1:n_ah, labels = 0: (n_ah - 1),
                      limits = c(1, year_max)) +
-  scale_y_continuous(labels = percent, limits = c(-.01, .0325)) +
+  scale_y_continuous(labels = percent, limits = c(mpllim, mpulim)) +
   labs(x = "Year", y = "Real GDP Per Capita",
        title = "Monetary Policy Shock") +
   scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
@@ -638,7 +1505,6 @@ gdp_irf_plot_mp <- ggplot() +
                     values = c(
                                "90% Confidence Interval (Bootstrapped)"
                                = "grey")) +
-  theme_minimal() +
   theme(text = element_text(size = 20), legend.position = "bottom") +
   geom_hline(yintercept = 0, linetype = "dashed")
 gdp_irf_plot_mp
@@ -653,14 +1519,13 @@ mu_irf_plot_mp <- ggplot() +
   geom_line(aes(x = 1:n_ah, y = mu_pe_mp, color = "Point Estimate")) +
   scale_x_continuous(breaks = 1:n_ah, labels = 0:(n_ah - 1),
                      limits = c(1, year_max)) +
-  scale_y_continuous(labels = percent, limits = c(-.01, .0325)) +
+  scale_y_continuous(labels = percent, limits =  c(mpllim, mpulim)) +
   labs(x = "Year", y = "Sales Weighted Markup",
        title = "Monetary Policy Shock") +
   scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
   scale_fill_manual(name = "",
                     values = c("90% Confidence Interval (Bootstrapped)"
                                = "grey")) +
-  theme_minimal() +
   theme(text = element_text(size = 20), legend.position = "bottom") +
   geom_hline(yintercept = 0, linetype = "dashed")
 mu_irf_plot_mp
@@ -678,9 +1543,9 @@ dev.off()
 ############## 3.2 generate ratio of area under IRF to area under IRF of gdp
 
 #area under IRF of gdp (first 5 years)
-mp_gdp_ce <- sum(i1mp$irf$'epsilon[ ffunds ] %->% ln_gdp'[1:5])
+mp_gdp_ce <- sum(i1mp$irf$'epsilon[ ffunds ] %->% ln_gdp'[1:6])
 #area under IRF of mu (first 5 years)
-mp_mu_ce <- sum(i1mp$irf$'epsilon[ ffunds ] %->% ln_swMu'[1:5])
+mp_mu_ce <- sum(i1mp$irf$'epsilon[ ffunds ] %->% ln_swMu'[1:6])
 mp_elas <- mp_mu_ce / mp_gdp_ce
 mp_elas
 
@@ -705,21 +1570,23 @@ gs_data_a <- merge(gs_data_a, rec, by = "year")
 
 ## gs_shock is the gap between expected and realized gr in fed spending
 # real fed spending growth rate
-gs_data_a$rgsgr <- gs_data_a$gs_gr - gs_data_a$infl
+gs_data_a$rgsgr <- gs_data_a$gs_gr
 #gs suprise
 gs_data_a$gs_shock <- gs_data_a$rgsgr - gs_data_a$gvgr_exp
 # fed gov spending as a % of gdp
 gs_data_a$lngexp <- log(gs_data_a$fedexp)
 
+gs_data_a <- merge(ag_data, mnews1, by = "year")
 
-gs_order <- c("gs_shock", "ln_gdp", "ln_gdpdf", "tbill", "ln_swMu")
+
+gs_order <- c("gs_shock", "ln_exp", "ln_gdp", "ln_gdpdf", "tbill", "ln_swMu")
 
 gs_data <- ts(gs_data_a[, gs_order], start = min(gs_data_a$year),
-              end = 2018, frequency = 1)
+              end = 2017, frequency = 1)
 
 
 # Estimate VAR model
-var_gs <- VAR(gs_data)
+var_gs <- VAR(gs_data, type = "both", p = 2)
 
 # Impose Cholesky Decomposition
 x1gs <- id.chol(var_gs)
@@ -731,9 +1598,9 @@ i1gs <- irf(x1gs, n.ahead = n_ah)
 plot(i1gs, scales = 'free_y')
 
 # Bootstrap
-n_boot <- 10000
+n_boot <- 1000
 set.seed(123)
-bbgs <- mb.boot(x1gs, n.ahead = n_ah, nboot = n_boot)
+bbgs <- mb.boot(x1gs, , design = "fixed", n.ahead = n_ah, nboot = n_boot)
 #all plot
 plot(bbgs, lowerq = .05, upperq = .95)
 
@@ -747,13 +1614,16 @@ mu_pe_gs <- i1gs$irf$'epsilon[ gs_shock ] %->% ln_swMu'
 #have to grab each bootstrapped estimate 1 by 1
 #done with function in function_useful
 #gdp is 1, mu is 5, shock is ffunds [4]
-gdp_bs_ci_gs <- be_extra(bbgs, 1, 2, n_boot, n_ah, length(gs_order), 90)
+gdp_bs_ci_gs <- be_extra(bbgs, 1, 2, n_boot, n_ah, length(gs_order), 60)
 gdp_gs_lb <- gdp_bs_ci_gs[, 1]
 gdp_gs_ub <- gdp_bs_ci_gs[, 2]
 
-mu_bs_ci_gs <- be_extra(bbgs, 1, 5, n_boot, n_ah, length(gs_order), 90)
+mu_bs_ci_gs <- be_extra(bbgs, 1, 5, n_boot, n_ah, length(gs_order), 60)
 mu_gs_lb <- mu_bs_ci_gs[, 1]
 mu_gs_ub <- mu_bs_ci_gs[, 2]
+
+gs_lb <- min(c(gdp_gs_lb, mu_gs_lb))
+gs_ub <- max(c(gdp_gs_ub, mu_gs_ub))
 
 year_max <- 16
 
@@ -766,7 +1636,7 @@ gdp_irf_plot_gs <- ggplot() +
   geom_line(aes(x = 1:n_ah, y = gdp_pe_gs, color = "Point Estimate")) +
   scale_x_continuous(breaks = 1:n_ah, labels = 0: (n_ah - 1),
                      limits = c(1, year_max)) +
-  scale_y_continuous(labels = percent, limits = c(-.015, .0275)) +
+  scale_y_continuous(labels = percent, limits = c(gs_lb, gs_ub)) +
   labs(x = "Year", y = "Real GDP Per Capita",
        title = "Governent Spending Shock") +
   scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
@@ -774,7 +1644,6 @@ gdp_irf_plot_gs <- ggplot() +
                     values = c(
                                "90% Confidence Interval (Bootstrapped)"
                                = "grey")) +
-  theme_minimal() +
   theme(text = element_text(size = 20), legend.position = "bottom") +
   geom_hline(yintercept = 0, linetype = "dashed")
 gdp_irf_plot_gs
@@ -789,14 +1658,13 @@ mu_irf_plot_gs <- ggplot() +
   geom_line(aes(x = 1:n_ah, y = mu_pe_gs, color = "Point Estimate")) +
   scale_x_continuous(breaks = 1:n_ah, labels = 0:(n_ah - 1),
                      limits = c(1, year_max)) +
-  scale_y_continuous(labels = percent, limits = c(-.015, .0275)) +
+  scale_y_continuous(labels = percent, limits = c(gs_lb, gs_ub)) +
   labs(x = "Year", y = "Sales Weighted Markup",
        title = "Governent Spending Shock") +
   scale_color_manual(name = "", values = c("Point Estimate" = "blue")) +
   scale_fill_manual(name = "",
                     values = c("90% Confidence Interval (Bootstrapped)"
                                = "grey")) +
-  theme_minimal() +
   theme(text = element_text(size = 20), legend.position = "bottom") +
   geom_hline(yintercept = 0, linetype = "dashed")
 mu_irf_plot_gs
