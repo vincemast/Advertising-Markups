@@ -186,7 +186,7 @@ ipo_dec <- data %>%
 decmu <- ggplot(ipo_dec, aes(x = decade)) +
   geom_point(aes(y = mu_mean, color = "mu_mean"), size = 4) +
   geom_line(aes(y = mu_mean, color = "mu_mean"), size = .5) +
-  geom_point(aes(y = mu_mean_t, color = "mu_mean_t"), size = 4) +
+  geom_point(aes(y = mu_mean_t, color = "mu_mean_t"), size = 4, shape = 2) +
   geom_line(aes(y = mu_mean_t, color = "mu_mean_t"), size = .5) +
   labs(x = "Decade", y = "Average Markup", color = " ") +
   scale_color_manual(values = c("mu_mean" = "blue", "mu_mean_t" = "red"),
@@ -225,7 +225,7 @@ decmusw <- ggplot(ipo_dec, aes(x = decade)) +
 decw <- ggplot(ipo_dec, aes(x = decade)) +
   geom_point(aes(y = avg_w, color = "ipo"), size = 4) +
   geom_line(aes(y = avg_w, color = "ipo"), size = .5) +
-  geom_point(aes(y = avg_w_t, color = "else"), size = 4) +
+  geom_point(aes(y = avg_w_t, color = "else"), size = 4, shape = 2) +
   geom_line(aes(y = avg_w_t, color = "else"), size = .5) +
   labs(x = "Decade", y = "Average Market Share (%)", color = " ") +
   scale_color_manual(values = c("ipo" = "blue", "else" = "red"),
@@ -447,19 +447,57 @@ twfe_plot <- ggplot(twfe_res, aes(x = age)) +
                 width = 0.1) +
   geom_hline(aes(yintercept = ref, color = "Mean"),
              linetype = "dotted", size = 1) +
-  labs(x = "Years Since IPO", y = "Markup Ratio (p/mc-1)",
+  labs(x = "Years Since IPO", y = "Markup (p/mc-1)",
        color = " ") +
-  scale_color_manual(values = c("Coefficient" = "blue", "Mean" = "red", "eb" = "black"),
-                     labels = c("Coefficient" = "Fitted Value", "Mean" = "Reference",
-                                 "eb" = "95% confidence interval")) +
+  scale_color_manual(values = c("Coefficient" = "blue", "Mean" = "red",
+                                "eb" = "black"),
+                     labels = c("Coefficient" = "Fitted Value",
+                                "Mean" = "Reference",
+                                "eb" = "95% confidence interval")) +
+  scale_linetype_manual("",
+                     values = c("Coefficient" = "solid", "Mean" = "dotted",
+                                "eb" = "solid")) +
   scale_x_continuous(breaks = c(0:19, 20), labels = c(0:19, "20+")) +
   coord_cartesian(ylim = c(0, max_upper_bound)) +
   theme(text = element_text(size = 20), legend.position = "bottom")
 
 print(twfe_plot)
 
+
+twfe_plot <- ggplot(twfe_res, aes(x = age)) +
+  geom_point(aes(y = coef_r, color = "Fitted Value"), size = 4) +
+  geom_line(aes(y = coef_r, color = "Fitted Value"), size = .5) +
+  geom_errorbar(aes(ymin = coef_r - 1.96 * se,
+                    ymax = coef_r + 1.96 * se,
+                    color = "95% confidence interval"),
+                width = 0.1) +
+  geom_hline(aes(yintercept = ref, color = "Reference"),
+             linetype = "dotted", size = 1) +
+  labs(x = "Years Since IPO", y = "Markup (p/mc-1)",
+       color = " ") +
+  scale_color_manual(values = c("Fitted Value" = "blue",
+                                "Reference" = "red",
+                                "95% confidence interval" = "black")) +
+  scale_shape_manual(values = c("Fitted Value" = 16,
+                                "95% confidence interval" = NA,
+                                "Reference" = NA)) +
+  scale_linetype_manual(values = c("Fitted Value" = "solid",
+                                   "Reference" = "dotted",
+                                   "95% confidence interval" = "solid")) +
+  scale_x_continuous(breaks = c(0:19, 20), labels = c(0:19, "20+")) +
+  coord_cartesian(ylim = c(0, max_upper_bound)) +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  guides(color = guide_legend(override.aes = list(shape = c(NA, 16, NA),
+         linetype = c("solid", "solid", "dotted"))))
+
+print(twfe_plot)
+
+
 #save plot
 save_f(twfe_plot, "twfe_plot.pdf", dircs, 12, 8, TRUE)
+
+#save plot
+save_f(twfe_plot, "twfe_plot_wide.pdf", dircs, 16, 9, TRUE)
 
 ################################################################
 ############# market share
@@ -508,21 +546,36 @@ max_upper_bound_ms <- max(twfe_res_ms$upper_bound)
 # Plot event study with 20+ as last
 
 twfe_plot_ms <- ggplot(twfe_res_ms, aes(x = age)) +
-  geom_point(aes(y = coef_r, color = "Coefficient"), size = 4) +
-  geom_line(aes(y = coef_r, color = "Coefficient"), size = .5) +
+  geom_point(aes(y = coef_r, color = "Fitted Value"), size = 4) +
+  geom_line(aes(y = coef_r, color = "Fitted Value"), size = .5) +
   geom_errorbar(aes(ymin = coef_r - 1.96 * se,
-                    ymax = coef_r + 1.96 * se, color = "eb"),
+                    ymax = coef_r + 1.96 * se,
+                    color = "95% confidence interval"),
                 width = 0.1) +
-  geom_hline(aes(yintercept = ref_ms, color = "Mean"),
+  geom_hline(aes(yintercept = ref_ms, color = "Reference"),
              linetype = "dotted", size = 1) +
   labs(x = "Years Since IPO", y = "Market Share (%)",
        color = " ") +
-  scale_color_manual(values = c("Coefficient" = "blue", "Mean" = "red", "eb" = "black"),
-                     labels = c("Coefficient" = "Fitted Value", "Mean" = "Reference",
-                                 "eb" = "95% confidence interval")) +
+  scale_color_manual(values = c("Fitted Value" = "blue",
+                                "Reference" = "red",
+                                "95% confidence interval" = "black")) +
+  scale_shape_manual(values = c("Fitted Value" = 16,
+                                "95% confidence interval" = NA,
+                                "Reference" = NA)) +
+  scale_linetype_manual(values = c("Fitted Value" = "solid",
+                                   "Reference" = "dotted",
+                                   "95% confidence interval" = "solid")) +
   scale_x_continuous(breaks = c(0:19, 20), labels = c(0:19, "20+")) +
   coord_cartesian(ylim = c(0, max_upper_bound_ms)) +
-  theme(text = element_text(size = 20), legend.position = "bottom")
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  guides(color = guide_legend(override.aes = list(shape = c(NA, 16, NA),
+         linetype = c("solid", "solid", "dotted"))))
+
+
+
+
+
+
 
 
 save_f(twfe_plot_ms, "twfe_plot_ms.pdf", dircs, 12, 8, TRUE)
@@ -665,6 +718,11 @@ grid.arrange(marks10, w10,
              ncol = 2)
 dev.off()
 
+pdf("ys_ipo_wide.pdf", width = 19, height = 9)
+grid.arrange(marks10, w10,
+             ncol = 2)
+dev.off()
+
 
 
 pdf("muagedec.pdf", width = 40, height = 60)
@@ -677,6 +735,17 @@ grid.arrange(
   ncol = 4)
 dev.off()
 
+
+
+pdf("muagedec_wide.pdf", width = 48, height = 27)
+grid.arrange(
+  mu_mean_plots[[1]], mu_mean_plots[[2]], mu_mean_plots[[3]], mu_mean_plots[[4]],
+  mu_mean_plots[[5]], mu_mean_plots[[6]], mu_mean_plots[[7]], mu_mean_plots[[8]],
+  mu_mean_plots[[9]], mu_mean_plots[[10]], mu_mean_plots[[11]], mu_mean_plots[[12]],
+   mu_mean_plots[[14]], mu_mean_plots[[15]], mu_mean_plots[[16]],
+  mu_mean_plots[[17]], mu_mean_plots[[18]], mu_mean_plots[[19]],
+  ncol = 6)
+dev.off()
 
 
 

@@ -128,7 +128,7 @@ avg <- avg[avg$fyear >= 1980, ]
 #     2: Plot
 ############################################################
 ############################################################
-
+view(faang)
 
 # Generate a color palette using scales
 color_palette <- hue_pal()(length(unique(faang$conm)))
@@ -164,3 +164,62 @@ print(faang_plot)
 
 
 save_f(faang_plot, "faang.pdf", dircs, 16, 12, TRUE)
+
+save_f(faang_plot, "faang_wide.pdf", dircs, 16, 9, TRUE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#sort companies alphabetically
+faang <- faang[order(faang$conm), ]
+
+# Generate a color palette using scales
+color_palette <- hue_pal()(length(unique(faang$conm)))
+shape_palette <- seq(0, length(unique(faang$conm)) - 1)
+
+# Plot markup by firm over time with names from conm
+faang_plot <- ggplot(faang, aes(x = fyear, y = MU_1)) +
+  geom_line(aes(color = conm, group = conm), size = 1) +
+  geom_point(aes(color = conm, shape = conm), size = 3) +
+  geom_line(data = avg, aes(x = fyear, y = avg_markup,
+                            linetype = "Full Sample Average"),
+            color = "black", size = 1) +
+  geom_line(data = avg, aes(x = fyear, y = tech_avg,
+                            linetype = "Sector Average"),
+            color = "grey", size = 1.5) +
+  labs(x = "Year",
+       y = "Markup ([p-mc]/mc)") +
+  labs(color = "", shape = "", linetype = "") +
+  scale_color_manual(name = "", 
+                     values = c(setNames(color_palette, unique(faang$conm)),
+                                "Full Sample Average" = "black",
+                                "Sector Average" = "grey")) +
+  scale_shape_manual(name = "",
+                     values = setNames(shape_palette, unique(faang$conm))) +
+  scale_linetype_manual(name = "",
+                        values = c("Full Sample Average" = "dashed",
+                                   "Sector Average" = "dotted")) +
+  theme(text = element_text(size = 20), legend.position = "bottom") +
+  guides(color = guide_legend(override.aes = list(shape = shape_palette,
+                                                  linetype = "solid")),
+         shape = guide_legend(override.aes = list(color = color_palette)),
+         linetype = guide_legend(override.aes = list(color = c("black",
+                                                               "grey"))))
+
+
+# Print the plot for debugging
+print(faang_plot)
+
+save_f(faang_plot, "faang.pdf", dircs, 16, 12, TRUE)
+
+save_f(faang_plot, "faang_wide.pdf", dircs, 16, 9, TRUE)

@@ -109,6 +109,9 @@ data_ln <- data %>%
     )
 
 
+#drop any NAs in MU, MU_deu, soc
+data_ln <- data_ln %>% drop_na(logMu, logMu_deu, logsoc)
+
 model_1 <- lm(logMu_deu ~ logsoc, data = data_ln)
 model_2 <- lm(logMu_deu ~ logtheta, data = data_ln)
 model_4 <- lm(logMu_deu ~ logresid, data = data_ln)

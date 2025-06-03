@@ -556,12 +556,12 @@ mp_data$ffunds <- -mp_data$ffunds
 
 mp_order <- c("ln_gdp", "ln_gdpdf", "ln_ppi", "ffunds", "ln_swMu")
 
-mp_data <- ts(mp_data[, mp_order], start = min(ag_data$year),
+mp_data_t <- ts(mp_data[, mp_order], start = min(ag_data$year),
               end = 2008, frequency = 1)
 
 
 # Estimate VAR model
-var_mp <- VAR(mp_data, type = "both", p = 2)
+var_mp <- VAR(mp_data_t, type = "both", p = 2)
 
 # Impose Cholesky Decomposition
 x1mp <- id.chol(var_mp)
@@ -821,7 +821,12 @@ grid.arrange(mu_irf_plot_r, mu_irf_plot_m,mu_irf_plot_w,
 dev.off()
 
 
-
+setwd(dircs[3])
+#
+pdf("IRF_tfp_indu_wide.pdf", width = 30, height = 7.5)
+grid.arrange(mu_irf_plot_r, mu_irf_plot_m,mu_irf_plot_w,
+             ncol = 3)
+dev.off()
 
 
 
@@ -986,6 +991,11 @@ grid.arrange(mu_irf_plot_r, mu_irf_plot_m,mu_irf_plot_w,
              ncol = 3)
 dev.off()
 
+
+pdf("IRF_mp_indu_wide.pdf", width = 30, height = 7.5)
+grid.arrange(mu_irf_plot_r, mu_irf_plot_m,mu_irf_plot_w,
+             ncol = 3)
+dev.off()
 
 
 

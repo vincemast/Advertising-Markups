@@ -172,15 +172,23 @@ agg_mu_plot <- function(fullsample, subsample, weight) {
 
   agg_mu_plot <-  ggplot() +
     geom_line(data = agg_mu_all,
-              aes(y = Ag_MU - 1, x = year, color = "Full Sample")) + # nolint
+              aes(y = Ag_MU - 1, x = year, color = "Full Sample",
+                  linetype = "Full Sample"), size = 1.5) + # nolint
     geom_line(data = agg_mu_insamp,
-              aes(y = Ag_MU - 1, x = year, color = "XAD Reported")) +
+              aes(y = Ag_MU - 1, x = year, color = "XAD Reported",
+                 linetype = "XAD Reported"), size = 1.5) +
     geom_line(data = agg_mu_rew,
-              aes(y = Ag_MU - 1, x = year, color = "Reweighted")) +
+              aes(y = Ag_MU - 1, x = year, color = "Reweighted",
+                  linetype = "Reweighted"), size = 1.5) +
     theme(text = element_text(size = 20)) +
+    scale_linetype_manual("",
+                          values = c("Full Sample" = "solid",
+                                     "XAD Reported" = "dashed",
+                                     "Reweighted" = "dotted")) +
     labs(x = "Year", y = tit) +
     theme(legend.position = "bottom") +
-    guides(color=guide_legend(title=NULL))
+  guides(colour = guide_legend(title = NULL, keywidth = 4, keyheight = 1),
+         linetype = guide_legend(title = NULL, keywidth = 4, keyheight = 1))
 
   print(agg_mu_plot)
 }
@@ -286,10 +294,7 @@ MU_advert_plot <- function(Sub_Panel_data, sub_panel_name, N){ # nolint
 
 }
 
-
-
-
-
+l_type == "Production Approach"
 
 l_advert_plot <- function(Sub_Panel_data, sub_panel_name, l_type, N){ # nolint
 
@@ -372,16 +377,20 @@ l_advert_plot <- function(Sub_Panel_data, sub_panel_name, l_type, N){ # nolint
 
 
   ifelse(N == 0, sze <- 4.5,
-         sze <- 2)
+         sze <- 2.5)
+
+  ifelse(N == 0, shd <- 1,
+         shd <- .35)
 
   plot <- ggplot() +
     geom_point(aes(samp$l, samp$Adr),
-               shape = 1, size = sze, stroke = .005) +
+               shape = 1, size = sze, stroke = .005, alpha = shd) +
     geom_line(aes(tempdata$l, predict(model_2),
-                  color = "OLS line (with intercept)"), size = 1.5) +
+                  color = "OLS line (with intercept)",
+              linetype = "OLS line (with intercept)"), size = 2) +
     geom_line(aes(tempdata$l, predict(model),
-                  color = "OLS line (No intercept)") ,
-              linetype = "dashed", size = 1.5) +
+                  color = "OLS line (No intercept)" ,
+              linetype = "OLS line (No intercept)"), size = 2) +
     ylim(lims[1,]) +
     xlim(lims[2,]) +
     ylab("Advertising Share of Revenue") +
@@ -391,7 +400,11 @@ l_advert_plot <- function(Sub_Panel_data, sub_panel_name, l_type, N){ # nolint
     theme(text = element_text(size = 25)) +
     theme(plot.title = element_text(hjust = 0.5),
           plot.caption = element_text(hjust = 0)) +
-    scale_color_manual(values = colors)
+    scale_color_manual(values = colors) +
+    scale_linetype_manual(values = c("OLS line (with intercept)" = "solid",
+                                     "OLS line (No intercept)" = "dashed")) +
+    guides(colour = guide_legend(title = NULL, keywidth = 4, keyheight = 1),
+           linetype = guide_legend(title = NULL, keywidth = 4, keyheight = 1))
 
   print(plot)
 
