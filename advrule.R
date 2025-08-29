@@ -170,16 +170,15 @@ save_f(plot_all_deu, "adv_scatter_deu.pdf", dircs, 6, 6, save_files)
 ############################################################
 ############################################################
 
+
 two_d_data <- invisible(industry_n_dig(Data, naics, 2))
 
 two_d_data <- mutate(two_d_data, Industry =industry.y) # nolint
 
-# Convert NA values in Industry variable to the string "NA"
+two_d_data <- two_d_data %>% filter( MU > 0, MU_deu > 0, 1-Adr>=0)
+
+# Convert NA values in Industry variable to the string ""NA""
 two_d_data$Industry[is.na(two_d_data$Industry)] <- "NA"
-
-two_d_data <- two_d_data %>% filter( MU > 0, MU_deu > 0)
-
-names(two_d_data)
 
 #basic regressions
 model_ca_1 <- feols(-log(1 - Adr) ~ log(MU),
@@ -290,12 +289,8 @@ print(l_table)
 ############################################################
 
 
-names(two_d_data)
-
-unique(two_d_data$Industry)
-
-
-
+# Convert NA values in Industry variable to the string ""NA""
+two_d_data$Industry[is.na(two_d_data$Industry)] <- "NA"
 
 #generate average level of things
 sectort_avg <- two_d_data %>%
@@ -370,7 +365,7 @@ etable(sectort_models, tex = TRUE)
 names(two_d_data)
 
 #generate average level of things
-sector_avg <- filtered_data %>%
+sector_avg <- two_d_data %>%
   group_by(Industry) %>%
   summarize(ln_mu = mean(MU, na.rm = TRUE),
             ln_deu = mean(log(MU_deu), na.rm = TRUE),
@@ -393,6 +388,7 @@ sec_deu1 <- feols(ln_xad ~ ln_deu,
 
 sec_deu2 <- feols(ln_xad ~ ln_deu-1,
                  data = sector_avg)
+                 
 
 # Create a named list of models
 sector_models <- list("Model 1 (CA)" = sec_ca1,
@@ -444,6 +440,131 @@ plot(sector_avg$ln_deu, sector_avg$ln_xad)
 plot(sector_avg$l_ca, sector_avg$xad)
 
 plot(sector_avg$l_deu, sector_avg$xad)
+
+
+
+
+
+
+
+############################################################
+############################################################
+# robust
+############################################################
+############################################################
+
+r1_ca_1 <- feols(Adr ~ l_ca,
+                 cluster = "GVKEY",
+                 data = two_d_data)
+
+
+
+r1_deu_1 <- feols(Adr ~ l_deu,
+                 cluster = "GVKEY",
+                 data = two_d_data)
+
+#industry fixed effects
+r1_ca_2 <- feols(Adr ~ l_ca | Industry,
+                 cluster = "GVKEY",
+                 data = two_d_data)
+
+r1_deu_2 <- feols(Adr ~ l_deu | Industry,
+                  cluster = "GVKEY",
+                  data = two_d_data)
+
+#time fixed effects
+r1_ca_3 <- feols(Adr ~ l_ca | time,
+                 cluster = "GVKEY",
+                 data = two_d_data)
+
+r1_deu_3 <- feols(Adr ~ l_deu | time,
+                  cluster = "GVKEY",
+                  data = two_d_data)
+
+#both fixed effects
+r1_ca_4 <- feols(Adr ~ l_ca | Industry + time,
+                 cluster = "GVKEY",
+                 data = two_d_data)
+
+r1_deu_4 <- feols(Adr ~ l_deu | Industry + time,
+                  cluster = "GVKEY",
+                  data = two_d_data)
+
+###########################################################
+
+
+
+
+# Create a named list of models
+robust_ms <- list("Model 1 (CA)" = r1_ca_1,
+                  "Model 1 (DEU)" = r1_deu_1,
+                  "Model 2 (CA)" = r1_ca_2,
+                  "Model 2 (DEU)" = r1_deu_2,
+                  "Model 3 (CA)" = r1_ca_3,
+                  "Model 3 (DEU)" = r1_deu_3,
+                  "Model 4 (CA)" = r1_ca_4,
+                  "Model 4 (DEU)" = r1_deu_4)
+
+# Create the summary table with the new names
+robust_table <- etable(robust_ms, dict = new_names)
+
+view(robust_table)
+
+
+
+# Print the LaTeX-formatted summary table
+print(etable(robust_ms, tex = TRUE))
+
+
+
+############################################################
+############################################################
+#6:  By Sector Scatter plots
+############################################################
+############################################################
+
+#generate average level of things
+sector_avg <- two_d_data %>%
+  group_by(Industry) %>%
+  summarize(agg_l_ca = mean(l_ca),
+            agg_l_deu = mean(l_deu),
+            Adr_adr = mean(Adr))
+
+head(sector_avg)
+
+#generate average level of things
+sector_avg <- two_d_data %>%
+  group_by(Industry) %>%
+  summarize(l_ca = mean(l_ca, na.rm = TRUE),
+            l_deu = mean(l_deu, na.rm = TRUE),
+            Adr = mean(Adr, na.rm = TRUE))
+
+head(sector_avg)
+
+
+plot_sec_ca <- l_advert_plot(sector_avg, "Sector Average",
+                             "Cost Accounting Approach", 0)
+
+plot_sec_deu <- l_advert_plot(sector_avg, "Sector Average",
+                              "Production Approach", 0)
+
+
+#save images
+save_f(plot_sec_ca, "adv_scatter_ca_sec.pdf", dircs, 12, 12, save_files)
+save_f(plot_sec_deu, "adv_scatter_deu_sec.pdf", dircs, 12, 12, save_files)
+
+
+
+
+
+
+
+
+############################################################
+############################################################
+#old
+############################################################
+############################################################
 
 
 ############################################################
@@ -567,24 +688,12 @@ l_table <- etable(models, dict = new_names, tex = TRUE)
 print(etable(models2, dict = new_names, tex = TRUE))
 
 
-
-
-
-
 ############################################################
 ############################################################
 # robust
 ############################################################
 ############################################################
 
-
-
-
-
-
-
-############################################################
-#old
 head(two_d_data)
 
 r1_ca_1 <- feols(Adr ~ l_ca,
@@ -608,24 +717,27 @@ r1_deu_2 <- feols(Adr ~ l_deu | Industry + time,
 
 ############################################################
 #old logs
+two_d_datap <- two_d_data %>% filter( l_ca > 0, l_dea > 0)
+#make sure both
+
 r2_ca_1 <- feols(log(Adr) ~ log(l_ca),
                  cluster = "GVKEY",
-                 data = two_d_data)
+                 data = two_d_datap)
 
 
 
 r2_deu_1 <- feols(log(Adr) ~ log(l_deu),
                  cluster = "GVKEY",
-                 data = two_d_data)
+                 data = two_d_datap)
 
 #industry fixed effects
 r2_ca_2 <- feols(log(Adr) ~ log(l_ca) | Industry + time ,
                  cluster = "GVKEY",
-                 data = two_d_data)
+                 data = two_d_datap)
 
 r2_deu_2 <- feols(log(Adr) ~ log(l_deu) | Industry + time,
                   cluster = "GVKEY",
-                  data = two_d_data)
+                  data = two_d_datap)
 
 
 ############################################################
@@ -673,21 +785,6 @@ view(robust_table)
 
 # Print the LaTeX-formatted summary table
 print(etable(robust_ms, tex = TRUE))
-
-
-
-
-
-
-
-
-
-############################################################
-############################################################
-#old
-############################################################
-############################################################
-
 
 #basic regression
 model_cd_1 <- feols(Adr ~ l_ca + l_deu,

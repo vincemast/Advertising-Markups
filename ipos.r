@@ -247,7 +247,7 @@ decw
 
 #filter to first dec age
 ipos10 <- data %>%
-  filter(age < 31)
+  filter(age < 41)
 
 
 ipo_10_marks <- ipos10 %>%
@@ -302,7 +302,7 @@ w10 <- ggplot(ipo_10_marks, aes(x = age, y = avg_w)) +
                  linetype = "Full sample Average"),
              show.legend = TRUE) +
   labs(x = "Years Since IPO", y = "Avererage Market Share (%)") +
-  coord_cartesian(ylim = c(0, mean_ms)) +
+  coord_cartesian(ylim = c(0, max(ipo_10_marks$avg_w))) +
   theme(text = element_text(size = 20), legend.position = "bottom") +
   scale_linetype_manual(values =
                         c("Full sample Average" = "dashed")) +
