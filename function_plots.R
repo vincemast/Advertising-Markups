@@ -34,7 +34,7 @@ mu_density <- function(Data,Dset) {# nolint
     geom_density(data = Dset, aes(x = MU, color = "Full Sample")) + # nolint
     geom_density(data = Data, aes(x = MU, color = "XAD Reported")) +
     theme(text = element_text(size = 20)) +
-    labs(x = "Markup \n (Log-scale)", y = "Density") +
+    labs(x = "Markup \n (Log-scale)", y = "Density",colour=NULL) +
     scale_x_continuous(trans = pseudo_log_trans(), # nolint
                        limits = c(-.1, 6),
                        breaks = c(0, 1, 6, 11),
@@ -294,7 +294,6 @@ MU_advert_plot <- function(Sub_Panel_data, sub_panel_name, N){ # nolint
 
 }
 
-l_type == "Production Approach"
 
 l_advert_plot <- function(Sub_Panel_data, sub_panel_name, l_type, N){ # nolint
 
@@ -373,36 +372,46 @@ l_advert_plot <- function(Sub_Panel_data, sub_panel_name, l_type, N){ # nolint
   ###4: plot
 
   ifelse(N == 0, lims <- rbind(c(0, .09), c(0, .5)),
-         lims <- rbind(c(0, .2), c(-.1, 1)))
+         lims <- rbind(c(0, .2), c(-.5, 1)))
 
 
   ifelse(N == 0, sze <- 4.5,
-         sze <- 2.5)
+         sze <- 3)
+
+  ifelse(N == 0, lsze <- 2,
+         lsze <- 2)
 
   ifelse(N == 0, shd <- 1,
-         shd <- .35)
+         shd <- .6)
+
+  ifelse(N == 0, ets <- 25,
+         ets <- 25)
+
+  ifelse(N == 0, nointtype <- "dashed",
+         nointtype <- "dashed")
+
 
   plot <- ggplot() +
     geom_point(aes(samp$l, samp$Adr),
                shape = 1, size = sze, stroke = .005, alpha = shd) +
     geom_line(aes(tempdata$l, predict(model_2),
                   color = "OLS line (with intercept)",
-              linetype = "OLS line (with intercept)"), size = 2) +
+                  linetype = "OLS line (with intercept)"), size = lsze) +
     geom_line(aes(tempdata$l, predict(model),
-                  color = "OLS line (No intercept)" ,
-              linetype = "OLS line (No intercept)"), size = 2) +
-    ylim(lims[1,]) +
-    xlim(lims[2,]) +
+                  color = "OLS line (No intercept)",
+                  linetype = "OLS line (No intercept)"), size = lsze) +
+    ylim(lims[1, ]) +
+    xlim(lims[2, ]) +
     ylab("Advertising Share of Revenue") +
     xlab(paste("Lerner Index (", l_type, ")", sep = "")) +
     labs(title = title_temp, color = "legend") +
     theme(legend.position = "bottom") +
-    theme(text = element_text(size = 25)) +
+    theme(text = element_text(size = ets)) +
     theme(plot.title = element_text(hjust = 0.5),
           plot.caption = element_text(hjust = 0)) +
     scale_color_manual(values = colors) +
     scale_linetype_manual(values = c("OLS line (with intercept)" = "solid",
-                                     "OLS line (No intercept)" = "dashed")) +
+                                     "OLS line (No intercept)" = nointtype)) +
     guides(colour = guide_legend(title = NULL, keywidth = 4, keyheight = 1),
            linetype = guide_legend(title = NULL, keywidth = 4, keyheight = 1))
 

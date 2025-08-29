@@ -150,13 +150,19 @@ save_f(agg_muplot, "agg_mu_plot.pdf", dircs, 10, 9, save_files)
 two_d_data <- invisible(industry_n_dig(Data, naics, 2))
 #add naics industries
 
+
+
 # generate full sample scatter plots
 plot_all_ca <- l_advert_plot(Data, "", "Cost Accounting Approach", 1000)
 plot_all_deu <- l_advert_plot(Data, "", "Production Approach", 1000)
 
 #save images
-save_f(plot_all_ca, "adv_scatter_ca.pdf", dircs, 12, 12, save_files)
-save_f(plot_all_deu, "adv_scatter_deu.pdf", dircs, 12, 12, save_files)
+save_f(plot_all_ca, "adv_scatter_ca.pdf", dircs, 12, 12, TRUE)
+save_f(plot_all_deu, "adv_scatter_deu.pdf", dircs, 12, 12, TRUE)
+
+
+save_f(plot_all_ca, "adv_scatter_ca.pdf", dircs, 6, 6, save_files)
+save_f(plot_all_deu, "adv_scatter_deu.pdf", dircs, 6, 6, save_files)
 
 ############################################################
 ############################################################
@@ -167,6 +173,11 @@ save_f(plot_all_deu, "adv_scatter_deu.pdf", dircs, 12, 12, save_files)
 two_d_data <- invisible(industry_n_dig(Data, naics, 2))
 
 two_d_data <- mutate(two_d_data, Industry =industry.y) # nolint
+
+# Convert NA values in Industry variable to the string "NA"
+two_d_data$Industry[is.na(two_d_data$Industry)] <- "NA"
+
+two_d_data <- two_d_data %>% filter( MU > 0, MU_deu > 0)
 
 names(two_d_data)
 
@@ -281,12 +292,13 @@ print(l_table)
 
 names(two_d_data)
 
-# Filter out zero or negative values
-filtered_data <- two_d_data %>% filter(Adr > 0, MU > 0, MU_deu > 0)
+unique(two_d_data$Industry)
+
+
 
 
 #generate average level of things
-sectort_avg <- filtered_data %>%
+sectort_avg <- two_d_data %>%
   group_by(Industry, time) %>%
   summarize(ln_mu = mean(MU, na.rm = TRUE),
             ln_deu = mean(log(MU_deu), na.rm = TRUE),
@@ -836,7 +848,7 @@ sector_avg <- two_d_data %>%
   group_by(Industry) %>%
   summarize(l_ca = mean(l_ca, na.rm = TRUE),
             l_deu = mean(l_deu, na.rm = TRUE),
-            Adr = mean(Ad, na.rm = TRUEr))
+            Adr = mean(Adr, na.rm = TRUE))
 
 head(sector_avg)
 
